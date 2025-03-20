@@ -4,6 +4,11 @@
     "description": "Browser-based renderer of the Aili visualization tree",
     "author": "IWonderWhatThisAPIDoes",
     "license": "(MIT OR Apache-2.0)",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/IWonderWhatThisAPIDoes/aili",
+        "directory": "vis"
+    },
     "type": "module",
     "browser": "src/index.ts",
     "directories": {
