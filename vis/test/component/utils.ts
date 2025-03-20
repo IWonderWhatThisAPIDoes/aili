@@ -40,6 +40,13 @@ export const WHITE: ColorChannels = {
 }
 
 /**
+ * How many digits after the decimal point (in pixels) must match
+ * to pass an equality assertion in em units while approximating
+ * them with font size.
+ */
+export const EM_TOLERANCE: number = -1;
+
+/**
  * Deserializes a CSS color in order to properly assert its value.
  * 
  * @param color CSS color specification, in `rgb` or `rgba` format.

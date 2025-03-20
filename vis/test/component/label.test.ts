@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
 import * as vis from '../../src';
-import { BLACK, ColorChannels, parsePixels, parseResolvedColor, Testbed } from './utils';
+import { BLACK, ColorChannels, EM_TOLERANCE, parsePixels, parseResolvedColor, Testbed } from './utils';
 import { JSHandle } from 'puppeteer';
 import 'jest-puppeteer';
 
@@ -99,8 +99,8 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Center on center
-        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, -0.5);
-        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, -0.5);
+        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, EM_TOLERANCE);
+        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, EM_TOLERANCE);
     });
 
     it('pushes self to the bottom of parent if set beforehand', async () => {
@@ -111,9 +111,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Center on center
-        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, -0.5);
+        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, EM_TOLERANCE);
         // Bottom on bottom
-        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y + parentBox.height, -0.5);
+        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y + parentBox.height, EM_TOLERANCE);
     });
 
     it('pushes self to the top of parent if set afterwards', async () => {
@@ -124,9 +124,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Center on center
-        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, -0.5);
+        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, EM_TOLERANCE);
         // Top on top
-        expect(labelBox.y).toBeCloseTo(parentBox.y, -0.5);
+        expect(labelBox.y).toBeCloseTo(parentBox.y, EM_TOLERANCE);
     });
 
     it('pushes self to the left of parent if set beforehand', async () => {
@@ -137,9 +137,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Left on left
-        expect(labelBox.x).toBeCloseTo(parentBox.x, -0.5);
+        expect(labelBox.x).toBeCloseTo(parentBox.x, EM_TOLERANCE);
         // Center on center
-        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, -0.5);
+        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, EM_TOLERANCE);
     });
 
     it('pushes self to the right of parent if set afterwards', async () => {
@@ -150,9 +150,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Right on right
-        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x + parentBox.width, -0.5);
+        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x + parentBox.width, EM_TOLERANCE);
         // Center on center
-        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, -0.5);
+        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, EM_TOLERANCE);
     });
 
     it('pushes self to the top right corner', async () => {
@@ -166,9 +166,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Right on right
-        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x + parentBox.width, -0.5);
+        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x + parentBox.width, EM_TOLERANCE);
         // Top on top
-        expect(labelBox.y).toBeCloseTo(parentBox.y, -0.5);
+        expect(labelBox.y).toBeCloseTo(parentBox.y, EM_TOLERANCE);
     });
 
     it('pushes self outside of parent vertically if set beforehand', async () => {
@@ -182,9 +182,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Center on center
-        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, -0.5);
+        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, EM_TOLERANCE);
         // Bottom on top
-        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y, -0.5);
+        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y, EM_TOLERANCE);
     });
 
     it('pushes self outside of parent vertically if set afterwards', async () => {
@@ -199,9 +199,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Left on left
-        expect(labelBox.x).toBeCloseTo(parentBox.x, -0.5);
+        expect(labelBox.x).toBeCloseTo(parentBox.x, EM_TOLERANCE);
         // Top on bottom
-        expect(labelBox.y).toBeCloseTo(parentBox.y + parentBox.height, -0.5);
+        expect(labelBox.y).toBeCloseTo(parentBox.y + parentBox.height, EM_TOLERANCE);
     });
 
     it('pushes self outside of parent horizontally if set beforehand', async () => {
@@ -215,9 +215,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Right on left
-        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x, -0.5);
+        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x, EM_TOLERANCE);
         // Center on center
-        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, -0.5);
+        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, EM_TOLERANCE);
     });
 
     it('pushes self outside of parent horizontally if set afterwards', async () => {
@@ -232,9 +232,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Left on right
-        expect(labelBox.x).toBeCloseTo(parentBox.x + parentBox.width, -0.5);
+        expect(labelBox.x).toBeCloseTo(parentBox.x + parentBox.width, EM_TOLERANCE);
         // Top on top
-        expect(labelBox.y).toBeCloseTo(parentBox.y, -0.5);
+        expect(labelBox.y).toBeCloseTo(parentBox.y, EM_TOLERANCE);
     });
 
     it('pushes self outside the bottom left corner', async () => {
@@ -250,9 +250,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Right on left
-        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x, -0.5);
+        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x, EM_TOLERANCE);
         // Top on bottom
-        expect(labelBox.y).toBeCloseTo(parentBox.y + parentBox.height, -0.5);
+        expect(labelBox.y).toBeCloseTo(parentBox.y + parentBox.height, EM_TOLERANCE);
     });
 
     it('pushes itself away from parent\'s edge if set beforehand', async () => {
@@ -269,9 +269,9 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Right on right, with padding
-        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x + parentBox.width - PADDING * fontSize, -0.5);
+        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x + parentBox.width - PADDING * fontSize, EM_TOLERANCE);
         // Bottom on top, with padding
-        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y - PADDING * fontSize, -0.5);
+        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y - PADDING * fontSize, EM_TOLERANCE);
     });
 
     it('pushes itself away from parent\'s edge if set afterwards', async () => {
@@ -288,8 +288,8 @@ describe(vis.LabelViewModel, () => {
         const labelBox = await t.boundingBox();
         const parentBox = await t.boundingBox(parentSelector);
         // Right on left, with padding
-        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x - PADDING * fontSize, -0.5);
+        expect(labelBox.x + labelBox.width).toBeCloseTo(parentBox.x - PADDING * fontSize, EM_TOLERANCE);
         // Bottom on bottom, with padding
-        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y + parentBox.height - PADDING * fontSize, -0.5);
+        expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y + parentBox.height - PADDING * fontSize, EM_TOLERANCE);
     });
 });

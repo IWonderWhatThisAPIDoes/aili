@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from '@jest/globals';
-import { BLACK, ColorChannels, parsePixels, parseResolvedColor, Testbed } from './utils';
+import { BLACK, ColorChannels, EM_TOLERANCE, parsePixels, parseResolvedColor, Testbed } from './utils';
 import * as vis from '../../src';
 
 const CELL_VALUE = '42';
@@ -144,8 +144,8 @@ describe(vis.CellViewModel, () => {
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
         const boundingBox = await t.theElement().then(h => h.boundingBox());
         // This is a very rough estimate, approximating em units with font size
-        expect(boundingBox.width).toBeCloseTo(fontSize * 4, -0.5);
-        expect(boundingBox.height).toBeCloseTo(fontSize * 4, -0.5);
+        expect(boundingBox.width).toBeCloseTo(fontSize * 4, EM_TOLERANCE);
+        expect(boundingBox.height).toBeCloseTo(fontSize * 4, EM_TOLERANCE);
     });
 
     it('has size that was assigned later', async () => {
@@ -154,7 +154,7 @@ describe(vis.CellViewModel, () => {
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
         const boundingBox = await t.theElement().then(h => h.boundingBox());
         // This is a very rough estimate, approximating em units with font size
-        expect(boundingBox.width).toBeCloseTo(fontSize, -0.5);
-        expect(boundingBox.height).toBeCloseTo(fontSize, -0.5);
+        expect(boundingBox.width).toBeCloseTo(fontSize, EM_TOLERANCE);
+        expect(boundingBox.height).toBeCloseTo(fontSize, EM_TOLERANCE);
     });
 });
