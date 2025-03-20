@@ -12,7 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     name: Tests (vis)
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-      - run: npm ci
-      - run: npm test -w vis
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Install Node packages
+        run: npm ci
+      - name: Run tests
+        run: npm test -w vis
