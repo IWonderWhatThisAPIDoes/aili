@@ -1,0 +1,53 @@
+{
+    "name": "aili-vis",
+    "version": "0.1.0",
+    "description": "Browser-based renderer of the Aili visualization tree",
+    "author": "IWonderWhatThisAPIDoes",
+    "license": "(MIT OR Apache-2.0)",
+    "type": "module",
+    "browser": "src/index.ts",
+    "directories": {
+        "doc": "doc",
+        "test": "test",
+        "example": "examples"
+    },
+    "scripts": {
+        "test": "npm run test:unit && npm run test:component",
+        "test:unit": "jest -c test/unit/jest.config.js",
+        "test:component": "npm run test:component:build && npm run test:component:run",
+        "test:component:build": "rollup -c test/component/rollup.config.js",
+        "test:component:run": "jest -c test/component/jest.config.js -i",
+        "doc": "typedoc",
+        "examples": "npm run examples:linked-list && npm run examples:structure && npm run examples:graph && npm run examples:b-tree",
+        "examples:linked-list": "rollup -c examples/rollup.config.js -i examples/linked-list.js -d examples/out/linked-list",
+        "examples:structure": "rollup -c examples/rollup.config.js -i examples/structure.js -d examples/out/structure",
+        "examples:graph": "rollup -c examples/rollup.config.js -i examples/graph.js -d examples/out/graph",
+        "examples:b-tree": "rollup -c examples/rollup.config.js -i examples/b-tree.js -d examples/out/b-tree"
+    },
+    "dependencies": {
+        "@jsplumb/browser-ui": "^6.2.10",
+        "@viz-js/viz": "^3.11.0"
+    },
+    "devDependencies": {
+        "@babel/preset-env": "^7.26.9",
+        "@babel/preset-typescript": "^7.26.0",
+        "@jest/globals": "^29.7.0",
+        "@types/random-seed": "^0.3.5",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
+        "random-seed": "^0.3.0",
+        "ts-jest": "^29.2.6",
+        "typedoc": "^0.27.9",
+        "rollup": "^4.35.0",
+        "@rollup/plugin-typescript": "^12.1.2",
+        "rollup-plugin-import-css": "^3.5.8",
+        "@web/rollup-plugin-html": "^2.3.0",
+        "@rollup/plugin-node-resolve": "^16.0.1",
+        "rollup-plugin-generate-html-template": "^1.7.0",
+        "tslib": "^2.8.1",
+        "puppeteer": "^24.4.0",
+        "jest-puppeteer": "^11.0.0",
+        "merge": "^2.1.1",
+        "identity-obj-proxy": "^3.0.0"
+    }
+}

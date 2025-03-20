@@ -1,0 +1,99 @@
+/**
+ * Styles for the companion label view model.
+ */
+
+/* Outer wrapper of a companion label */
+.aili-label-outer {
+    /* Companion element must be in absolute position */
+    position: absolute;
+    /* Wrapper might wind up in weird places, so make sure it does not get in the way */
+    pointer-events: none;
+}
+
+/* Intermediate wrapper of a companion label */
+.aili-label-mid {
+    /* Relative position so that the wrapper has the same size as this */
+    position: relative;
+}
+
+/* Actual text of a companion label */
+.aili-label {
+    /* Make it positioned so that companions can lay themselves out properly */
+    position: relative;
+    /* Re-enable interaction after we turned it off for the parent */
+    pointer-events: all;
+}
+
+/* Label positioned just below parent's top edge */
+.aili-label-outer.aili-north:not(.aili-nsoutside) {
+    top: 0;
+}
+
+/* Label positioned just above parent's top edge */
+.aili-label-outer.aili-north.aili-nsoutside {
+    bottom: 100%;
+}
+
+/* Label positioned just above parent's bottom edge */
+.aili-label-outer.aili-south:not(.aili-nsoutside) {
+    bottom: 0;
+}
+
+/* Label positioned just below parent's bottom edge */
+.aili-label-outer.aili-south.aili-nsoutside {
+    top: 100%;
+}
+
+/* Label positioned just to the left of parent's right edge */
+.aili-label-outer.aili-east:not(.aili-weoutside) {
+    right: 0;
+}
+
+/* Label positioned just to the right of parent's right edge */
+.aili-label-outer.aili-east.aili-weoutside {
+    left: 100%;
+}
+
+/* Label positioned just to the right of parent's left edge */
+.aili-label-outer.aili-west:not(.aili-weoutside) {
+    left: 0;
+}
+
+/* Label positioned just to the left of parent's left edge */
+.aili-label-outer.aili-west.aili-weoutside {
+    right: 100%;
+}
+
+/* Label centered on the parent horizontally */
+.aili-label-outer:not(.aili-east):not(.aili-west) {
+    /* Pull wrapper's left edge to the center of the parent */
+    left: 50%;
+}
+
+.aili-label-outer:not(.aili-east):not(.aili-west) .aili-label-mid {
+    /* Pull text's right edge to the center of the wrapper.
+     * This places the center axis of text on the center axis of parent.
+     */
+    right: 50%;
+}
+
+/* We cannot use the same trick as with left-right alignment
+ * because browsers do not bother to calculate height in time
+ * for us to use it like this.
+ *
+ * And people HAVE tried.
+ * https://stackoverflow.com/q/25851815/15075450
+ * https://stackoverflow.com/q/28238042/15075450
+ * https://stackoverflow.com/q/31911408/15075450
+ *
+ * Instead, we use flex model to center-align the label vertically.
+ */
+.aili-label-outer:not(.aili-north):not(.aili-south) {
+    /* Copy the parent element's placement vertically */
+    top: 0%;
+    height: 100%;
+    /* Use flex model to center-align the label */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}

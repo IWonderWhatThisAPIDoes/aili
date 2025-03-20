@@ -1,0 +1,10 @@
+/**
+ * Styles for the inline label view model.
+ */
+
+.aili-text {
+    /* Make it positioned so that companions can lay themselves out properly */
+    position: relative;
+    /* Set color explicitly so it is not inherited */
+    color: black;
+}

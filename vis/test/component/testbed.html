@@ -1,0 +1,14 @@
+<!-- Simple templalte web page that serves as a testbed for component tests -->
+<html>
+    <head>
+        <script type="module">
+            // Load our library
+            import * as vis from '../../src';
+            // Expose it in the global namespace so we can access it in tests
+            window.vis = vis;
+        </script>
+    </head>
+    <body>
+        <div id="app"></div>
+    </body>
+</html>

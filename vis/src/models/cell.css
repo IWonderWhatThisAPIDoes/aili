@@ -1,0 +1,18 @@
+/**
+ * Styles for the cell view model.
+ */
+
+.aili-cell {
+    /* Make it positioned so that companions can lay themselves out properly */
+    position: relative;
+    /* Make it a flexbox so the content is properly centered */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Default dimensions: 3 units */
+    min-width: 2em;
+    min-height: 2em;
+    /* Set colors explicitly so they are not inherited */
+    border: 1px solid black;
+    color: black;
+}

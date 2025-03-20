@@ -1,0 +1,64 @@
+/**
+ * Styles for the key-value table view model.
+ */
+
+.aili-kvt {
+    background-color: #d0cdcd;
+    /* For the outline of the whole table */
+    border: solid 1px #544;
+    /* Make sure empty table does not look weird */
+    min-width: 2em;
+    min-height: 1em;
+}
+
+.aili-kvt > table {
+    /* Stick cell borders to each other, but do not collapse them */
+    border-spacing: 0;
+    /* If the wrapper has a forced size, fill it */
+    min-width: 100%;
+}
+
+.aili-kvt td {
+    border-top: solid 1px #f0e8e8;
+    padding: .125em .25em;
+}
+
+.aili-kvt tr:not(:last-of-type) > td, .aili-kvt thead td {
+    border-bottom: solid 1px #807474;
+}
+
+.aili-kvt td.aili-kvt-key, .aili-kvt thead td {
+    color: #544;
+}
+
+.aili-kvt thead td {
+    background-color: #c8c4c4;
+}
+
+.aili-kvt .aili-kvt-inner {
+    /* Push the values all the way to the right */
+    display: flex;
+    justify-content: end;
+}
+
+.aili-kvt thead td {
+    text-align: center;
+    font-weight: bolder;
+}
+
+.aili-kvt td.aili-kvt-nested {
+    /* A nested table should fill its cell completely, so no padding */
+    padding: 0;
+    border-left: 1px solid #807474;
+    border-top: none;
+}
+
+.aili-kvt-nested > .aili-kvt-inner {
+    /* This stretches the nested table to fill the whole cell */
+    display: block;
+}
+
+.aili-kvt-nested > .aili-kvt-inner > .aili-kvt {
+    /* We do not want doubled borders */
+    border: none;
+}

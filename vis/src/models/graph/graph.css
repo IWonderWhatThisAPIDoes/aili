@@ -1,0 +1,25 @@
+/**
+ * Styles for the graph view model.
+ */
+
+.aili-graph {
+    /* Allow children to position themselves absolutely */
+    position: relative;
+    /* Set defult padding */
+    padding: 1em;
+    /* Set a border explicitly so it can be easily overridden */
+    border: 0 solid black;
+    background-color: transparent;
+}
+
+.aili-graph > .aili-graph-inner {
+    position: relative;
+    /* Set a minimum width so that an empty graph is not zero-size */
+    min-width: 3em;
+    min-height: 3em;
+}
+
+.aili-graph > .aili-graph-inner > .aili-graph-slot {
+    /* Use exact position within the graph container */
+    position: absolute;
+}

@@ -1,0 +1,19 @@
+/**
+ * Styles for the row/column view model.
+ */
+
+.aili-row {
+    /* Make it positioned so that companions can lay themselves out properly */
+    position: relative;
+    /* Lay it out as a row */
+    display: flex;
+    flex-direction: row;
+    /* By default, align elements at the center line */
+    align-items: center;
+    /* Set a border explicitly so it can be easily overridden */
+    border: 0 solid black;
+    background-color: transparent;
+    /* Set a minimum size so that an empty row is not zero-size */
+    min-width: 1em;
+    min-height: 1em;
+}

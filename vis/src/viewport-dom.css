@@ -1,0 +1,28 @@
+/**
+ * Styles for the viewport root.
+ */
+
+/* Wrapper for a viewport container */
+.aili-vp {
+    /* If the container has a set height, fill it */
+    width: 100%;
+    height: 100%;
+    /* If the content is bigger than the viewport, make it scrollable */
+    overflow: scroll;
+    /* If the content is smaller than the viewport, center-align it */
+    display: flex;
+    justify-content: safe center;
+    align-items: safe center;
+}
+
+/* Inner wrapper for a viewport container */
+.aili-vp > .aili-vp-inner {
+    /* Add minimal spacing between content and container, even if it scrolls */
+    margin: 1em;
+}
+
+/* JSPlumb engine will be attached to this */
+.aili-vp .aili-jtk-container {
+    /* https://docs.jsplumbtoolkit.com/community/6.x/#where-does-jsplumb-add-elements */
+    position: relative !important;
+}
