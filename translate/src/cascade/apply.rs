@@ -7,11 +7,11 @@ use crate::{
     property::{PropertyValue, Selectable},
     stylesheet::selector::EdgeMatcher,
 };
-use aili_model::state::{EdgeLabel, NodeId, ProgramStateGraphRef, ProgramStateNodeRef};
+use aili_model::state::{EdgeLabel, NodeId, ProgramStateNodeRef, RootedProgramStateGraphRef};
 use std::collections::{HashMap, HashSet};
 
 /// Applies a stylesheet to a graph.
-pub fn apply_stylesheet<T: ProgramStateGraphRef>(
+pub fn apply_stylesheet<T: RootedProgramStateGraphRef>(
     stylesheet: &FlatStylesheet,
     graph: T,
 ) -> HashMap<PropertyKey<T::NodeId>, PropertyValue<T::NodeId>> {
@@ -25,7 +25,7 @@ pub fn apply_stylesheet<T: ProgramStateGraphRef>(
 pub struct PropertyKey<'a, T: NodeId>(pub Selectable<T>, pub &'a str);
 
 /// Helper for stylesheet applications.
-struct ApplyStylesheet<'a, T: ProgramStateGraphRef> {
+struct ApplyStylesheet<'a, T: RootedProgramStateGraphRef> {
     /// The graph being traversed.
     graph: T,
 
@@ -46,7 +46,7 @@ struct ApplyStylesheet<'a, T: ProgramStateGraphRef> {
     properties: HashMap<PropertyKey<'a, T::NodeId>, PropertyValue<T::NodeId>>,
 }
 
-impl<'a, T: ProgramStateGraphRef> ApplyStylesheet<'a, T> {
+impl<'a, T: RootedProgramStateGraphRef> ApplyStylesheet<'a, T> {
     fn new(stylesheet: &'a FlatStylesheet, graph: T) -> Self {
         Self {
             graph,

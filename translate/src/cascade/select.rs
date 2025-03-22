@@ -2,11 +2,11 @@
 
 use super::{eval::EvaluationContext, flat_selector::FlatSelectorSegment};
 use crate::stylesheet::selector::EdgeMatcher;
-use aili_model::state::{ProgramStateGraphRef, ProgramStateNodeRef};
+use aili_model::state::{ProgramStateNodeRef, RootedProgramStateGraphRef};
 use std::collections::HashSet;
 
 /// Tests a selector against all nodes in a graph.
-pub fn get_selector_matches<T: ProgramStateGraphRef>(
+pub fn get_selector_matches<T: RootedProgramStateGraphRef>(
     path: &Vec<FlatSelectorSegment>,
     graph: T,
 ) -> HashSet<T::NodeId> {
@@ -16,7 +16,7 @@ pub fn get_selector_matches<T: ProgramStateGraphRef>(
 }
 
 /// Helper for matching selectors against graphs.
-struct GetSelectorMatches<'a, T: ProgramStateGraphRef> {
+struct GetSelectorMatches<'a, T: RootedProgramStateGraphRef> {
     /// The graph being traversed.
     graph: T,
 
@@ -37,7 +37,7 @@ struct GetSelectorMatches<'a, T: ProgramStateGraphRef> {
     selected_nodes: HashSet<T::NodeId>,
 }
 
-impl<'a, T: ProgramStateGraphRef> GetSelectorMatches<'a, T> {
+impl<'a, T: RootedProgramStateGraphRef> GetSelectorMatches<'a, T> {
     /// Construct a selector matching helper
     fn new(path: &'a Vec<FlatSelectorSegment>, graph: T) -> Self {
         Self {

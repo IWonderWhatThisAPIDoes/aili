@@ -29,7 +29,10 @@ pub struct EvaluationContext<'a, T: ProgramStateGraphRef> {
 impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
     /// Constructs an evaluation context for a graph,
     /// starting at the root node, with no variables.
-    pub fn of_graph(graph: T) -> Self {
+    pub fn of_graph(graph: T) -> Self
+    where
+        T: RootedProgramStateGraphRef,
+    {
         Self {
             current_node: graph.clone().root(),
             graph,

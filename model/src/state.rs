@@ -383,9 +383,13 @@ pub trait ProgramStateGraphRef: Clone {
     /// Type of references to nodes.
     type NodeRef: ProgramStateNodeRef<NodeId = Self::NodeId>;
 
-    /// Get the ID of the root node.
-    fn root(self) -> Self::NodeId;
-
     /// Get a reference to a state node by its ID.
     fn get(self, id: Self::NodeId) -> Option<Self::NodeRef>;
+}
+
+/// Container for a program state graph that additionally
+/// allows accessing the root node.
+pub trait RootedProgramStateGraphRef: ProgramStateGraphRef {
+    /// Get the ID of the root node.
+    fn root(self) -> Self::NodeId;
 }

@@ -3,9 +3,7 @@
 #![cfg(test)]
 
 use crate::stylesheet::selector::LimitedSelector;
-use aili_model::state::{
-    EdgeLabel, NodeType, NodeTypeId, NodeValue, ProgramStateGraphRef, ProgramStateNodeRef,
-};
+use aili_model::state::*;
 use std::collections::HashMap;
 
 /// Stub graph for testing graph-based code.
@@ -158,11 +156,14 @@ impl TestGraph {
 impl<'a> ProgramStateGraphRef for &'a TestGraph {
     type NodeId = usize;
     type NodeRef = &'a TestNode;
-    fn root(self) -> Self::NodeId {
-        0
-    }
     fn get(self, id: Self::NodeId) -> Option<Self::NodeRef> {
         self.0.get(id)
+    }
+}
+
+impl RootedProgramStateGraphRef for &TestGraph {
+    fn root(self) -> Self::NodeId {
+        0
     }
 }
 
