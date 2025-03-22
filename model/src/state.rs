@@ -1,6 +1,6 @@
 //! Program state graph model.
 
-use derive_more::Debug;
+use derive_more::{Debug, From};
 
 /// Unique identifier of a program state node.
 pub trait NodeId: Clone + std::fmt::Debug {}
@@ -26,10 +26,53 @@ pub trait NodeTypeId: Clone + std::fmt::Debug + std::cmp::Eq {}
 
 impl<T: Clone + std::fmt::Debug + std::cmp::Eq> NodeTypeId for T {}
 
-/// Value of a program state node.
-pub trait NodeValue: Clone + std::fmt::Debug + ToString {}
+/// Enumerates elementary arithmetic values for nodes.
+#[derive(Clone, Copy, Eq, Debug, From)]
+pub enum NodeValue {
+    /// Boolean value.
+    #[debug("{}", if *_0 { "true" } else  { "false" })]
+    Bool(bool),
 
-impl<T: Clone + std::fmt::Debug + ToString> NodeValue for T {}
+    // Signed integer value.
+    #[debug("{_0}")]
+    Int(i64),
+
+    // Unsigned integer value.
+    #[debug("{_0}")]
+    Uint(u64),
+}
+
+impl PartialEq for NodeValue {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other).is_eq()
+    }
+}
+
+impl PartialOrd for NodeValue {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for NodeValue {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (*self, *other) {
+            (Self::Bool(left), Self::Bool(right)) => left.cmp(&right),
+            (Self::Bool(left), Self::Int(right)) => i64::from(left).cmp(&right),
+            (Self::Bool(left), Self::Uint(right)) => u64::from(left).cmp(&right),
+            (Self::Int(left), Self::Bool(right)) => left.cmp(&right.into()),
+            (Self::Int(left), Self::Int(right)) => left.cmp(&right),
+            (Self::Int(left), Self::Uint(right)) => u64::try_from(left)
+                .map(|left| left.cmp(&right))
+                .unwrap_or(std::cmp::Ordering::Less),
+            (Self::Uint(left), Self::Bool(right)) => left.cmp(&right.into()),
+            (Self::Uint(left), Self::Int(right)) => u64::try_from(right)
+                .map(|right| left.cmp(&right))
+                .unwrap_or(std::cmp::Ordering::Greater),
+            (Self::Uint(left), Self::Uint(right)) => left.cmp(&right),
+        }
+    }
+}
 
 /// Types of program state edges.
 ///
@@ -250,9 +293,6 @@ pub trait ProgramStateNodeRef {
     /// Type of unique identifiers for [`NodeType::Struct`] node types.
     type ObjId: NodeTypeId;
 
-    /// Type of values of [`NodeType::Atom`] nodes.
-    type NodeValue: NodeValue;
-
     /// Finds a successor node by navigating along a specified edge.
     fn get_successor(self, edge: &EdgeLabel) -> Option<Self::NodeId>;
 
@@ -268,7 +308,7 @@ pub trait ProgramStateNodeRef {
         Self: 'a;
 
     /// Gets the value of the node, if any.
-    fn value<'a>(self) -> Option<&'a Self::NodeValue>
+    fn value<'a>(self) -> Option<&'a NodeValue>
     where
         Self: 'a;
 }
