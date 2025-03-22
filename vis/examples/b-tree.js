@@ -18,7 +18,8 @@ import {
 } from '../src';
 
 /**
- * Converts pre-order node indices to in-order
+ * Converts node indices from zero-based breadth-first left-to-right order
+ * to one-based depth-first in-order-subtree order.
  * 
  * ```text
  *   0+1          2+4
