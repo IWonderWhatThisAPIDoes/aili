@@ -22,9 +22,10 @@ impl<T: Clone + std::fmt::Debug + Eq + std::hash::Hash> NodeId for T {}
 /// they do not need to be globally unique.
 /// They must only be unique within each of the three
 /// categories.
-pub trait NodeTypeId: Clone + std::fmt::Debug + std::cmp::Eq {}
-
-impl<T: Clone + std::fmt::Debug + std::cmp::Eq> NodeTypeId for T {}
+pub trait NodeTypeId: Clone + std::cmp::Eq {
+    /// Get the specific name of the type.
+    fn type_name(&self) -> &str;
+}
 
 /// Enumerates elementary arithmetic values for nodes.
 #[derive(Clone, Copy, Eq, Debug, From)]
@@ -200,7 +201,7 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     /// | [`EdgeLabel::Named`]  | *            | Local variables             |
     /// | [`EdgeLabel::Result`] | 0..1         | The function's return value |
     ///
-    #[debug("fun:{_0}")]
+    #[debug("fun:{}", _0.type_name())]
     Frame(FunId),
 
     /// Type of nodes that represent elementary values.
@@ -218,7 +219,7 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     ///
     /// ## Permitted Outgoing Edges
     /// None.
-    #[debug("val:{_0}")]
+    #[debug("val:{}", _0.type_name())]
     Atom(AtomId),
 
     /// Type of nodes that represent structured values.
@@ -238,7 +239,7 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     /// | Edge label           | Multiplicity | Semantics             |
     /// |----------------------|--------------|-----------------------|
     /// | [`EdgeLabel::Named`] | *            | Member variables      |
-    #[debug("obj:{_0}")]
+    #[debug("obj:{}", _0.type_name())]
     Struct(ObjId),
 
     /// Type of nodes that represent sequence (array) values.
@@ -277,6 +278,61 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     /// | [`EdgeLabel::Deref`] | 1            | The value being referenced |
     #[debug("ref")]
     Ref,
+}
+
+impl<T: NodeTypeId, U: NodeTypeId, V: NodeTypeId> NodeType<T, U, V> {
+    /// Gets the name of a node type if it is one of the named type classes.
+    pub fn type_name(&self) -> Option<&str> {
+        match self {
+            NodeType::Root => None,
+            NodeType::Frame(type_id) => Some(type_id.type_name()),
+            NodeType::Atom(type_id) => Some(type_id.type_name()),
+            NodeType::Struct(type_id) => Some(type_id.type_name()),
+            NodeType::Array => None,
+            NodeType::Ref => None,
+        }
+    }
+}
+
+/// Labels of [`NodeType`].
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum NodeTypeClass {
+    /// [`NodeType::Root`].
+    #[debug("root")]
+    Root,
+
+    /// [`NodeType::Frame`].
+    #[debug("fun")]
+    Frame,
+
+    /// [`NodeType::Atom`].
+    #[debug("var")]
+    Atom,
+
+    /// [`NodeType::Struct`].
+    #[debug("obj")]
+    Struct,
+
+    /// [`NodeType::Array`].
+    #[debug("arr")]
+    Array,
+
+    /// [`NodeType::Ref`].
+    #[debug("ref")]
+    Ref,
+}
+
+impl<T: NodeTypeId, U: NodeTypeId, V: NodeTypeId> From<&NodeType<T, U, V>> for NodeTypeClass {
+    fn from(value: &NodeType<T, U, V>) -> Self {
+        match value {
+            NodeType::Root => Self::Root,
+            NodeType::Frame(_) => Self::Frame,
+            NodeType::Atom(_) => Self::Atom,
+            NodeType::Struct(_) => Self::Struct,
+            NodeType::Array => Self::Array,
+            NodeType::Ref => Self::Ref,
+        }
+    }
 }
 
 /// Reference to a program state node.
