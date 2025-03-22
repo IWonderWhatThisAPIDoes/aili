@@ -12,3 +12,8 @@ Definitions of Program State and Visualization models.
 
 Browser-based renderer of Visualization model,
 written in Typescript.
+
+### Translate
+
+Translator for converting between Program state and Visualization
+models based on a stylesheet.
