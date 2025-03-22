@@ -120,6 +120,24 @@ impl Selector {
             extra: None,
         }
     }
+
+    /// Shorthand for setting the [`Selector::selects_edge`] flag.
+    pub fn selecting_edge(self) -> Self {
+        Self {
+            path: self.path,
+            selects_edge: true,
+            extra: self.extra,
+        }
+    }
+
+    /// Shorthand for adding an [`Selector::extra`] tag.
+    pub fn with_extra(self, extra: String) -> Self {
+        Self {
+            path: self.path,
+            selects_edge: self.selects_edge,
+            extra: Some(extra),
+        }
+    }
 }
 
 /// Selector that is limited to a single path
