@@ -180,7 +180,7 @@ impl<'a, T: ProgramStateGraphRef> GetSelectorMatches<'a, T> {
 mod test {
     use super::*;
     use crate::{
-        expression::Expression,
+        expression::{Expression, UnaryOperator},
         flat_selector::FlatSelector,
         selector::{LimitedSelector, RestrictedSelectorSegment, Selector, SelectorSegment},
         test_graph::TestGraph,
@@ -189,6 +189,7 @@ mod test {
 
     #[test]
     fn select_main_and_any_number_of_named() {
+        // main iter(named)
         let selector = FlatSelector::from(Selector::from_path(
             [
                 SelectorSegment::Match(EdgeLabel::Main.into()).into(),
@@ -205,6 +206,7 @@ mod test {
 
     #[test]
     fn select_all_stack_nodes() {
+        // main iter(next)
         let selector = FlatSelector::from(Selector::from_path(
             [
                 SelectorSegment::Match(EdgeLabel::Main.into()).into(),
@@ -221,6 +223,7 @@ mod test {
 
     #[test]
     fn select_named_anywhere() {
+        // iter(*) "a"
         let selector = FlatSelector::from(Selector::from_path(
             [
                 SelectorSegment::anything_any_number_of_times().into(),
@@ -234,6 +237,7 @@ mod test {
 
     #[test]
     fn select_named_successor_of_named_anywhere() {
+        // iter(*) "a" "a"
         let selector = FlatSelector::from(Selector::from_path(
             [
                 SelectorSegment::anything_any_number_of_times().into(),
@@ -248,6 +252,7 @@ mod test {
 
     #[test]
     fn select_dereference_anywhere_after_double_named() {
+        // "a" "a" iter(*) deref
         let selector = FlatSelector::from(Selector::from_path(
             [
                 SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
@@ -263,6 +268,7 @@ mod test {
 
     #[test]
     fn select_anything_after_result_anywhere() {
+        // iter(*) result iter(*)
         let selector = FlatSelector::from(Selector::from_path(
             [
                 SelectorSegment::anything_any_number_of_times().into(),
@@ -277,6 +283,7 @@ mod test {
 
     #[test]
     fn select_next_frame_or_named() {
+        // main iter(or(next, "a"))
         let selector = FlatSelector::from(Selector::from_path(
             [
                 SelectorSegment::Match(EdgeLabel::Main.into()).into(),
@@ -298,6 +305,7 @@ mod test {
 
     #[test]
     fn degenerate_repeated_empty_path() {
+        // iter()
         let selector = FlatSelector::from(Selector::from_path(
             [SelectorSegment::AnyNumberOfTimes([].into()).into()].into(),
         ));
@@ -307,6 +315,7 @@ mod test {
 
     #[test]
     fn degenerate_repeated_empty_branch() {
+        // iter(or(named, ))
         let selector = FlatSelector::from(Selector::from_path(
             [SelectorSegment::AnyNumberOfTimes(
                 [SelectorSegment::Branch(vec![
@@ -325,16 +334,42 @@ mod test {
 
     #[test]
     fn match_with_lookahead() {
+        // iter(*).if(@(deref))
         let selector = FlatSelector::from(Selector::from_path(
             [RestrictedSelectorSegment {
                 segment: SelectorSegment::anything_any_number_of_times(),
                 condition: Some(Expression::Select(
-                    LimitedSelector::from_path(vec![EdgeLabel::Deref.into()]).into(),
+                    LimitedSelector::from_path([EdgeLabel::Deref.into()]).into(),
                 )),
             }]
             .into(),
         ));
         let matched = get_selector_matches(&selector.path, &TestGraph::default_graph());
         assert_eq!(matched, [5, 7, 8, 12, 13].into());
+    }
+
+    #[test]
+    fn select_stack_top_node() {
+        // main iter(next).if(!@(next))
+        let selector = FlatSelector::from(Selector::from_path(
+            [
+                SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                RestrictedSelectorSegment {
+                    segment: SelectorSegment::AnyNumberOfTimes(
+                        [SelectorSegment::Match(EdgeLabel::Next.into()).into()].into(),
+                    ),
+                    condition: Some(Expression::UnaryOperator(
+                        UnaryOperator::Not,
+                        Expression::Select(
+                            LimitedSelector::from_path([EdgeLabel::Next.into()]).into(),
+                        )
+                        .into(),
+                    )),
+                },
+            ]
+            .into(),
+        ));
+        let matched = get_selector_matches(&selector.path, &TestGraph::default_graph());
+        assert_eq!(matched, [4].into());
     }
 }
