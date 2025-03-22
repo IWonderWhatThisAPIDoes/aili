@@ -20,3 +20,79 @@ jobs:
         run: npm ci
       - name: Run tests
         run: npm test -w vis
+
+  doc-vis:
+    runs-on: ubuntu-latest
+    name: Docs (vis)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Install Node packages
+        run: npm ci
+      - name: Check documentation
+        run: npm run doc -w vis
+
+  examples-vis:
+    runs-on: ubuntu-latest
+    name: Examples (vis)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Install Node packages
+        run: npm ci
+      - name: Check examples
+        run: npm run examples -w vis
+
+  cargo-test:
+    runs-on: ubuntu-latest
+    name: Tests (Cargo)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run tests
+        run: cargo test --workspace
+
+  clippy:
+    runs-on: ubuntu-latest
+    name: Clippy lints
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Run Clippy lints
+        run: cargo clippy --workspace --all-targets --all-features --deny warnings
+
+  cargo-fmt:
+    runs-on: ubuntu-latest
+    name: Format (Cargo)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check 
+        run: cargo fmt --all -- --check
+
+  cargo-doc:
+    runs-on: ubuntu-latest
+    name: Docs (Cargo)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check documentation
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --document-private-items --no-deps
