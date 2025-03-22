@@ -280,7 +280,10 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
 }
 
 /// Reference to a program state node.
-pub trait ProgramStateNodeRef {
+///
+/// This trait has reference semantics and is intended
+/// to be implemented by **lightweight references** to the state objects.
+pub trait ProgramStateNodeRef: Clone {
     /// Type of unique identifiers for nodes.
     type NodeId: NodeId;
 
@@ -314,7 +317,10 @@ pub trait ProgramStateNodeRef {
 }
 
 /// Container for a program state graph.
-pub trait ProgramStateGraphRef {
+///
+/// This trait has reference semantics and is intended
+/// to be implemented by **lightweight references** to the state objects.
+pub trait ProgramStateGraphRef: Clone {
     /// Type of unique identifiers for nodes.
     type NodeId: NodeId;
 
