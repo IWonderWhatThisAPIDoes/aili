@@ -3,9 +3,9 @@
 use derive_more::{Debug, From};
 
 /// Unique identifier of a program state node.
-pub trait NodeId: Clone + std::fmt::Debug {}
+pub trait NodeId: Clone + std::fmt::Debug + Eq + std::hash::Hash {}
 
-impl<T: Clone + std::fmt::Debug> NodeId for T {}
+impl<T: Clone + std::fmt::Debug + Eq + std::hash::Hash> NodeId for T {}
 
 /// Uniqie identifier of a program state node's type.
 ///
@@ -79,7 +79,7 @@ impl Ord for NodeValue {
 /// Each type has specific semantics which determine what kinds
 /// of [`NodeType`] they can connect, but these are not enforced.
 /// Nontheless, implementations should adhere to them.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum EdgeLabel {
     /// Identifies the entry point (the bottom-most stack frame).
     ///
