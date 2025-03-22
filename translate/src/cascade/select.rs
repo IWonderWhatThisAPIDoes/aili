@@ -1,6 +1,7 @@
 //! Matching against selectors.
 
-use crate::{eval::EvaluationContext, flat_selector::FlatSelectorSegment, selector::EdgeMatcher};
+use super::{eval::EvaluationContext, flat_selector::FlatSelectorSegment};
+use crate::stylesheet::selector::EdgeMatcher;
 use aili_model::state::{ProgramStateGraphRef, ProgramStateNodeRef};
 use std::collections::HashSet;
 
@@ -180,10 +181,11 @@ impl<'a, T: ProgramStateGraphRef> GetSelectorMatches<'a, T> {
 mod test {
     use super::*;
     use crate::{
-        expression::{Expression, UnaryOperator},
-        flat_selector::FlatSelector,
-        selector::{LimitedSelector, RestrictedSelectorSegment, Selector, SelectorSegment},
-        test_graph::TestGraph,
+        cascade::{flat_selector::FlatSelector, test_graph::TestGraph},
+        stylesheet::{
+            expression::{Expression, UnaryOperator},
+            selector::*,
+        },
     };
     use aili_model::state::EdgeLabel;
 

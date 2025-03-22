@@ -1,6 +1,8 @@
 //! Stub program state graphs for testing.
 
-use crate::selector::LimitedSelector;
+#![cfg(test)]
+
+use crate::stylesheet::selector::LimitedSelector;
 use aili_model::state::{
     EdgeLabel, NodeType, NodeTypeId, NodeValue, ProgramStateGraphRef, ProgramStateNodeRef,
 };

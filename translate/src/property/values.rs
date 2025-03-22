@@ -1,6 +1,6 @@
 //! Values assignable to properties.
 
-use crate::selectable::Selectable;
+use super::selectable::Selectable;
 use aili_model::state::{NodeId, NodeValue};
 use derive_more::{Debug, Display, From};
 

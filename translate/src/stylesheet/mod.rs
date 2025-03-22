@@ -1,6 +1,11 @@
-//! Full stylesheets.
+//! Stylesheets that define what a program state representation
+//! should look like.
 
-use crate::{expression::Expression, selector::Selector};
+pub mod expression;
+pub mod selector;
+
+use expression::Expression;
+use selector::Selector;
 
 /// Single stylesheet rule that assignes a series
 /// of property and variable values to a selector.

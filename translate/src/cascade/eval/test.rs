@@ -2,13 +2,13 @@
 
 use super::EvaluationContext;
 use crate::{
-    expression::{
+    cascade::test_graph::TestGraph,
+    property::PropertyValue,
+    stylesheet::expression::{
         BinaryOperator as BinaryOp,
         Expression::{self, *},
         UnaryOperator as UnaryOp,
     },
-    test_graph::TestGraph,
-    values::PropertyValue,
 };
 
 /// Evaluate an expression at the root node of the [`TestGraph::default_graph`].

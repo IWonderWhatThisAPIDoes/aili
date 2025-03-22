@@ -1,6 +1,6 @@
 //! Preprocessing of [`Selector`]s to simplify matching.
 
-use crate::{expression::Expression, selector::*};
+use crate::stylesheet::{expression::Expression, selector::*};
 use derive_more::Debug;
 
 /// [`Selector`] flattened to simplify matching against it.
@@ -88,7 +88,7 @@ pub enum FlatSelectorSegment {
 
     /// Transition that does not take any input,
     /// but verifies a condition. The condition must evaluate
-    /// to a [truthy](crate::values::PropertyValue::is_truthy)
+    /// to a [truthy](crate::property::PropertyValue::is_truthy)
     /// value in order to take the transition.
     #[debug("if ({_0:?})")]
     Restrict(Expression),

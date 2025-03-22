@@ -1,9 +1,7 @@
 //! Preprocessing of [`Stylesheet`]s to simplify matching.
 
-use crate::{
-    flat_selector::FlatSelector,
-    stylesheet::{StyleRule, StyleRuleProperty, Stylesheet},
-};
+use super::flat_selector::FlatSelector;
+use crate::stylesheet::{StyleRule, StyleRuleProperty, Stylesheet};
 
 pub struct FlatStylesheet(pub Vec<FlatStyleRule>);
 

@@ -1,8 +1,11 @@
 //! Evaluation of an entire stylesheet.
 
-use crate::{
+use super::{
     eval::EvaluationContext, flat_selector::FlatSelectorSegment, flat_stylesheet::FlatStylesheet,
-    selectable::Selectable, selector::EdgeMatcher, values::PropertyValue,
+};
+use crate::{
+    property::{PropertyValue, Selectable},
+    stylesheet::selector::EdgeMatcher,
 };
 use aili_model::state::{EdgeLabel, NodeId, ProgramStateGraphRef, ProgramStateNodeRef};
 use std::collections::{HashMap, HashSet};
@@ -35,7 +38,7 @@ struct ApplyStylesheet<'a, T: ProgramStateGraphRef> {
     /// Each node can only be matched by each sequence point
     /// once. If it is matched again, the match fails.
     ///
-    /// A sequence point is a [`MatchNode`](crate::flat_selector::FlatSelectorSegment::MatchNode)
+    /// A sequence point is a [`MatchNode`](super::flat_selector::FlatSelectorSegment::MatchNode)
     /// transition in the state machine.
     matched_sequence_points: HashSet<(T::NodeId, SequencePointRef)>,
 
@@ -249,10 +252,8 @@ impl SequencePointRef {
 mod test {
     use super::*;
     use crate::{
-        expression::Expression,
-        selector::{LimitedSelector, RestrictedSelectorSegment, Selector, SelectorSegment},
-        stylesheet::{StyleRule, StyleRuleProperty, Stylesheet},
-        test_graph::TestGraph,
+        cascade::test_graph::TestGraph,
+        stylesheet::{expression::*, selector::*, *},
     };
 
     #[test]

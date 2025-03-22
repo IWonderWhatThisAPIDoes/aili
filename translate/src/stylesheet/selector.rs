@@ -1,7 +1,7 @@
 //! Selectors identify selectable entities by the paths
 //! that lead to them.
 
-use crate::expression::Expression;
+use super::expression::Expression;
 use aili_model::state::EdgeLabel;
 use derive_more::{Debug, From};
 
@@ -74,14 +74,14 @@ impl SelectorSegment {
 pub struct SelectorPath(pub Vec<RestrictedSelectorSegment>);
 
 /// [`SelectorSegment`] that is optionally restricted by a condition.
-/// If the condition does not evaluate to a [truthy](crate::values::PropertyValue::is_truthy)
+/// If the condition does not evaluate to a [truthy](crate::property::PropertyValue::is_truthy)
 /// value, the selector segment does not match anything.
 pub struct RestrictedSelectorSegment {
     /// The selector segment that performs the initial match.
     pub segment: SelectorSegment,
 
     /// The condition that optionally further restricts the selector.
-    /// Must be [truthy](crate::values::PropertyValue::is_truthy) to pass.
+    /// Must be [truthy](crate::property::PropertyValue::is_truthy) to pass.
     pub condition: Option<Expression>,
 }
 
@@ -183,7 +183,7 @@ impl std::fmt::Debug for LimitedSelector {
 
 /// Unambiguous [`EdgeLabel`] matcher that is optionally further restricted
 /// by a condition. If the condition does not evaluate to a
-/// [truthy](crate::values::PropertyValue::is_truthy)
+/// [truthy](crate::property::PropertyValue::is_truthy)
 /// value, the selector segment does not match anything.
 #[derive(Clone, PartialEq, Eq)]
 pub struct LimitedSelectorSegment {
@@ -191,7 +191,7 @@ pub struct LimitedSelectorSegment {
     pub edge_label: EdgeLabel,
 
     /// The condition that optionally further restricts the selector.
-    /// Must be [truthy](crate::values::PropertyValue::is_truthy) to pass.
+    /// Must be [truthy](crate::property::PropertyValue::is_truthy) to pass.
     pub condition: Option<Expression>,
 }
 
