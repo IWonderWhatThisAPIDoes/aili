@@ -69,7 +69,7 @@ jobs:
         with:
           components: clippy
       - name: Run Clippy lints
-        run: cargo clippy --workspace --all-targets --all-features --deny warnings
+        run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
 
   cargo-fmt:
     runs-on: ubuntu-latest
