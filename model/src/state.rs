@@ -34,11 +34,11 @@ pub enum NodeValue {
     #[debug("{}", if *_0 { "true" } else  { "false" })]
     Bool(bool),
 
-    // Signed integer value.
+    /// Signed integer value.
     #[debug("{_0}")]
     Int(i64),
 
-    // Unsigned integer value.
+    /// Unsigned integer value.
     #[debug("{_0}")]
     Uint(u64),
 }
