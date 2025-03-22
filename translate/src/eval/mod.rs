@@ -156,11 +156,18 @@ impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
         right: PropertyValue<T::NodeId>,
     ) -> PropertyValue<T::NodeId> {
         use BinaryOperator::*;
+        // Resolve logical operators first,
+        // they are the only one that do not require extracting values from selections
+        match operator {
+            And => return (left.is_truthy() && right.is_truthy()).into(),
+            Or => return (left.is_truthy() || right.is_truthy()).into(),
+            _ => {}
+        }
+        // For all other operators, extract values from selections
+        let left = self.coerce_to_value(left);
+        let right = self.coerce_to_value(right);
         match operator {
             Plus => {
-                // If either argument is a selection, expose its value
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
                 // If either argument is a string, this is string concatenation.
                 if matches!(left, PropertyValue::String(_))
                     || matches!(right, PropertyValue::String(_))
@@ -178,103 +185,62 @@ impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
                     Err(_) => PropertyValue::Unset,
                 }
             }
-            Minus => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                match (left, right).try_into() {
-                    Ok(NumericPair::Int(left, right)) => {
+            Minus => match (left, right).try_into() {
+                Ok(NumericPair::Int(left, right)) => {
+                    left.checked_sub(right).map(Into::into).unwrap_or_default()
+                }
+                Ok(NumericPair::Uint(left, right)) => {
+                    if left < right {
+                        right
+                            .checked_sub(left)
+                            .and_then(|x| i64::try_from(x).ok())
+                            .map(std::ops::Neg::neg)
+                            .map(Into::into)
+                            .unwrap_or_default()
+                    } else {
                         left.checked_sub(right).map(Into::into).unwrap_or_default()
                     }
-                    Ok(NumericPair::Uint(left, right)) => {
-                        if left < right {
-                            right
-                                .checked_sub(left)
-                                .and_then(|x| i64::try_from(x).ok())
-                                .map(std::ops::Neg::neg)
-                                .map(Into::into)
-                                .unwrap_or_default()
-                        } else {
-                            left.checked_sub(right).map(Into::into).unwrap_or_default()
-                        }
-                    }
-                    Err(_) => PropertyValue::Unset,
                 }
-            }
-            Mul => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                match (left, right).try_into() {
-                    Ok(NumericPair::Int(left, right)) => {
-                        left.checked_mul(right).map(Into::into).unwrap_or_default()
-                    }
-                    Ok(NumericPair::Uint(left, right)) => {
-                        left.checked_mul(right).map(Into::into).unwrap_or_default()
-                    }
-                    Err(_) => PropertyValue::Unset,
+                Err(_) => PropertyValue::Unset,
+            },
+            Mul => match (left, right).try_into() {
+                Ok(NumericPair::Int(left, right)) => {
+                    left.checked_mul(right).map(Into::into).unwrap_or_default()
                 }
-            }
-            Div => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                match (left, right).try_into() {
-                    Ok(NumericPair::Int(left, right)) => left
-                        .checked_div_euclid(right)
-                        .map(Into::into)
-                        .unwrap_or_default(),
-                    Ok(NumericPair::Uint(left, right)) => left
-                        .checked_div_euclid(right)
-                        .map(Into::into)
-                        .unwrap_or_default(),
-                    Err(_) => PropertyValue::Unset,
+                Ok(NumericPair::Uint(left, right)) => {
+                    left.checked_mul(right).map(Into::into).unwrap_or_default()
                 }
-            }
-            Mod => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                match (left, right).try_into() {
-                    Ok(NumericPair::Int(left, right)) => left
-                        .checked_rem_euclid(right)
-                        .map(Into::into)
-                        .unwrap_or_default(),
-                    Ok(NumericPair::Uint(left, right)) => left
-                        .checked_rem_euclid(right)
-                        .map(Into::into)
-                        .unwrap_or_default(),
-                    Err(_) => PropertyValue::Unset,
-                }
-            }
-            Eq => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                (left == right).into()
-            }
-            Ne => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                (left != right).into()
-            }
-            Lt => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                (left < right).into()
-            }
-            Le => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                (left <= right).into()
-            }
-            Gt => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                (left > right).into()
-            }
-            Ge => {
-                let left = self.coerce_to_value(left);
-                let right = self.coerce_to_value(right);
-                (left >= right).into()
-            }
-            And => (left.is_truthy() && right.is_truthy()).into(),
-            Or => (left.is_truthy() || right.is_truthy()).into(),
+                Err(_) => PropertyValue::Unset,
+            },
+            Div => match (left, right).try_into() {
+                Ok(NumericPair::Int(left, right)) => left
+                    .checked_div_euclid(right)
+                    .map(Into::into)
+                    .unwrap_or_default(),
+                Ok(NumericPair::Uint(left, right)) => left
+                    .checked_div_euclid(right)
+                    .map(Into::into)
+                    .unwrap_or_default(),
+                Err(_) => PropertyValue::Unset,
+            },
+            Mod => match (left, right).try_into() {
+                Ok(NumericPair::Int(left, right)) => left
+                    .checked_rem_euclid(right)
+                    .map(Into::into)
+                    .unwrap_or_default(),
+                Ok(NumericPair::Uint(left, right)) => left
+                    .checked_rem_euclid(right)
+                    .map(Into::into)
+                    .unwrap_or_default(),
+                Err(_) => PropertyValue::Unset,
+            },
+            Eq => (left == right).into(),
+            Ne => (left != right).into(),
+            Lt => (left < right).into(),
+            Le => (left <= right).into(),
+            Gt => (left > right).into(),
+            Ge => (left >= right).into(),
+            And | Or => unreachable!("This operator should have been resolved early"),
         }
     }
 
