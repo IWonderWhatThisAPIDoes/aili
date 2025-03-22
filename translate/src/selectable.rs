@@ -8,7 +8,7 @@ use aili_model::state::{EdgeLabel, NodeId};
 /// Any state node and edge can be selected.
 /// Additionally, "extra" entities can be attached to them,
 /// which allows each state entity to produce multiple visual elements.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Selectable<T: NodeId> {
     /// Identifier of the state node that has either been selected
     /// or is the starting point of the selected edge.
