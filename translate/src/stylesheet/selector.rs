@@ -148,7 +148,7 @@ impl Selector {
 #[derive(Clone, PartialEq, Eq)]
 pub struct LimitedSelector {
     /// Path that must be matched in order to select something.
-    pub path: Vec<LimitedSelectorSegment>,
+    pub path: Vec<EdgeLabel>,
 
     /// Specifies whether the selector selects an extra element
     /// attached to the matched node or edge, instead of the node
@@ -158,7 +158,7 @@ pub struct LimitedSelector {
 
 impl LimitedSelector {
     /// Shorthand for constructing a limited selector that matches a node.
-    pub fn from_path(path: impl IntoIterator<Item = LimitedSelectorSegment>) -> Self {
+    pub fn from_path(path: impl IntoIterator<Item = EdgeLabel>) -> Self {
         Self {
             path: Vec::from_iter(path),
             extra_label: None,
@@ -178,38 +178,5 @@ impl std::fmt::Debug for LimitedSelector {
             write!(f, "::extra({extra})")?;
         }
         Ok(())
-    }
-}
-
-/// Unambiguous [`EdgeLabel`] matcher that is optionally further restricted
-/// by a condition. If the condition does not evaluate to a
-/// [truthy](crate::property::PropertyValue::is_truthy)
-/// value, the selector segment does not match anything.
-#[derive(Clone, PartialEq, Eq)]
-pub struct LimitedSelectorSegment {
-    /// The edge label for the initial match.
-    pub edge_label: EdgeLabel,
-
-    /// The condition that optionally further restricts the selector.
-    /// Must be [truthy](crate::property::PropertyValue::is_truthy) to pass.
-    pub condition: Option<Expression>,
-}
-
-impl std::fmt::Debug for LimitedSelectorSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.edge_label)?;
-        if let Some(condition) = &self.condition {
-            write!(f, ".if({condition:?})")?;
-        }
-        Ok(())
-    }
-}
-
-impl From<EdgeLabel> for LimitedSelectorSegment {
-    fn from(edge_label: EdgeLabel) -> Self {
-        Self {
-            edge_label,
-            condition: None,
-        }
     }
 }

@@ -1,6 +1,9 @@
 //! Matching against selectors.
 
-use super::{eval::EvaluationContext, flat_selector::FlatSelectorSegment};
+use super::{
+    eval::{context::EvaluationOnGraph, evaluate},
+    flat_selector::FlatSelectorSegment,
+};
 use crate::stylesheet::selector::EdgeMatcher;
 use aili_model::state::{ProgramStateNode, RootedProgramStateGraph};
 use std::collections::HashSet;
@@ -128,9 +131,7 @@ impl<'a, T: RootedProgramStateGraph> GetSelectorMatches<'a, T> {
                 }
                 FlatSelectorSegment::Restrict(condition) => {
                     // Proceed only if the condition holds
-                    if EvaluationContext::of_graph(self.graph)
-                        .at_node(node.clone())
-                        .evaluate(condition)
+                    if evaluate(condition, &EvaluationOnGraph::new(self.graph, node.clone()))
                         .is_truthy()
                     {
                         // continue traversing the state machine linearly
@@ -340,7 +341,7 @@ mod test {
             [RestrictedSelectorSegment {
                 segment: SelectorSegment::anything_any_number_of_times(),
                 condition: Some(Expression::Select(
-                    LimitedSelector::from_path([EdgeLabel::Deref.into()]).into(),
+                    LimitedSelector::from_path([EdgeLabel::Deref]).into(),
                 )),
             }]
             .into(),
@@ -361,10 +362,8 @@ mod test {
                     ),
                     condition: Some(Expression::UnaryOperator(
                         UnaryOperator::Not,
-                        Expression::Select(
-                            LimitedSelector::from_path([EdgeLabel::Next.into()]).into(),
-                        )
-                        .into(),
+                        Expression::Select(LimitedSelector::from_path([EdgeLabel::Next]).into())
+                            .into(),
                     )),
                 },
             ]

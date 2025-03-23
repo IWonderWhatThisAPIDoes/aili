@@ -1,7 +1,9 @@
 //! Evaluation of an entire stylesheet.
 
 use super::{
-    eval::EvaluationContext, flat_selector::FlatSelectorSegment, flat_stylesheet::FlatStylesheet,
+    eval::{context::EvaluationOnGraph, evaluate},
+    flat_selector::FlatSelectorSegment,
+    flat_stylesheet::FlatStylesheet,
 };
 use crate::{
     property::{PropertyValue, Selectable},
@@ -159,9 +161,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 }
                 FlatSelectorSegment::Restrict(condition) => {
                     // Proceed only if the condition holds
-                    if EvaluationContext::of_graph(self.graph)
-                        .at_node(node.clone())
-                        .evaluate(condition)
+                    if evaluate(condition, &EvaluationOnGraph::new(self.graph, node.clone()))
                         .is_truthy()
                     {
                         // continue traversing the state machine linearly
@@ -216,9 +216,10 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         for property in properties {
             self.properties.insert(
                 PropertyKey(target.clone(), &property.key),
-                EvaluationContext::of_graph(self.graph)
-                    .at_node(target.node_id.clone())
-                    .evaluate(&property.value),
+                evaluate(
+                    &property.value,
+                    &EvaluationOnGraph::new(self.graph, target.node_id.clone()),
+                ),
             );
         }
     }
@@ -461,8 +462,7 @@ mod test {
                 [RestrictedSelectorSegment {
                     segment: SelectorSegment::anything_any_number_of_times(),
                     condition: Expression::Select(
-                        LimitedSelector::from_path([EdgeLabel::Named("a".to_owned(), 0).into()])
-                            .into(),
+                        LimitedSelector::from_path([EdgeLabel::Named("a".to_owned(), 0)]).into(),
                     )
                     .into(),
                 }]

@@ -1,6 +1,6 @@
 //! Unit tests for expression evaluation.
 
-use super::EvaluationContext;
+use super::evaluate;
 use crate::{
     cascade::test_graph::TestGraph,
     property::PropertyValue,
@@ -13,9 +13,7 @@ use crate::{
 
 /// Evaluate an expression at the root node of the [`TestGraph::default_graph`].
 fn eval_on_default_graph(expression: &Expression) -> PropertyValue<usize> {
-    let graph = TestGraph::default_graph();
-    let evaluator = EvaluationContext::of_graph(&graph);
-    evaluator.evaluate(expression)
+    evaluate(expression, &TestGraph::default_graph())
 }
 
 #[test]
