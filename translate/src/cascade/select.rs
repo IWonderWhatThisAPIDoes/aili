@@ -2,13 +2,13 @@
 
 use super::{eval::EvaluationContext, flat_selector::FlatSelectorSegment};
 use crate::stylesheet::selector::EdgeMatcher;
-use aili_model::state::{ProgramStateNodeRef, RootedProgramStateGraphRef};
+use aili_model::state::{ProgramStateNode, RootedProgramStateGraph};
 use std::collections::HashSet;
 
 /// Tests a selector against all nodes in a graph.
-pub fn get_selector_matches<T: RootedProgramStateGraphRef>(
+pub fn get_selector_matches<T: RootedProgramStateGraph>(
     path: &Vec<FlatSelectorSegment>,
-    graph: T,
+    graph: &T,
 ) -> HashSet<T::NodeId> {
     let mut helper = GetSelectorMatches::new(path, graph);
     helper.run();
@@ -16,9 +16,9 @@ pub fn get_selector_matches<T: RootedProgramStateGraphRef>(
 }
 
 /// Helper for matching selectors against graphs.
-struct GetSelectorMatches<'a, T: RootedProgramStateGraphRef> {
+struct GetSelectorMatches<'a, T: RootedProgramStateGraph> {
     /// The graph being traversed.
-    graph: T,
+    graph: &'a T,
 
     /// The selector being matched.
     path: &'a Vec<FlatSelectorSegment>,
@@ -37,9 +37,9 @@ struct GetSelectorMatches<'a, T: RootedProgramStateGraphRef> {
     selected_nodes: HashSet<T::NodeId>,
 }
 
-impl<'a, T: RootedProgramStateGraphRef> GetSelectorMatches<'a, T> {
+impl<'a, T: RootedProgramStateGraph> GetSelectorMatches<'a, T> {
     /// Construct a selector matching helper
-    fn new(path: &'a Vec<FlatSelectorSegment>, graph: T) -> Self {
+    fn new(path: &'a Vec<FlatSelectorSegment>, graph: &'a T) -> Self {
         Self {
             path,
             graph,
@@ -55,7 +55,7 @@ impl<'a, T: RootedProgramStateGraphRef> GetSelectorMatches<'a, T> {
 
     /// Evaluates the selector.
     fn run(&mut self) {
-        self.run_from(self.graph.clone().root(), [0]);
+        self.run_from(self.graph.root(), [0]);
     }
 
     /// Traverses depth-first from a specified node and evaluates the selector.
@@ -128,7 +128,7 @@ impl<'a, T: RootedProgramStateGraphRef> GetSelectorMatches<'a, T> {
                 }
                 FlatSelectorSegment::Restrict(condition) => {
                     // Proceed only if the condition holds
-                    if EvaluationContext::of_graph(self.graph.clone())
+                    if EvaluationContext::of_graph(self.graph)
                         .at_node(node.clone())
                         .evaluate(condition)
                         .is_truthy()
@@ -160,7 +160,6 @@ impl<'a, T: RootedProgramStateGraphRef> GetSelectorMatches<'a, T> {
     ) {
         let successors = self
             .graph
-            .clone()
             .get(starting_node.clone())
             .into_iter()
             .flat_map(|node| node.successors());

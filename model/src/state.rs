@@ -335,11 +335,8 @@ impl<T: NodeTypeId, U: NodeTypeId, V: NodeTypeId> From<&NodeType<T, U, V>> for N
     }
 }
 
-/// Reference to a program state node.
-///
-/// This trait has reference semantics and is intended
-/// to be implemented by **lightweight references** to the state objects.
-pub trait ProgramStateNodeRef: Clone {
+/// Node in the program state graph.
+pub trait ProgramStateNode {
     /// Type of unique identifiers for nodes.
     type NodeId: NodeId;
 
@@ -353,43 +350,33 @@ pub trait ProgramStateNodeRef: Clone {
     type ObjId: NodeTypeId;
 
     /// Finds a successor node by navigating along a specified edge.
-    fn get_successor(self, edge: &EdgeLabel) -> Option<Self::NodeId>;
+    fn get_successor(&self, edge: &EdgeLabel) -> Option<Self::NodeId>;
 
     /// Iterates through the list of successors and the edges
     /// that lead to them. Edge labels are unique.
-    fn successors<'a>(self) -> impl Iterator<Item = (&'a EdgeLabel, Self::NodeId)>
-    where
-        Self: 'a;
+    fn successors(&self) -> impl Iterator<Item = (&EdgeLabel, Self::NodeId)>;
 
     /// Gets the type of the node.
-    fn node_type<'a>(self) -> &'a NodeType<Self::FunId, Self::AtomId, Self::ObjId>
-    where
-        Self: 'a;
+    fn node_type(&self) -> &NodeType<Self::FunId, Self::AtomId, Self::ObjId>;
 
     /// Gets the value of the node, if any.
-    fn value<'a>(self) -> Option<&'a NodeValue>
-    where
-        Self: 'a;
+    fn value(&self) -> Option<&NodeValue>;
 }
 
 /// Container for a program state graph.
-///
-/// This trait has reference semantics and is intended
-/// to be implemented by **lightweight references** to the state objects.
-pub trait ProgramStateGraphRef: Clone {
+pub trait ProgramStateGraph {
     /// Type of unique identifiers for nodes.
     type NodeId: NodeId;
 
     /// Type of references to nodes.
-    type NodeRef: ProgramStateNodeRef<NodeId = Self::NodeId>;
+    type Node: ProgramStateNode<NodeId = Self::NodeId>;
 
     /// Get a reference to a state node by its ID.
-    fn get(self, id: Self::NodeId) -> Option<Self::NodeRef>;
+    fn get(&self, id: Self::NodeId) -> Option<&Self::Node>;
 }
 
-/// Container for a program state graph that additionally
-/// allows accessing the root node.
-pub trait RootedProgramStateGraphRef: ProgramStateGraphRef {
+/// [`ProgramStateGraph`] that additionally allows accessing the root node.
+pub trait RootedProgramStateGraph: ProgramStateGraph {
     /// Get the ID of the root node.
-    fn root(self) -> Self::NodeId;
+    fn root(&self) -> Self::NodeId;
 }

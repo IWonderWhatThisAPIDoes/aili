@@ -14,10 +14,10 @@ use std::collections::HashMap;
 ///
 /// Some types of expressions require additional context data
 /// in order to properly evaluate.
-pub struct EvaluationContext<'a, T: ProgramStateGraphRef> {
+pub struct EvaluationContext<'a, T: ProgramStateGraph> {
     /// Graph within which [`Select`](Expression::Select) expressions
     /// should be evaluated.
-    graph: T,
+    graph: &'a T,
 
     /// Node that should be the origin for [`Select`](Expression::Select) expressions.
     current_node: T::NodeId,
@@ -26,15 +26,15 @@ pub struct EvaluationContext<'a, T: ProgramStateGraphRef> {
     variable_pool: Option<&'a HashMap<&'a str, PropertyValue<T::NodeId>>>,
 }
 
-impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
+impl<'a, T: ProgramStateGraph> EvaluationContext<'a, T> {
     /// Constructs an evaluation context for a graph,
     /// starting at the root node, with no variables.
-    pub fn of_graph(graph: T) -> Self
+    pub fn of_graph(graph: &'a T) -> Self
     where
-        T: RootedProgramStateGraphRef,
+        T: RootedProgramStateGraph,
     {
         Self {
-            current_node: graph.clone().root(),
+            current_node: graph.root(),
             graph,
             variable_pool: None,
         }
@@ -126,19 +126,19 @@ impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
             Not => (!operand.is_truthy()).into(),
             NodeValue => self
                 .coerce_to_node(operand)
-                .and_then(ProgramStateNodeRef::value)
+                .and_then(ProgramStateNode::value)
                 .cloned()
                 .map(Into::into)
                 .unwrap_or_default(),
             NodeIsA(type_class) => self
                 .coerce_to_node(operand)
-                .map(ProgramStateNodeRef::node_type)
+                .map(ProgramStateNode::node_type)
                 .map(NodeTypeClass::from)
                 .is_some_and(|cls| cls == type_class)
                 .into(),
             NodeTypeName => self
                 .coerce_to_node(operand)
-                .map(ProgramStateNodeRef::node_type)
+                .map(ProgramStateNode::node_type)
                 .and_then(NodeType::type_name)
                 .map(str::to_owned)
                 .map(Into::into)
@@ -254,7 +254,6 @@ impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
             // and move to the node at its end
             current_node = self
                 .graph
-                .clone()
                 .get(current_node.clone())
                 .and_then(|node| node.get_successor(&segment.edge_label))?;
             // Fail if a condition is set and fails
@@ -271,13 +270,13 @@ impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
     }
 
     /// Shorthand for retrieving the node that a property value is referencing, if any
-    fn coerce_to_node(&self, value: PropertyValue<T::NodeId>) -> Option<T::NodeRef> {
+    fn coerce_to_node(&self, value: PropertyValue<T::NodeId>) -> Option<&T::Node> {
         match value {
             PropertyValue::Selection(target) => {
                 if target.edge_label.is_some() || target.extra_label.is_some() {
                     None
                 } else {
-                    self.graph.clone().get(target.node_id)
+                    self.graph.get(target.node_id)
                 }
             }
             _ => None,
@@ -293,9 +292,8 @@ impl<'a, T: ProgramStateGraphRef> EvaluationContext<'a, T> {
                     PropertyValue::Unset
                 } else {
                     self.graph
-                        .clone()
                         .get(target.node_id)
-                        .and_then(ProgramStateNodeRef::value)
+                        .and_then(ProgramStateNode::value)
                         .cloned()
                         .map(Into::into)
                         .unwrap_or_default()

@@ -7,14 +7,14 @@ use crate::{
     property::{PropertyValue, Selectable},
     stylesheet::selector::EdgeMatcher,
 };
-use aili_model::state::{EdgeLabel, NodeId, ProgramStateNodeRef, RootedProgramStateGraphRef};
+use aili_model::state::{EdgeLabel, NodeId, ProgramStateNode, RootedProgramStateGraph};
 use std::collections::{HashMap, HashSet};
 
 /// Applies a stylesheet to a graph.
-pub fn apply_stylesheet<T: RootedProgramStateGraphRef>(
-    stylesheet: &FlatStylesheet,
-    graph: T,
-) -> HashMap<PropertyKey<T::NodeId>, PropertyValue<T::NodeId>> {
+pub fn apply_stylesheet<'a, T: RootedProgramStateGraph>(
+    stylesheet: &'a FlatStylesheet,
+    graph: &T,
+) -> HashMap<PropertyKey<'a, T::NodeId>, PropertyValue<T::NodeId>> {
     let mut helper = ApplyStylesheet::new(stylesheet, graph);
     helper.run();
     helper.result()
@@ -25,9 +25,9 @@ pub fn apply_stylesheet<T: RootedProgramStateGraphRef>(
 pub struct PropertyKey<'a, T: NodeId>(pub Selectable<T>, pub &'a str);
 
 /// Helper for stylesheet applications.
-struct ApplyStylesheet<'a, T: RootedProgramStateGraphRef> {
+struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     /// The graph being traversed.
-    graph: T,
+    graph: &'g T,
 
     /// The stylesheet being evaluated.
     stylesheet: &'a FlatStylesheet,
@@ -46,8 +46,8 @@ struct ApplyStylesheet<'a, T: RootedProgramStateGraphRef> {
     properties: HashMap<PropertyKey<'a, T::NodeId>, PropertyValue<T::NodeId>>,
 }
 
-impl<'a, T: RootedProgramStateGraphRef> ApplyStylesheet<'a, T> {
-    fn new(stylesheet: &'a FlatStylesheet, graph: T) -> Self {
+impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
+    fn new(stylesheet: &'a FlatStylesheet, graph: &'g T) -> Self {
         Self {
             graph,
             stylesheet,
@@ -65,7 +65,7 @@ impl<'a, T: RootedProgramStateGraphRef> ApplyStylesheet<'a, T> {
             rule_index,
             state_index: 0,
         });
-        self.run_from(self.graph.clone().root(), starting_states, None, None);
+        self.run_from(self.graph.root(), starting_states, None, None);
     }
 
     /// Traverses depth-first from a specified node and evaluates the selector.
@@ -159,7 +159,7 @@ impl<'a, T: RootedProgramStateGraphRef> ApplyStylesheet<'a, T> {
                 }
                 FlatSelectorSegment::Restrict(condition) => {
                     // Proceed only if the condition holds
-                    if EvaluationContext::of_graph(self.graph.clone())
+                    if EvaluationContext::of_graph(self.graph)
                         .at_node(node.clone())
                         .evaluate(condition)
                         .is_truthy()
@@ -191,7 +191,6 @@ impl<'a, T: RootedProgramStateGraphRef> ApplyStylesheet<'a, T> {
     ) {
         let successors = self
             .graph
-            .clone()
             .get(starting_node.clone())
             .into_iter()
             .flat_map(|node| node.successors());
@@ -217,7 +216,7 @@ impl<'a, T: RootedProgramStateGraphRef> ApplyStylesheet<'a, T> {
         for property in properties {
             self.properties.insert(
                 PropertyKey(target.clone(), &property.key),
-                EvaluationContext::of_graph(self.graph.clone())
+                EvaluationContext::of_graph(self.graph)
                     .at_node(target.node_id.clone())
                     .evaluate(&property.value),
             );
