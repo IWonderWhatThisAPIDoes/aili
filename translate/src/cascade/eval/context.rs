@@ -8,12 +8,12 @@ use aili_model::state::{NodeTypeId, ProgramStateGraph, ProgramStateNode, RootedP
 
 /// Provides stateful context for expression evaluation.
 pub trait EvaluationContext: ProgramStateGraph {
-    /// Implementation of the [`Select`](Expression::Select) expression.
+    /// Implementation of the [`Select`](crate::stylesheet::expression::Expression::Select) expression.
     fn select_entity(&self, _selector: &LimitedSelector) -> Option<Selectable<Self::NodeId>> {
         None
     }
 
-    /// Implementation of the [`Variable`](Expression::Variable) expression.
+    /// Implementation of the [`Variable`](crate::stylesheet::expression::Expression::Variable) expression.
     fn get_variable_value(&self, _name: &str) -> PropertyValue<Self::NodeId> {
         PropertyValue::Unset
     }

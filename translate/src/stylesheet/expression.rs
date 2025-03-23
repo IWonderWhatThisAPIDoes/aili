@@ -277,8 +277,8 @@ pub enum BinaryOperator {
 }
 
 /// Selector that is limited to a single path
-/// and exact matches for edges (edges other than [`EdgeMatcher::Exact`])
-/// are not allowed.
+/// and exact matches for edges (matchers other than
+/// [`Exact`](super::selector::EdgeMatcher::Exact) are not allowed).
 ///
 /// These selectors can always unambiguously select at most one entity.
 #[derive(Clone, PartialEq, Eq)]
