@@ -6,17 +6,17 @@ use super::{
     flat_stylesheet::FlatStylesheet,
 };
 use crate::{
-    property::{PropertyValue, Selectable},
-    stylesheet::{StylePropertyKey, selector::EdgeMatcher},
+    property::*,
+    stylesheet::{StyleKey, selector::EdgeMatcher},
 };
 use aili_model::state::{EdgeLabel, NodeId, ProgramStateNode, RootedProgramStateGraph};
 use std::collections::{HashMap, HashSet};
 
 /// Applies a stylesheet to a graph.
-pub fn apply_stylesheet<'a, T: RootedProgramStateGraph>(
-    stylesheet: &'a FlatStylesheet,
+pub fn apply_stylesheet<T: RootedProgramStateGraph>(
+    stylesheet: &FlatStylesheet,
     graph: &T,
-) -> HashMap<PropertyKey<'a, T::NodeId>, PropertyValue<T::NodeId>> {
+) -> HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>> {
     let mut helper = ApplyStylesheet::new(stylesheet, graph);
     helper.run();
     helper.result()
@@ -24,7 +24,7 @@ pub fn apply_stylesheet<'a, T: RootedProgramStateGraph>(
 
 /// Identifier of a property variable on an entity.
 #[derive(PartialEq, Eq, Debug, Hash)]
-pub struct PropertyKey<'a, T: NodeId>(pub Selectable<T>, pub &'a str);
+pub struct EntityPropertyKey<T: NodeId>(pub Selectable<T>, pub PropertyKey);
 
 /// Helper for stylesheet applications.
 struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
@@ -45,7 +45,7 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     matched_sequence_points: HashSet<(T::NodeId, SequencePointRef)>,
 
     /// Values assigned to each property on each node.
-    properties: HashMap<PropertyKey<'a, T::NodeId>, PropertyValue<T::NodeId>>,
+    properties: HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>>,
 }
 
 impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
@@ -58,7 +58,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
     }
 
-    fn result(self) -> HashMap<PropertyKey<'a, T::NodeId>, PropertyValue<T::NodeId>> {
+    fn result(self) -> HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>> {
         self.properties
     }
 
@@ -215,18 +215,16 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         let properties = &self.stylesheet.0[rule_index].properties;
         for property in properties {
             match &property.key {
-                StylePropertyKey::Property(name) => {
+                StyleKey::Property(key) => {
                     self.properties.insert(
-                        PropertyKey(target.clone(), name),
+                        EntityPropertyKey(target.clone(), key.clone()),
                         evaluate(
                             &property.value,
                             &EvaluationOnGraph::new(self.graph, target.node_id.clone()),
                         ),
                     );
                 }
-                StylePropertyKey::Variable(_) => {
-                    todo!()
-                }
+                _ => todo!(),
             }
         }
     }
@@ -257,10 +255,10 @@ impl SequencePointRef {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use super::{PropertyKey::*, *};
     use crate::{
         cascade::test_graph::TestGraph,
-        stylesheet::{StylePropertyKey::*, expression::*, selector::*, *},
+        stylesheet::{StyleKey::*, expression::*, selector::*, *},
     };
 
     #[test]
@@ -276,8 +274,8 @@ mod test {
                 ]
                 .into(),
             ),
-            properties: vec![StyleRuleProperty {
-                key: Property("display".to_owned()),
+            properties: vec![StyleRuleItem {
+                key: Property(Display),
                 value: Expression::String("cell".to_owned()).into(),
             }],
         }]));
@@ -286,27 +284,27 @@ mod test {
             resolved,
             [
                 (
-                    PropertyKey(Selectable::node(5), "display"),
+                    EntityPropertyKey(Selectable::node(5), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(6), "display"),
+                    EntityPropertyKey(Selectable::node(6), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(7), "display"),
+                    EntityPropertyKey(Selectable::node(7), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(10), "display"),
+                    EntityPropertyKey(Selectable::node(10), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(11), "display"),
+                    EntityPropertyKey(Selectable::node(11), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(12), "display"),
+                    EntityPropertyKey(Selectable::node(12), Display),
                     "cell".to_owned().into()
                 ),
             ]
@@ -332,8 +330,8 @@ mod test {
                     ]
                     .into(),
                 ),
-                properties: vec![StyleRuleProperty {
-                    key: Property("display".to_owned()),
+                properties: vec![StyleRuleItem {
+                    key: Property(Display),
                     value: Expression::String("cell".to_owned()).into(),
                 }],
             },
@@ -349,12 +347,12 @@ mod test {
                     .into(),
                 ),
                 properties: vec![
-                    StyleRuleProperty {
-                        key: Property("display".to_owned()),
+                    StyleRuleItem {
+                        key: Property(Display),
                         value: Expression::String("kvt".to_owned()).into(),
                     },
-                    StyleRuleProperty {
-                        key: Property("title".to_owned()),
+                    StyleRuleItem {
+                        key: Property(Attribute("title".to_owned())),
                         value: Expression::Int(42).into(),
                     },
                 ],
@@ -364,36 +362,48 @@ mod test {
         assert_eq!(
             resolved,
             [
-                (PropertyKey(Selectable::node(1), "title"), 42u64.into()),
-                (PropertyKey(Selectable::node(2), "title"), 42u64.into()),
-                (PropertyKey(Selectable::node(3), "title"), 42u64.into()),
-                (PropertyKey(Selectable::node(4), "title"), 42u64.into()),
                 (
-                    PropertyKey(Selectable::node(1), "display"),
+                    EntityPropertyKey(Selectable::node(1), Attribute("title".to_owned())),
+                    42u64.into()
+                ),
+                (
+                    EntityPropertyKey(Selectable::node(2), Attribute("title".to_owned())),
+                    42u64.into()
+                ),
+                (
+                    EntityPropertyKey(Selectable::node(3), Attribute("title".to_owned())),
+                    42u64.into()
+                ),
+                (
+                    EntityPropertyKey(Selectable::node(4), Attribute("title".to_owned())),
+                    42u64.into()
+                ),
+                (
+                    EntityPropertyKey(Selectable::node(1), Display),
                     "kvt".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(2), "display"),
+                    EntityPropertyKey(Selectable::node(2), Display),
                     "kvt".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(3), "display"),
+                    EntityPropertyKey(Selectable::node(3), Display),
                     "kvt".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(4), "display"),
+                    EntityPropertyKey(Selectable::node(4), Display),
                     "kvt".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(8), "display"),
+                    EntityPropertyKey(Selectable::node(8), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(12), "display"),
+                    EntityPropertyKey(Selectable::node(12), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::node(13), "display"),
+                    EntityPropertyKey(Selectable::node(13), Display),
                     "cell".to_owned().into()
                 ),
             ]
@@ -416,8 +426,8 @@ mod test {
                     [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
                 )
                 .with_extra("".to_owned()),
-                properties: vec![StyleRuleProperty {
-                    key: Property("display".to_owned()),
+                properties: vec![StyleRuleItem {
+                    key: Property(Display),
                     value: Expression::String("cell".to_owned()).into(),
                 }],
             },
@@ -430,8 +440,8 @@ mod test {
                     .into(),
                 )
                 .with_extra("abc".to_owned()),
-                properties: vec![StyleRuleProperty {
-                    key: Property("display".to_owned()),
+                properties: vec![StyleRuleItem {
+                    key: Property(Display),
                     value: Expression::String("kvt".to_owned()).into(),
                 }],
             },
@@ -441,16 +451,13 @@ mod test {
             resolved,
             [
                 (
-                    PropertyKey(
-                        Selectable::node(1).with_extra(Some("".to_owned())),
-                        "display"
-                    ),
+                    EntityPropertyKey(Selectable::node(1).with_extra(Some("".to_owned())), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(
+                    EntityPropertyKey(
                         Selectable::node(2).with_extra(Some("abc".to_owned())),
-                        "display"
+                        Display
                     ),
                     "kvt".to_owned().into()
                 ),
@@ -476,8 +483,8 @@ mod test {
                 .into(),
             )
             .selecting_edge(),
-            properties: vec![StyleRuleProperty {
-                key: Property("display".to_owned()),
+            properties: vec![StyleRuleItem {
+                key: Property(Display),
                 value: Expression::String("cell".to_owned()).into(),
             }],
         }]));
@@ -486,44 +493,44 @@ mod test {
             resolved,
             [
                 (
-                    PropertyKey(Selectable::edge(0, EdgeLabel::Main), "display"),
+                    EntityPropertyKey(Selectable::edge(0, EdgeLabel::Main), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(
+                    EntityPropertyKey(
                         Selectable::edge(0, EdgeLabel::Named("a".to_owned(), 0)),
-                        "display"
+                        Display
                     ),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(
+                    EntityPropertyKey(
                         Selectable::edge(1, EdgeLabel::Named("a".to_owned(), 0)),
-                        "display"
+                        Display
                     ),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::edge(2, EdgeLabel::Next), "display"),
+                    EntityPropertyKey(Selectable::edge(2, EdgeLabel::Next), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(
+                    EntityPropertyKey(
                         Selectable::edge(5, EdgeLabel::Named("a".to_owned(), 0)),
-                        "display"
+                        Display
                     ),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::edge(5, EdgeLabel::Deref), "display"),
+                    EntityPropertyKey(Selectable::edge(5, EdgeLabel::Deref), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::edge(7, EdgeLabel::Deref), "display"),
+                    EntityPropertyKey(Selectable::edge(7, EdgeLabel::Deref), Display),
                     "cell".to_owned().into()
                 ),
                 (
-                    PropertyKey(Selectable::edge(12, EdgeLabel::Deref), "display"),
+                    EntityPropertyKey(Selectable::edge(12, EdgeLabel::Deref), Display),
                     "cell".to_owned().into()
                 ),
             ]
