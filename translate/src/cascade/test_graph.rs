@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use crate::stylesheet::selector::LimitedSelector;
+use crate::stylesheet::expression::LimitedSelector;
 use aili_model::state::*;
 use std::collections::HashMap;
 

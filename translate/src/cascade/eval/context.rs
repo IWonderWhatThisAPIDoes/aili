@@ -2,7 +2,7 @@
 
 use crate::{
     property::{PropertyValue, Selectable},
-    stylesheet::selector::LimitedSelector,
+    stylesheet::expression::LimitedSelector,
 };
 use aili_model::state::{NodeTypeId, ProgramStateGraph, ProgramStateNode, RootedProgramStateGraph};
 

@@ -1,7 +1,6 @@
 //! Stylesheet expressions that evaluate to property values.
 
-use super::selector::LimitedSelector;
-use aili_model::state::NodeTypeClass;
+use aili_model::state::{EdgeLabel, NodeTypeClass};
 use derive_more::Debug;
 
 /// Stylesheet expression.
@@ -275,4 +274,45 @@ pub enum BinaryOperator {
     /// is [truthy](crate::property::PropertyValue::is_truthy), false otherwise.
     #[debug("||")]
     Or,
+}
+
+/// Selector that is limited to a single path
+/// and exact matches for edges (edges other than [`EdgeMatcher::Exact`])
+/// are not allowed.
+///
+/// These selectors can always unambiguously select at most one entity.
+#[derive(Clone, PartialEq, Eq)]
+pub struct LimitedSelector {
+    /// Path that must be matched in order to select something.
+    pub path: Vec<EdgeLabel>,
+
+    /// Specifies whether the selector selects an extra element
+    /// attached to the matched node or edge, instead of the node
+    /// or edge directly.
+    pub extra_label: Option<String>,
+}
+
+impl LimitedSelector {
+    /// Shorthand for constructing a limited selector that matches a node.
+    pub fn from_path(path: impl IntoIterator<Item = EdgeLabel>) -> Self {
+        Self {
+            path: Vec::from_iter(path),
+            extra_label: None,
+        }
+    }
+}
+
+impl std::fmt::Debug for LimitedSelector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, segment) in self.path.iter().enumerate() {
+            if i > 0 {
+                write!(f, " ")?;
+            }
+            write!(f, "{segment:?}")?;
+        }
+        if let Some(extra) = &self.extra_label {
+            write!(f, "::extra({extra})")?;
+        }
+        Ok(())
+    }
 }

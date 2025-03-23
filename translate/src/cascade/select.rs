@@ -182,10 +182,7 @@ mod test {
     use super::*;
     use crate::{
         cascade::{flat_selector::FlatSelector, test_graph::TestGraph},
-        stylesheet::{
-            expression::{Expression, UnaryOperator},
-            selector::*,
-        },
+        stylesheet::{expression::*, selector::*},
     };
     use aili_model::state::EdgeLabel;
 
