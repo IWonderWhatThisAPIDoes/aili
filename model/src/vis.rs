@@ -39,7 +39,7 @@ pub trait VisElement: AttributeMap {
     type Handle: VisHandle;
 
     /// Updates the parent element of this element.
-    fn insert_into(&mut self, parent: &Self::Handle) -> Result<(), ParentAssignmentError>;
+    fn insert_into(&mut self, parent: Option<&Self::Handle>) -> Result<(), ParentAssignmentError>;
 }
 
 /// Visualization tree connector.
@@ -65,7 +65,7 @@ pub trait VisPin: AttributeMap {
     type Handle: VisHandle;
 
     /// Updates the target element of this pin.
-    fn attach_to(&mut self, target: &Self::Handle) -> Result<(), InvalidHandle>;
+    fn attach_to(&mut self, target: Option<&Self::Handle>) -> Result<(), InvalidHandle>;
 }
 
 /// Container for a visualization tree.
@@ -85,6 +85,9 @@ pub trait VisTree {
     type ConnectorRef<'a>: VisConnector<Handle = Self::ElementHandle> + 'a
     where
         Self: 'a;
+
+    /// Sets an element to be the root of the visualization tree.
+    fn set_root(&mut self, handle: Option<&Self::ElementHandle>) -> Result<(), InvalidHandle>;
 
     /// Creates a new element.
     fn add_element(&mut self, tag_name: &str) -> Self::ElementHandle;
