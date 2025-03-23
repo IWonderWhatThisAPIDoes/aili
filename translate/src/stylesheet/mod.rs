@@ -25,11 +25,21 @@ pub struct StyleRuleProperty {
     /// They are then evaluated in declaration order.
     /// This is only relevant for variables, where the value
     /// assigned to a variable holds until it is overwritten.
-    pub key: String,
+    pub key: StylePropertyKey,
 
     /// Expression that evaluates to the value that should
     /// be assigned to the property.
     pub value: Box<Expression>,
+}
+
+/// A key that values can be assigned to in a style rule.
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+pub enum StylePropertyKey {
+    /// Assigns value to a property of the selected entity.
+    Property(String),
+
+    /// Assigns values to a cascade variable.
+    Variable(String),
 }
 
 /// Full stylesheet, a sequence of style rules.

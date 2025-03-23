@@ -7,7 +7,7 @@ use super::{
 };
 use crate::{
     property::{PropertyValue, Selectable},
-    stylesheet::selector::EdgeMatcher,
+    stylesheet::{StylePropertyKey, selector::EdgeMatcher},
 };
 use aili_model::state::{EdgeLabel, NodeId, ProgramStateNode, RootedProgramStateGraph};
 use std::collections::{HashMap, HashSet};
@@ -214,13 +214,20 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
     fn selected_entity(&mut self, target: Selectable<T::NodeId>, rule_index: usize) {
         let properties = &self.stylesheet.0[rule_index].properties;
         for property in properties {
-            self.properties.insert(
-                PropertyKey(target.clone(), &property.key),
-                evaluate(
-                    &property.value,
-                    &EvaluationOnGraph::new(self.graph, target.node_id.clone()),
-                ),
-            );
+            match &property.key {
+                StylePropertyKey::Property(name) => {
+                    self.properties.insert(
+                        PropertyKey(target.clone(), name),
+                        evaluate(
+                            &property.value,
+                            &EvaluationOnGraph::new(self.graph, target.node_id.clone()),
+                        ),
+                    );
+                }
+                StylePropertyKey::Variable(_) => {
+                    todo!()
+                }
+            }
         }
     }
 }
@@ -253,7 +260,7 @@ mod test {
     use super::*;
     use crate::{
         cascade::test_graph::TestGraph,
-        stylesheet::{expression::*, selector::*, *},
+        stylesheet::{StylePropertyKey::*, expression::*, selector::*, *},
     };
 
     #[test]
@@ -270,7 +277,7 @@ mod test {
                 .into(),
             ),
             properties: vec![StyleRuleProperty {
-                key: "display".to_owned(),
+                key: Property("display".to_owned()),
                 value: Expression::String("cell".to_owned()).into(),
             }],
         }]));
@@ -326,7 +333,7 @@ mod test {
                     .into(),
                 ),
                 properties: vec![StyleRuleProperty {
-                    key: "display".to_owned(),
+                    key: Property("display".to_owned()),
                     value: Expression::String("cell".to_owned()).into(),
                 }],
             },
@@ -343,11 +350,11 @@ mod test {
                 ),
                 properties: vec![
                     StyleRuleProperty {
-                        key: "display".to_owned(),
+                        key: Property("display".to_owned()),
                         value: Expression::String("kvt".to_owned()).into(),
                     },
                     StyleRuleProperty {
-                        key: "title".to_owned(),
+                        key: Property("title".to_owned()),
                         value: Expression::Int(42).into(),
                     },
                 ],
@@ -410,7 +417,7 @@ mod test {
                 )
                 .with_extra("".to_owned()),
                 properties: vec![StyleRuleProperty {
-                    key: "display".to_owned(),
+                    key: Property("display".to_owned()),
                     value: Expression::String("cell".to_owned()).into(),
                 }],
             },
@@ -424,7 +431,7 @@ mod test {
                 )
                 .with_extra("abc".to_owned()),
                 properties: vec![StyleRuleProperty {
-                    key: "display".to_owned(),
+                    key: Property("display".to_owned()),
                     value: Expression::String("kvt".to_owned()).into(),
                 }],
             },
@@ -470,7 +477,7 @@ mod test {
             )
             .selecting_edge(),
             properties: vec![StyleRuleProperty {
-                key: "display".to_owned(),
+                key: Property("display".to_owned()),
                 value: Expression::String("cell".to_owned()).into(),
             }],
         }]));
