@@ -33,6 +33,7 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
             Select(selector) => self
                 .0
                 .select_entity(selector)
+                .map(Box::new)
                 .map(PropertyValue::Selection)
                 .unwrap_or_default(),
         }

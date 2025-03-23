@@ -17,7 +17,7 @@ pub enum PropertyValue<T: NodeId> {
     /// The property's value is a reference to a selectable entity.
     #[debug("@({_0:?})")]
     #[display("@({_0:?})")]
-    Selection(Selectable<T>),
+    Selection(Box<Selectable<T>>),
 
     /// The property's value is a program value extracted from state
     /// or calculated with arithmetics.
