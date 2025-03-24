@@ -30,7 +30,7 @@ pub enum PropertyKey {
 }
 
 /// Properties of a visual element, pre-processed to the required form.
-#[derive(Default)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct PropertyMap<T: NodeId> {
     /// Attributes with string values.
     pub attributes: HashMap<String, String>,
@@ -48,6 +48,17 @@ pub struct PropertyMap<T: NodeId> {
     /// of this entity's visualization if [`display`](PropertyMap::display)
     /// is [`Connector`](DisplayMode::Connector).
     pub target: Option<Selectable<T>>,
+}
+
+impl<T: NodeId> Default for PropertyMap<T> {
+    fn default() -> Self {
+        Self {
+            attributes: HashMap::default(),
+            display: None,
+            parent: None,
+            target: None,
+        }
+    }
 }
 
 impl<T: NodeId> std::fmt::Debug for PropertyMap<T> {
@@ -82,7 +93,7 @@ pub enum DisplayMode {
 
 /// Represents the mapping between selectable entities and their display
 /// properties, computed by evaluating the cascade.
-#[derive(From, Debug)]
+#[derive(Clone, PartialEq, Eq, From, Debug)]
 #[from(forward)]
 pub struct EntityPropertyMapping<T: NodeId>(pub HashMap<Selectable<T>, PropertyMap<T>>);
 
