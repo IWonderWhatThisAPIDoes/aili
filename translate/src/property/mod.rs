@@ -4,6 +4,7 @@ mod selectable;
 mod values;
 
 use aili_model::state::NodeId;
+use derive_more::From;
 pub use selectable::Selectable;
 use std::collections::HashMap;
 pub use values::PropertyValue;
@@ -49,6 +50,26 @@ pub struct PropertyMap<T: NodeId> {
     pub target: Option<Selectable<T>>,
 }
 
+impl<T: NodeId> std::fmt::Debug for PropertyMap<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{{ ")?;
+        if let Some(display) = &self.display {
+            write!(f, "display: {display:?}; ")?;
+        }
+        if let Some(parent) = &self.parent {
+            write!(f, "parent: {parent:?}; ")?;
+        }
+        if let Some(target) = &self.target {
+            write!(f, "target: {target:?}; ")?;
+        }
+        for (key, value) in &self.attributes {
+            write!(f, "{key:?}: {value:?}; ")?;
+        }
+        write!(f, "}}")?;
+        Ok(())
+    }
+}
+
 /// Ways to visualize an entity.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DisplayMode {
@@ -57,4 +78,16 @@ pub enum DisplayMode {
 
     /// Entity is displayed as an element with the provided tag name.
     ElementTag(String),
+}
+
+/// Represents the mapping between selectable entities and their display
+/// properties, computed by evaluating the cascade.
+#[derive(From, Debug)]
+#[from(forward)]
+pub struct EntityPropertyMapping<T: NodeId>(pub HashMap<Selectable<T>, PropertyMap<T>>);
+
+impl<T: NodeId> Default for EntityPropertyMapping<T> {
+    fn default() -> Self {
+        Self(HashMap::default())
+    }
 }

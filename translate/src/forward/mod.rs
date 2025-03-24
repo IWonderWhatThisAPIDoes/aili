@@ -3,7 +3,7 @@
 
 mod test_vis;
 
-use crate::property::{DisplayMode, PropertyMap, Selectable};
+use crate::property::{DisplayMode, EntityPropertyMapping, PropertyMap, Selectable};
 use aili_model::{state::NodeId, vis::*};
 use std::collections::HashMap;
 
@@ -44,10 +44,10 @@ impl<'v, T: NodeId, V: VisTree> Renderer<'v, T, V> {
     }
 
     /// Updates the properties of all visual elements.
-    pub fn update(&mut self, mut new_mapping: HashMap<Selectable<T>, PropertyMap<T>>) {
+    pub fn update(&mut self, mut new_mapping: EntityPropertyMapping<T>) {
         let mut updated_mapping = HashMap::new();
         // Create renderings for entities that are not yet rendered and update those that are
-        for (key, new_properties) in new_mapping.drain() {
+        for (key, new_properties) in new_mapping.0.drain() {
             if let Some(new_entity_mapping) = self.update_or_create_rendering(&key, new_properties)
             {
                 updated_mapping.insert(key, new_entity_mapping);
