@@ -18,16 +18,16 @@ pub enum EdgeMatcher {
     Exact(EdgeLabel),
 
     /// Matches all [`EdgeLabel::Index`] edges.
-    #[debug("[_]")]
+    #[debug("[]")]
     AnyIndex,
 
     /// Matches all [`EdgeLabel::Named`] edges.
-    #[debug("<\"_\">")]
+    #[debug("%")]
     AnyNamed,
 
     /// Matches all [`EdgeLabel::Named`] edges with a particular name,
     /// but with any secondary index.
-    #[debug("\"{_0}\"")]
+    #[debug("{_0:?}")]
     Named(String),
 }
 
@@ -180,7 +180,11 @@ impl std::fmt::Debug for Selector {
             write!(f, "::edge")?;
         }
         if let Some(extra) = &self.extra {
-            write!(f, "::extra({extra})")?;
+            if extra.is_empty() {
+                write!(f, "::extra")?;
+            } else {
+                write!(f, "::extra({extra:?})")?;
+            }
         }
         Ok(())
     }

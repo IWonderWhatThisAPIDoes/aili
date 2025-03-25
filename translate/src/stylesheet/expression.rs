@@ -29,7 +29,7 @@ pub enum Expression {
     Bool(bool),
 
     /// String literal.
-    #[debug("\"{_0}\"")]
+    #[debug("{_0:?}")]
     String(String),
 
     /// Integer literal.
@@ -111,7 +111,7 @@ pub enum UnaryOperator {
     /// ## Return Values
     /// [`Bool`](aili_model::state::NodeValue::Bool). True if the argument is a selection of a node,
     /// and its type class matches this operator. False otherwise.
-    #[debug("is:{_0:?}")]
+    #[debug("is-{_0:?}")]
     NodeIsA(NodeTypeClass),
 
     /// Gets the name of state node's type.
@@ -121,7 +121,7 @@ pub enum UnaryOperator {
     /// if it is a selection of a node and it has one of types [`Frame`](aili_model::state::NodeType::Frame),
     /// [`Atom`](aili_model::state::NodeType::Atom), or [`Struct`](aili_model::state::NodeType::Struct).
     /// [`Unset`](crate::property::PropertyValue::Unset) otherwise.
-    #[debug("nameof")]
+    #[debug("typename")]
     NodeTypeName,
 
     /// Checks whether a value is defined.
@@ -323,7 +323,11 @@ impl std::fmt::Debug for LimitedSelector {
             write!(f, "{segment:?}")?;
         }
         if let Some(extra) = &self.extra_label {
-            write!(f, "::extra({extra})")?;
+            if extra.is_empty() {
+                write!(f, "::extra")?;
+            } else {
+                write!(f, "::extra({extra:?})")?;
+            }
         }
         Ok(())
     }

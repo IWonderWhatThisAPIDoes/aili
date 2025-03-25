@@ -145,7 +145,7 @@ pub enum EdgeLabel {
     ///
     /// ## Permitted Targets
     /// [`NodeType::Atom`], [`NodeType::Struct`], [`NodeType::Array`], [`NodeType::Ref`]
-    #[debug("\"{_0}\"#{_1}")]
+    #[debug("{_0:?}#{_1}")]
     Named(String, usize),
 
     /// Indicates a variable that stores the length of a sequence.
