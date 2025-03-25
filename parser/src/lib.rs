@@ -1,0 +1,467 @@
+mod connect;
+mod grammar;
+mod lexer;
+pub mod symbols;
+
+use aili_translate::stylesheet::Stylesheet;
+use derive_more::{Display, Error, From};
+use grammar::Parser;
+use lexer::Token;
+use logos::Logos;
+
+/// Error type that indicates irrecoverable parse errors.
+#[derive(Clone, PartialEq, Eq, Debug, Display, Error, From, Default)]
+pub struct ParseFailure(grammar::ParseError);
+
+/// Parses a [`Stylesheet`].
+///
+/// The parse function attempts error recovery by discarding unparsable
+/// tokens. The returned stylesheet is a parsable portion of the input.
+/// An error is only returned if the parser irrecoverably fails.
+pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, ParseFailure> {
+    let lexer = Token::lexer(source);
+    let mut parser = Parser::new();
+    // We should leave this explicit, silently discarding error tokens is not the way to go
+    #[allow(clippy::manual_flatten)]
+    for token in lexer {
+        if let Ok(token) = token {
+            parser.parse(token.into())?;
+        }
+    }
+    // Push end token so we get relevant error descriptions
+    parser.parse(grammar::Token::End)?;
+    Ok(parser.end_of_input()?)
+}
+
+#[cfg(test)]
+mod test {
+    use super::parse_stylesheet;
+    use aili_model::state::{EdgeLabel, NodeTypeClass};
+    use aili_translate::{
+        property::PropertyKey,
+        stylesheet::{
+            expression::{BinaryOperator, Expression, LimitedSelector},
+            selector::{
+                EdgeMatcher, RestrictedSelectorSegment, Selector, SelectorPath, SelectorSegment,
+            },
+            *,
+        },
+    };
+
+    #[test]
+    fn minimal_empty_rule() {
+        let source = ":: { }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: Vec::new(),
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn assign_unquoted_to_unquoted() {
+        let source = ":: { abc:def }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("abc".to_owned())),
+                value: Expression::String("def".to_owned()).into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn assign_single_letter_to_single_letter() {
+        let source = ":: { a:b }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                value: Expression::String("b".to_owned()).into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn multiple_clauses_with_trailing_semicolon() {
+        let source = ":: { a: 1; b: 2; }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                    value: Expression::Int(1).into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
+                    value: Expression::Int(2).into(),
+                },
+            ],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn variable_invocations() {
+        let source = ":: { --i: --j }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Variable("--i".to_owned()),
+                value: Expression::Variable("--j".to_owned()).into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn arihhmetic_operators() {
+        let source = ":: { a: -1 - 3 * 2 + 4 / 2 % +5 }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                value: Expression::BinaryOperator(
+                    Expression::BinaryOperator(
+                        Expression::UnaryOperator(
+                            expression::UnaryOperator::Minus,
+                            Expression::Int(1).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Minus,
+                        Expression::BinaryOperator(
+                            Expression::Int(3).into(),
+                            BinaryOperator::Mul,
+                            Expression::Int(2).into(),
+                        )
+                        .into(),
+                    )
+                    .into(),
+                    BinaryOperator::Plus,
+                    Expression::BinaryOperator(
+                        Expression::BinaryOperator(
+                            Expression::Int(4).into(),
+                            BinaryOperator::Div,
+                            Expression::Int(2).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Mod,
+                        Expression::UnaryOperator(
+                            expression::UnaryOperator::Plus,
+                            Expression::Int(5).into(),
+                        )
+                        .into(),
+                    )
+                    .into(),
+                )
+                .into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn empty_select_expression() {
+        let source = ":: { value: @ }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                value: Expression::Select(LimitedSelector::new().into()).into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn logical_operators() {
+        let source = ":: { value: @ || --a && !--b || --i == 0 }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                value: Expression::BinaryOperator(
+                    Expression::BinaryOperator(
+                        Expression::Select(LimitedSelector::new().into()).into(),
+                        BinaryOperator::Or,
+                        Expression::BinaryOperator(
+                            Expression::Variable("--a".to_owned()).into(),
+                            BinaryOperator::And,
+                            Expression::UnaryOperator(
+                                expression::UnaryOperator::Not,
+                                Expression::Variable("--b".to_owned()).into(),
+                            )
+                            .into(),
+                        )
+                        .into(),
+                    )
+                    .into(),
+                    BinaryOperator::Or,
+                    Expression::BinaryOperator(
+                        Expression::Variable("--i".to_owned()).into(),
+                        BinaryOperator::Eq,
+                        Expression::Int(0).into(),
+                    )
+                    .into(),
+                )
+                .into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn select_expression_with_path() {
+        let source = ":: { value: @(\"a\" [42]) }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                value: Expression::Select(
+                    LimitedSelector::from_path([
+                        EdgeLabel::Named("a".to_owned(), 0),
+                        EdgeLabel::Index(42),
+                    ])
+                    .into(),
+                )
+                .into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn ternary_operator() {
+        let source = ":: { value: --a && --b ? \"true\" : 1 + --a }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                value: Expression::Conditional(
+                    Expression::BinaryOperator(
+                        Expression::Variable("--a".to_owned()).into(),
+                        BinaryOperator::And,
+                        Expression::Variable("--b".to_owned()).into(),
+                    )
+                    .into(),
+                    Expression::String("true".to_owned()).into(),
+                    Expression::BinaryOperator(
+                        Expression::Int(1).into(),
+                        BinaryOperator::Plus,
+                        Expression::Variable("--a".to_owned()).into(),
+                    )
+                    .into(),
+                )
+                .into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn selector_edge_matchers() {
+        let source = "main next ret ref len [] [42] \"a\" \"b\"#1 * % { }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::from_path(SelectorPath(
+                std::iter::once(SelectorSegment::anything_any_number_of_times())
+                    .chain(
+                        [
+                            EdgeLabel::Main.into(),
+                            EdgeLabel::Next.into(),
+                            EdgeLabel::Result.into(),
+                            EdgeLabel::Deref.into(),
+                            EdgeLabel::Length.into(),
+                            EdgeMatcher::AnyIndex,
+                            EdgeLabel::Index(42).into(),
+                            EdgeMatcher::Named("a".to_owned()),
+                            EdgeLabel::Named("b".to_owned(), 1).into(),
+                            EdgeMatcher::Any,
+                            EdgeMatcher::AnyNamed,
+                        ]
+                        .into_iter()
+                        .map(SelectorSegment::Match),
+                    )
+                    .map(RestrictedSelectorSegment::from)
+                    .collect(),
+            )),
+            properties: Vec::new(),
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn selector_pseudo_elements() {
+        let source =
+            "::::edge { } ::::extra { } ::::extra(hello-world) { } :: main::edge::extra { }";
+        let expected_stylesheet = Stylesheet(vec![
+            StyleRule {
+                selector: Selector::new().selecting_edge(),
+                properties: Vec::new(),
+            },
+            StyleRule {
+                selector: Selector::new().with_extra("".to_owned()),
+                properties: Vec::new(),
+            },
+            StyleRule {
+                selector: Selector::new().with_extra("hello-world".to_owned()),
+                properties: Vec::new(),
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                )
+                .selecting_edge()
+                .with_extra("".to_owned()),
+                properties: Vec::new(),
+            },
+        ]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn branched_selectors() {
+        let source = ":: .many(.alt(next ret, .many(%))) { }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::from_path(
+                [SelectorSegment::AnyNumberOfTimes(
+                    [SelectorSegment::Branch(vec![
+                        [
+                            SelectorSegment::Match(EdgeLabel::Next.into()).into(),
+                            SelectorSegment::Match(EdgeLabel::Result.into()).into(),
+                        ]
+                        .into(),
+                        [SelectorSegment::AnyNumberOfTimes(
+                            [SelectorSegment::Match(EdgeMatcher::AnyNamed).into()].into(),
+                        )
+                        .into()]
+                        .into(),
+                    ])
+                    .into()]
+                    .into(),
+                )
+                .into()]
+                .into(),
+            ),
+            properties: Vec::new(),
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn special_property_keys() {
+        let source = ":: { display: unset; \"display\": \"unset\"; parent: true; target: false; \"--i\": 1 }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Display),
+                    value: Expression::Unset.into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("display".to_owned())),
+                    value: Expression::String("unset".to_owned()).into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Parent),
+                    value: Expression::Bool(true).into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Target),
+                    value: Expression::Bool(false).into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("--i".to_owned())),
+                    value: Expression::Int(1).into(),
+                },
+            ],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn restricted_selector() {
+        let source = ":: .many(*.if(--c)).if(--i == 0) { }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::from_path(
+                [RestrictedSelectorSegment {
+                    segment: SelectorSegment::AnyNumberOfTimes(
+                        [RestrictedSelectorSegment {
+                            segment: SelectorSegment::Match(EdgeMatcher::Any),
+                            condition: Some(Expression::Variable("--c".to_owned())),
+                        }]
+                        .into(),
+                    ),
+                    condition: Some(Expression::BinaryOperator(
+                        Expression::Variable("--i".to_owned()).into(),
+                        BinaryOperator::Eq,
+                        Expression::Int(0).into(),
+                    )),
+                }]
+                .into(),
+            ),
+            properties: Vec::new(),
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn named_operators() {
+        let source = ":: { a: isset(--i); b: is-root(@); c: typename(@); d: val(@); }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                    value: Expression::UnaryOperator(
+                        expression::UnaryOperator::IsSet,
+                        Expression::Variable("--i".to_owned()).into(),
+                    )
+                    .into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
+                    value: Expression::UnaryOperator(
+                        expression::UnaryOperator::NodeIsA(NodeTypeClass::Root),
+                        Expression::Select(LimitedSelector::new().into()).into(),
+                    )
+                    .into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("c".to_owned())),
+                    value: Expression::UnaryOperator(
+                        expression::UnaryOperator::NodeTypeName,
+                        Expression::Select(LimitedSelector::new().into()).into(),
+                    )
+                    .into(),
+                },
+                StyleRuleItem {
+                    key: StyleKey::Property(PropertyKey::Attribute("d".to_owned())),
+                    value: Expression::UnaryOperator(
+                        expression::UnaryOperator::NodeValue,
+                        Expression::Select(LimitedSelector::new().into()).into(),
+                    )
+                    .into(),
+                },
+            ],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+}

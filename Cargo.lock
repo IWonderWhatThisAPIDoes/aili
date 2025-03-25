@@ -10,12 +10,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "aili_parser"
+version = "0.1.0"
+dependencies = [
+ "aili_model",
+ "aili_translate",
+ "derive_more",
+ "logos",
+ "pomelo",
+]
+
+[[package]]
 name = "aili_translate"
 version = "0.1.0"
 dependencies = [
  "aili_model",
  "derive_more",
 ]
+
+[[package]]
+name = "beef"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
 
 [[package]]
 name = "derive_more"
@@ -34,8 +51,74 @@ checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.100",
  "unicode-xid",
+]
+
+[[package]]
+name = "fnv"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
+name = "lazy_static"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+
+[[package]]
+name = "logos"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab6f536c1af4c7cc81edf73da1f8029896e7e1e16a219ef09b184e76a296f3db"
+dependencies = [
+ "logos-derive",
+]
+
+[[package]]
+name = "logos-codegen"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "189bbfd0b61330abea797e5e9276408f2edbe4f822d7ad08685d67419aafb34e"
+dependencies = [
+ "beef",
+ "fnv",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "regex-syntax",
+ "rustc_version",
+ "syn 2.0.100",
+]
+
+[[package]]
+name = "logos-derive"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebfe8e1a19049ddbfccbd14ac834b215e11b85b90bab0c2dba7c7b92fb5d5cba"
+dependencies = [
+ "logos-codegen",
+]
+
+[[package]]
+name = "pomelo"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76dd249f63dbbc68c8caa9b5fd16b32c7ba5da56df93d40a9552c91ebfd2a1cd"
+dependencies = [
+ "pomelo-impl",
+]
+
+[[package]]
+name = "pomelo-impl"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "597c3287a549da151aca6ada2795ecde089c7527bd5093114e8e0e1c3f0e52b1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -54,6 +137,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
+
+[[package]]
+name = "rustc_version"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
+dependencies = [
+ "semver",
+]
+
+[[package]]
+name = "semver"
+version = "1.0.26"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "56e6fa9c48d24d85fb3de5ad847117517440f6beceb7798af16b4a87d616b8d0"
+
+[[package]]
+name = "syn"
+version = "1.0.109"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
 ]
 
 [[package]]

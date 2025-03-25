@@ -17,3 +17,7 @@ written in Typescript.
 
 Translator for converting between Program state and Visualization
 models based on a stylesheet.
+
+### Parser
+
+Parser for stylesheets of the Translate module.
