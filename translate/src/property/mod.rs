@@ -97,8 +97,15 @@ pub enum DisplayMode {
 #[from(forward)]
 pub struct EntityPropertyMapping<T: NodeId>(pub HashMap<Selectable<T>, PropertyMap<T>>);
 
+impl<T: NodeId> EntityPropertyMapping<T> {
+    /// Constructs an empty property mapping.
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 impl<T: NodeId> Default for EntityPropertyMapping<T> {
     fn default() -> Self {
-        Self(HashMap::default())
+        Self(HashMap::new())
     }
 }

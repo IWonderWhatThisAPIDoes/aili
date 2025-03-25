@@ -281,7 +281,7 @@ pub enum BinaryOperator {
 /// [`Exact`](super::selector::EdgeMatcher::Exact) are not allowed).
 ///
 /// These selectors can always unambiguously select at most one entity.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Default)]
 pub struct LimitedSelector {
     /// Path that must be matched in order to select something.
     pub path: Vec<EdgeLabel>,
@@ -293,12 +293,24 @@ pub struct LimitedSelector {
 }
 
 impl LimitedSelector {
+    /// Constructs a limited selector that matches the node
+    /// from which it is run.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Shorthand for constructing a limited selector that matches a node.
     pub fn from_path(path: impl IntoIterator<Item = EdgeLabel>) -> Self {
         Self {
             path: Vec::from_iter(path),
             extra_label: None,
         }
+    }
+
+    /// Adds an extra label to an existing selector.
+    pub fn with_extra(mut self, extra_label: String) -> Self {
+        self.extra_label = Some(extra_label);
+        self
     }
 }
 

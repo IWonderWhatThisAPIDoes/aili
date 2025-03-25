@@ -48,14 +48,18 @@ impl EdgeMatcher {
 
 /// Unrestricted segment of a selector path.
 /// Can be an edge matcher or a control flow construct.
+#[derive(PartialEq, Eq, Debug)]
 pub enum SelectorSegment {
     /// Matches an edge.
+    #[debug("{_0:?}")]
     Match(EdgeMatcher),
 
     /// Matches a full selector path zero or more times.
+    #[debug(".many({_0:?})")]
     AnyNumberOfTimes(SelectorPath),
 
     /// Matches at least one of a set of selector paths.
+    #[debug(".alt{_0:?}")]
     Branch(Vec<SelectorPath>),
 }
 
@@ -69,13 +73,26 @@ impl SelectorSegment {
 
 /// A series of selector segments that must all match in sequence
 /// in order to pass.
-#[derive(From)]
+#[derive(PartialEq, Eq, From, Default)]
 #[from(forward)]
 pub struct SelectorPath(pub Vec<RestrictedSelectorSegment>);
+
+impl std::fmt::Debug for SelectorPath {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, segment) in self.0.iter().enumerate() {
+            if i > 0 {
+                write!(f, " ")?;
+            }
+            write!(f, "{segment:?}")?;
+        }
+        Ok(())
+    }
+}
 
 /// [`SelectorSegment`] that is optionally restricted by a condition.
 /// If the condition does not evaluate to a [truthy](crate::property::PropertyValue::is_truthy)
 /// value, the selector segment does not match anything.
+#[derive(PartialEq, Eq)]
 pub struct RestrictedSelectorSegment {
     /// The selector segment that performs the initial match.
     pub segment: SelectorSegment,
@@ -83,6 +100,16 @@ pub struct RestrictedSelectorSegment {
     /// The condition that optionally further restricts the selector.
     /// Must be [truthy](crate::property::PropertyValue::is_truthy) to pass.
     pub condition: Option<Expression>,
+}
+
+impl std::fmt::Debug for RestrictedSelectorSegment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.segment)?;
+        if let Some(condition) = &self.condition {
+            write!(f, ".if({condition:?})")?;
+        }
+        Ok(())
+    }
 }
 
 impl From<SelectorSegment> for RestrictedSelectorSegment {
@@ -97,6 +124,7 @@ impl From<SelectorSegment> for RestrictedSelectorSegment {
 /// Full selector, defined by a selector path that must match,
 /// and tail decorators that specify which selectable element
 /// was exactly selected.
+#[derive(PartialEq, Eq, Default)]
 pub struct Selector {
     /// Path that must match in order to select something.
     pub path: SelectorPath,
@@ -112,6 +140,11 @@ pub struct Selector {
 }
 
 impl Selector {
+    /// Constructs a selector that matches the root node.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     /// Shorthand for constructing a selector that matches a node.
     pub fn from_path(path: SelectorPath) -> Self {
         Self {
@@ -137,5 +170,18 @@ impl Selector {
             selects_edge: self.selects_edge,
             extra: Some(extra),
         }
+    }
+}
+
+impl std::fmt::Debug for Selector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.path)?;
+        if self.selects_edge {
+            write!(f, "::edge")?;
+        }
+        if let Some(extra) = &self.extra {
+            write!(f, "::extra({extra})")?;
+        }
+        Ok(())
     }
 }
