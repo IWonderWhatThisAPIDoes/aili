@@ -437,7 +437,7 @@ mod test {
             ),
             properties: vec![StyleClause {
                 key: Property(Display),
-                value: Expression::String("cell".to_owned()).into(),
+                value: Expression::String("cell".to_owned()),
             }],
         }]));
         let expected_properties = PropertyMap {
@@ -479,7 +479,7 @@ mod test {
                 ),
                 properties: vec![StyleClause {
                     key: Property(Display),
-                    value: Expression::String("cell".to_owned()).into(),
+                    value: Expression::String("cell".to_owned()),
                 }],
             },
             StyleRule {
@@ -496,11 +496,11 @@ mod test {
                 properties: vec![
                     StyleClause {
                         key: Property(Display),
-                        value: Expression::String("kvt".to_owned()).into(),
+                        value: Expression::String("kvt".to_owned()),
                     },
                     StyleClause {
                         key: Property(Attribute("title".to_owned())),
-                        value: Expression::Int(42).into(),
+                        value: Expression::Int(42),
                     },
                 ],
             },
@@ -547,7 +547,7 @@ mod test {
                 .with_extra("".to_owned()),
                 properties: vec![StyleClause {
                     key: Property(Display),
-                    value: Expression::String("cell".to_owned()).into(),
+                    value: Expression::String("cell".to_owned()),
                 }],
             },
             StyleRule {
@@ -561,7 +561,7 @@ mod test {
                 .with_extra("abc".to_owned()),
                 properties: vec![StyleClause {
                     key: Property(Display),
-                    value: Expression::String("kvt".to_owned()).into(),
+                    value: Expression::String("kvt".to_owned()),
                 }],
             },
         ]));
@@ -607,7 +607,7 @@ mod test {
             .selecting_edge(),
             properties: vec![StyleClause {
                 key: Property(Display),
-                value: Expression::String("cell".to_owned()).into(),
+                value: Expression::String("cell".to_owned()),
             }],
         }]));
         let expected_properties = PropertyMap {
@@ -672,14 +672,13 @@ mod test {
                 properties: vec![
                     StyleClause {
                         key: Property(Display),
-                        value: Expression::Bool(true).into(),
+                        value: Expression::Bool(true),
                     },
                     StyleClause {
                         key: Property(Target),
                         value: Expression::Select(
                             LimitedSelector::from_path([EdgeLabel::Main]).into(),
-                        )
-                        .into(),
+                        ),
                     },
                 ],
             },
@@ -690,14 +689,13 @@ mod test {
                 properties: vec![
                     StyleClause {
                         key: Property(Attribute("value".to_owned())),
-                        value: Expression::Select(LimitedSelector::default().into()).into(),
+                        value: Expression::Select(LimitedSelector::default().into()),
                     },
                     StyleClause {
                         key: Property(Display),
                         value: Expression::Select(
                             LimitedSelector::from_path([EdgeLabel::Index(0)]).into(),
-                        )
-                        .into(),
+                        ),
                     },
                 ],
             },
@@ -748,7 +746,7 @@ mod test {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
                     key: Variable("--root".to_owned()),
-                    value: Expression::Select(LimitedSelector::default().into()).into(),
+                    value: Expression::Select(LimitedSelector::default().into()),
                 }],
             },
             StyleRule {
@@ -757,7 +755,7 @@ mod test {
                 ),
                 properties: vec![StyleClause {
                     key: Property(Parent),
-                    value: Expression::Variable("--root".to_owned()).into(),
+                    value: Expression::Variable("--root".to_owned()),
                 }],
             },
         ]));
@@ -796,11 +794,11 @@ mod test {
             properties: vec![
                 StyleClause {
                     key: Variable("--i".to_owned()),
-                    value: Expression::Int(0).into(),
+                    value: Expression::Int(0),
                 },
                 StyleClause {
                     key: Property(Attribute("a".to_owned())),
-                    value: Expression::Variable("--i".to_owned()).into(),
+                    value: Expression::Variable("--i".to_owned()),
                 },
                 StyleClause {
                     key: Variable("--i".to_owned()),
@@ -808,12 +806,11 @@ mod test {
                         Expression::Variable("--i".to_owned()).into(),
                         BinaryOperator::Plus,
                         Expression::Int(1).into(),
-                    )
-                    .into(),
+                    ),
                 },
                 StyleClause {
                     key: Property(Attribute("b".to_owned())),
-                    value: Expression::Variable("--i".to_owned()).into(),
+                    value: Expression::Variable("--i".to_owned()),
                 },
                 StyleClause {
                     key: Variable("--i".to_owned()),
@@ -821,12 +818,11 @@ mod test {
                         Expression::Variable("--i".to_owned()).into(),
                         BinaryOperator::Plus,
                         Expression::Int(2).into(),
-                    )
-                    .into(),
+                    ),
                 },
                 StyleClause {
                     key: Property(Attribute("c".to_owned())),
-                    value: Expression::Variable("--i".to_owned()).into(),
+                    value: Expression::Variable("--i".to_owned()),
                 },
             ],
         }]));
@@ -878,7 +874,7 @@ mod test {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
                     key: Variable("--depth".to_owned()),
-                    value: Expression::Int(0).into(),
+                    value: Expression::Int(0),
                 }],
             },
             StyleRule {
@@ -903,7 +899,7 @@ mod test {
                 properties: vec![
                     StyleClause {
                         key: Property(Attribute("value".to_owned())),
-                        value: Expression::Variable("--depth".to_owned()).into(),
+                        value: Expression::Variable("--depth".to_owned()),
                     },
                     StyleClause {
                         key: Variable("--depth".to_owned()),
@@ -911,8 +907,7 @@ mod test {
                             Expression::Variable("--depth".to_owned()).into(),
                             BinaryOperator::Plus,
                             Expression::Int(1).into(),
-                        )
-                        .into(),
+                        ),
                     },
                 ],
             },

@@ -45,7 +45,7 @@ pub struct StyleClause {
 
     /// Expression that evaluates to the value that should
     /// be assigned to the property.
-    pub value: Box<Expression>,
+    pub value: Expression,
 }
 
 /// A key that values can be assigned to in a style rule.

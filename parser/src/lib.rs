@@ -85,7 +85,7 @@ mod test {
             selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("abc".to_owned())),
-                value: Expression::String("def".to_owned()).into(),
+                value: Expression::String("def".to_owned()),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -100,7 +100,7 @@ mod test {
             selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
-                value: Expression::String("b".to_owned()).into(),
+                value: Expression::String("b".to_owned()),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -116,11 +116,11 @@ mod test {
             properties: vec![
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
-                    value: Expression::Int(1).into(),
+                    value: Expression::Int(1),
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
-                    value: Expression::Int(2).into(),
+                    value: Expression::Int(2),
                 },
             ],
         }]);
@@ -136,7 +136,7 @@ mod test {
             selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Variable("--i".to_owned()),
-                value: Expression::Variable("--j".to_owned()).into(),
+                value: Expression::Variable("--j".to_owned()),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -183,8 +183,7 @@ mod test {
                         .into(),
                     )
                     .into(),
-                )
-                .into(),
+                ),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -199,7 +198,7 @@ mod test {
             selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
-                value: Expression::Select(LimitedSelector::default().into()).into(),
+                value: Expression::Select(LimitedSelector::default().into()),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -237,8 +236,7 @@ mod test {
                         Expression::Int(0).into(),
                     )
                     .into(),
-                )
-                .into(),
+                ),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -259,8 +257,7 @@ mod test {
                         EdgeLabel::Index(42),
                     ])
                     .into(),
-                )
-                .into(),
+                ),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -289,8 +286,7 @@ mod test {
                         Expression::Variable("--a".to_owned()).into(),
                     )
                     .into(),
-                )
-                .into(),
+                ),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -401,23 +397,23 @@ mod test {
             properties: vec![
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Display),
-                    value: Expression::Unset.into(),
+                    value: Expression::Unset,
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("display".to_owned())),
-                    value: Expression::String("unset".to_owned()).into(),
+                    value: Expression::String("unset".to_owned()),
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Parent),
-                    value: Expression::Bool(true).into(),
+                    value: Expression::Bool(true),
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Target),
-                    value: Expression::Bool(false).into(),
+                    value: Expression::Bool(false),
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("--i".to_owned())),
-                    value: Expression::Int(1).into(),
+                    value: Expression::Int(1),
                 },
             ],
         }]);
@@ -465,32 +461,28 @@ mod test {
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::IsSet,
                         Expression::Variable("--i".to_owned()).into(),
-                    )
-                    .into(),
+                    ),
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeIsA(NodeTypeClass::Root),
                         Expression::Select(LimitedSelector::default().into()).into(),
-                    )
-                    .into(),
+                    ),
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("c".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeTypeName,
                         Expression::Select(LimitedSelector::default().into()).into(),
-                    )
-                    .into(),
+                    ),
                 },
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("d".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeValue,
                         Expression::Select(LimitedSelector::default().into()).into(),
-                    )
-                    .into(),
+                    ),
                 },
             ],
         }]);
@@ -525,8 +517,7 @@ mod test {
                         Expression::Int(5).into(),
                     )
                     .into(),
-                )
-                .into(),
+                ),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -575,7 +566,7 @@ mod test {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
                     key: StyleKey::Variable("--a".to_owned()),
-                    value: Expression::String("b".to_owned()).into(),
+                    value: Expression::String("b".to_owned()),
                 }],
             },
         ]);

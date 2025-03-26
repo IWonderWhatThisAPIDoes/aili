@@ -265,7 +265,7 @@ pomelo! {
     proplist ::= proplist1(mut l) clause(c)            { l.push(c); l }
     proplist1 ::=                                      { Vec::new() }
     proplist1 ::= proplist1(mut l) clause(c) Semicolon { l.push(c); l }
-    clause ::= lvalue(l) Colon rvalue(r)               { StyleClause { key: l, value: r.into() } }
+    clause ::= lvalue(l) Colon rvalue(r)               { StyleClause { key: l, value: r } }
     lvalue ::= Quoted(s)                               { StyleKey::Property(PropertyKey::Attribute(s.to_owned())) }
     lvalue ::= Unquoted(s)                             { unquoted_style_key(s) }
     rvalue ::= rexpr;
@@ -426,7 +426,7 @@ mod test {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
                     key: StyleKey::Property(PropertyKey::Display),
-                    value: Expression::Unset.into()
+                    value: Expression::Unset
                 }]
             }])
         );
