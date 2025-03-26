@@ -16,7 +16,7 @@ use std::collections::{HashMap, HashSet};
 pub fn apply_stylesheet<T: RootedProgramStateGraph>(
     stylesheet: &FlatStylesheet,
     graph: &T,
-) -> HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>> {
+) -> EntityPropertyMapping<T::NodeId> {
     let mut helper = ApplyStylesheet::new(stylesheet, graph);
     helper.run();
     helper.result()
@@ -24,7 +24,7 @@ pub fn apply_stylesheet<T: RootedProgramStateGraph>(
 
 /// Identifier of a property variable on an entity.
 #[derive(PartialEq, Eq, Debug, Hash)]
-pub struct EntityPropertyKey<T: NodeId>(pub Selectable<T>, pub PropertyKey);
+struct EntityPropertyKey<T: NodeId>(Selectable<T>, PropertyKey);
 
 /// Helper for stylesheet applications.
 struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
@@ -58,8 +58,62 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
     }
 
-    fn result(self) -> HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>> {
-        self.properties
+    fn result(self) -> EntityPropertyMapping<T::NodeId> {
+        let mut mapping = EntityPropertyMapping::new();
+        for (EntityPropertyKey(entity, property), value) in self.properties {
+            let entity_properties = mapping.0.entry(entity).or_insert_with(PropertyMap::default);
+            match property {
+                PropertyKey::Attribute(name) => {
+                    let value = if let PropertyValue::Selection(sel) = &value {
+                        if sel.extra_label.is_none() && sel.edge_label.is_none() {
+                            self.graph
+                                .get(sel.node_id.clone())
+                                .and_then(|node| node.value())
+                                .cloned()
+                                .map(Into::into)
+                                .unwrap_or_default()
+                        } else {
+                            PropertyValue::Unset
+                        }
+                    } else {
+                        value
+                    };
+                    entity_properties.attributes.insert(name, value.to_string());
+                }
+                PropertyKey::Display => {
+                    entity_properties.display = match &value {
+                        PropertyValue::Unset => None,
+                        PropertyValue::Selection(sel) => {
+                            if sel.extra_label.is_none() && sel.edge_label.is_none() {
+                                self.graph
+                                    .get(sel.node_id.clone())
+                                    .and_then(|node| node.value())
+                                    .cloned()
+                                    .map(PropertyValue::<T::NodeId>::from)
+                                    .as_ref()
+                                    .map(PropertyValue::to_string)
+                                    .map(DisplayMode::from_name)
+                            } else {
+                                None
+                            }
+                        }
+                        _ => Some(DisplayMode::from_name(value.to_string())),
+                    }
+                }
+                PropertyKey::Parent => {
+                    if let PropertyValue::Selection(sel) = value {
+                        entity_properties.parent = Some(*sel);
+                    }
+                }
+                PropertyKey::Target => {
+                    if let PropertyValue::Selection(sel) = value {
+                        entity_properties.target = Some(*sel);
+                    }
+                }
+                PropertyKey::Detach => {}
+            }
+        }
+        mapping
     }
 
     fn run(&mut self) {
@@ -253,6 +307,17 @@ impl SequencePointRef {
     }
 }
 
+impl DisplayMode {
+    const CONNECTOR_NAME: &'static str = "connector";
+
+    fn from_name(name: String) -> Self {
+        match name.as_str() {
+            Self::CONNECTOR_NAME => Self::Connector,
+            _ => Self::ElementTag(name),
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::{PropertyKey::*, *};
@@ -274,39 +339,25 @@ mod test {
                 ]
                 .into(),
             ),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: Property(Display),
                 value: Expression::String("cell".to_owned()).into(),
             }],
         }]));
+        let expected_properties = PropertyMap {
+            display: Some(DisplayMode::ElementTag("cell".to_owned())),
+            ..PropertyMap::default()
+        };
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
         assert_eq!(
             resolved,
             [
-                (
-                    EntityPropertyKey(Selectable::node(5), Display),
-                    "cell".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(6), Display),
-                    "cell".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(7), Display),
-                    "cell".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(10), Display),
-                    "cell".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(11), Display),
-                    "cell".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(12), Display),
-                    "cell".to_owned().into()
-                ),
+                (Selectable::node(5), expected_properties.clone()),
+                (Selectable::node(6), expected_properties.clone()),
+                (Selectable::node(7), expected_properties.clone()),
+                (Selectable::node(10), expected_properties.clone()),
+                (Selectable::node(11), expected_properties.clone()),
+                (Selectable::node(12), expected_properties.clone()),
             ]
             .into()
         );
@@ -330,7 +381,7 @@ mod test {
                     ]
                     .into(),
                 ),
-                properties: vec![StyleRuleItem {
+                properties: vec![StyleClause {
                     key: Property(Display),
                     value: Expression::String("cell".to_owned()).into(),
                 }],
@@ -347,65 +398,37 @@ mod test {
                     .into(),
                 ),
                 properties: vec![
-                    StyleRuleItem {
+                    StyleClause {
                         key: Property(Display),
                         value: Expression::String("kvt".to_owned()).into(),
                     },
-                    StyleRuleItem {
+                    StyleClause {
                         key: Property(Attribute("title".to_owned())),
                         value: Expression::Int(42).into(),
                     },
                 ],
             },
         ]));
+        let expected_properties_1 = PropertyMap {
+            display: Some(DisplayMode::ElementTag("cell".to_owned())),
+            ..PropertyMap::default()
+        };
+        let expected_properties_2 = PropertyMap {
+            display: Some(DisplayMode::ElementTag("kvt".to_owned())),
+            attributes: [("title".to_owned(), "42".to_owned())].into(),
+            ..PropertyMap::default()
+        };
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
         assert_eq!(
             resolved,
             [
-                (
-                    EntityPropertyKey(Selectable::node(1), Attribute("title".to_owned())),
-                    42u64.into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(2), Attribute("title".to_owned())),
-                    42u64.into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(3), Attribute("title".to_owned())),
-                    42u64.into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(4), Attribute("title".to_owned())),
-                    42u64.into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(1), Display),
-                    "kvt".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(2), Display),
-                    "kvt".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(3), Display),
-                    "kvt".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(4), Display),
-                    "kvt".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(8), Display),
-                    "cell".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(12), Display),
-                    "cell".to_owned().into()
-                ),
-                (
-                    EntityPropertyKey(Selectable::node(13), Display),
-                    "cell".to_owned().into()
-                ),
+                (Selectable::node(1), expected_properties_2.clone()),
+                (Selectable::node(2), expected_properties_2.clone()),
+                (Selectable::node(3), expected_properties_2.clone()),
+                (Selectable::node(4), expected_properties_2.clone()),
+                (Selectable::node(8), expected_properties_1.clone()),
+                (Selectable::node(12), expected_properties_1.clone()),
+                (Selectable::node(13), expected_properties_1.clone()),
             ]
             .into()
         );
@@ -426,7 +449,7 @@ mod test {
                     [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
                 )
                 .with_extra("".to_owned()),
-                properties: vec![StyleRuleItem {
+                properties: vec![StyleClause {
                     key: Property(Display),
                     value: Expression::String("cell".to_owned()).into(),
                 }],
@@ -440,7 +463,7 @@ mod test {
                     .into(),
                 )
                 .with_extra("abc".to_owned()),
-                properties: vec![StyleRuleItem {
+                properties: vec![StyleClause {
                     key: Property(Display),
                     value: Expression::String("kvt".to_owned()).into(),
                 }],
@@ -451,15 +474,18 @@ mod test {
             resolved,
             [
                 (
-                    EntityPropertyKey(Selectable::node(1).with_extra(Some("".to_owned())), Display),
-                    "cell".to_owned().into()
+                    Selectable::node(1).with_extra(Some("".to_owned())),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
+                        ..PropertyMap::default()
+                    }
                 ),
                 (
-                    EntityPropertyKey(
-                        Selectable::node(2).with_extra(Some("abc".to_owned())),
-                        Display
-                    ),
-                    "kvt".to_owned().into()
+                    Selectable::node(2).with_extra(Some("abc".to_owned())),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("kvt".to_owned())),
+                        ..PropertyMap::default()
+                    }
                 ),
             ]
             .into()
@@ -483,55 +509,125 @@ mod test {
                 .into(),
             )
             .selecting_edge(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: Property(Display),
                 value: Expression::String("cell".to_owned()).into(),
             }],
         }]));
+        let expected_properties = PropertyMap {
+            display: Some(DisplayMode::ElementTag("cell".to_owned())),
+            ..PropertyMap::default()
+        };
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
         assert_eq!(
             resolved,
             [
                 (
-                    EntityPropertyKey(Selectable::edge(0, EdgeLabel::Main), Display),
-                    "cell".to_owned().into()
+                    Selectable::edge(0, EdgeLabel::Main),
+                    expected_properties.clone()
                 ),
                 (
-                    EntityPropertyKey(
-                        Selectable::edge(0, EdgeLabel::Named("a".to_owned(), 0)),
-                        Display
-                    ),
-                    "cell".to_owned().into()
+                    Selectable::edge(0, EdgeLabel::Named("a".to_owned(), 0)),
+                    expected_properties.clone()
                 ),
                 (
-                    EntityPropertyKey(
-                        Selectable::edge(1, EdgeLabel::Named("a".to_owned(), 0)),
-                        Display
-                    ),
-                    "cell".to_owned().into()
+                    Selectable::edge(1, EdgeLabel::Named("a".to_owned(), 0)),
+                    expected_properties.clone()
                 ),
                 (
-                    EntityPropertyKey(Selectable::edge(2, EdgeLabel::Next), Display),
-                    "cell".to_owned().into()
+                    Selectable::edge(2, EdgeLabel::Next),
+                    expected_properties.clone()
                 ),
                 (
-                    EntityPropertyKey(
-                        Selectable::edge(5, EdgeLabel::Named("a".to_owned(), 0)),
-                        Display
-                    ),
-                    "cell".to_owned().into()
+                    Selectable::edge(5, EdgeLabel::Named("a".to_owned(), 0)),
+                    expected_properties.clone()
                 ),
                 (
-                    EntityPropertyKey(Selectable::edge(5, EdgeLabel::Deref), Display),
-                    "cell".to_owned().into()
+                    Selectable::edge(5, EdgeLabel::Deref),
+                    expected_properties.clone()
                 ),
                 (
-                    EntityPropertyKey(Selectable::edge(7, EdgeLabel::Deref), Display),
-                    "cell".to_owned().into()
+                    Selectable::edge(7, EdgeLabel::Deref),
+                    expected_properties.clone()
                 ),
                 (
-                    EntityPropertyKey(Selectable::edge(12, EdgeLabel::Deref), Display),
-                    "cell".to_owned().into()
+                    Selectable::edge(12, EdgeLabel::Deref),
+                    expected_properties.clone()
+                ),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn coerce_values() {
+        // {
+        //   display: true;
+        //   target: @(main);
+        // }
+        //
+        // "a" {
+        //   value: @;
+        //   display: @([0]);
+        // }
+        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![
+                    StyleClause {
+                        key: Property(Display),
+                        value: Expression::Bool(true).into(),
+                    },
+                    StyleClause {
+                        key: Property(Target),
+                        value: Expression::Select(
+                            LimitedSelector::from_path([EdgeLabel::Main]).into(),
+                        )
+                        .into(),
+                    },
+                ],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into()].into(),
+                ),
+                properties: vec![
+                    StyleClause {
+                        key: Property(Attribute("value".to_owned())),
+                        value: Expression::Select(LimitedSelector::default().into()).into(),
+                    },
+                    StyleClause {
+                        key: Property(Display),
+                        value: Expression::Select(
+                            LimitedSelector::from_path([EdgeLabel::Index(0)]).into(),
+                        )
+                        .into(),
+                    },
+                ],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [
+                (
+                    Selectable::node(0),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("true".to_owned())),
+                        target: Some(Selectable::node(1)),
+                        ..PropertyMap::default()
+                    }
+                ),
+                (
+                    Selectable::node(5),
+                    PropertyMap {
+                        display: None,
+                        attributes: HashMap::from_iter([(
+                            "value".to_owned(),
+                            TestGraph::NUMERIC_NODE_VALUE.to_string()
+                        )]),
+                        ..PropertyMap::default()
+                    }
                 ),
             ]
             .into()
