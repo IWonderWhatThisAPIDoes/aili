@@ -11,7 +11,7 @@ use selector::Selector;
 
 /// Single stylesheet rule that assignes a series
 /// of property and variable values to a selector.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Default)]
 pub struct StyleRule {
     /// Selector that determines what entities the rule applies to.
     pub selector: Selector,
