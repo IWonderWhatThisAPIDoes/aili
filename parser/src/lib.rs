@@ -464,4 +464,38 @@ mod test {
         let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
+
+    #[test]
+    fn conditional_operator_precedence() {
+        let source = ":: { a: 1 ? --a && 2 ? 3 : 4 : --a && 5 }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::new(),
+            properties: vec![StyleRuleItem {
+                key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                value: Expression::Conditional(
+                    Expression::Int(1).into(),
+                    Expression::Conditional(
+                        Expression::BinaryOperator(
+                            Expression::Variable("--a".to_owned()).into(),
+                            BinaryOperator::And,
+                            Expression::Int(2).into(),
+                        )
+                        .into(),
+                        Expression::Int(3).into(),
+                        Expression::Int(4).into(),
+                    )
+                    .into(),
+                    Expression::BinaryOperator(
+                        Expression::Variable("--a".to_owned()).into(),
+                        BinaryOperator::And,
+                        Expression::Int(5).into(),
+                    )
+                    .into(),
+                )
+                .into(),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
 }

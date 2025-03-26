@@ -143,7 +143,7 @@ pomelo! {
     End;
 
     // Operator precedence
-    %left Question;
+    %right Question;
     %left Or;
     %left And;
     %left Eq Ne;
