@@ -93,7 +93,7 @@ impl<'a> ErrorManager<'a> {
     ///
     /// If the operation fails (i. e. the provided result is [`Err`]),
     /// falls back to the default value and switches to recovery
-    /// state which can later be resolved by [`ExtraState::recover`].
+    /// state which can later be resolved by [`ErrorManager::recover`].
     fn try_or<T>(&mut self, result: Result<T, SyntaxError>, default: T) -> T {
         match result {
             Ok(x) => x,
@@ -108,7 +108,7 @@ impl<'a> ErrorManager<'a> {
     /// Signals that Pomelo's `%syntax_error` hook has been triggered.
     ///
     /// Switches to recovery state,
-    /// which can later be resolved by [`ExtraState::recover`].
+    /// which can later be resolved by [`ErrorManager::recover`].
     fn syntax_error_trigger(&mut self, error: SyntaxError) {
         (self.error_handler)(error);
         self.is_recovering = true;
@@ -117,11 +117,11 @@ impl<'a> ErrorManager<'a> {
     /// Signals that the parser has shifted the special `error` nonterminal
     /// in an effort to recover from a syntax error.
     ///
-    /// This will be called immediately after [`ExtraState::syntax_error_trigger`]
+    /// This will be called immediately after [`ErrorManager::syntax_error_trigger`]
     /// (assuming the `error` nonterminal is successfully shifted),
     /// but if multiple syntax errors are present in a row, Pomelo silences
     /// the `%syntax_error` hook, so additional calls to
-    /// [`ExtraState::syntax_error_trigger`] in short succession may be skipped.
+    /// [`ErrorManager::syntax_error_trigger`] in short succession may be skipped.
     fn shift_error(&mut self) {
         // We trust Pomelo on its judgement to let us know about an error
         // if it is necessary, so we do not emit anything here,
