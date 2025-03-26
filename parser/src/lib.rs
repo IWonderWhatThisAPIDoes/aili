@@ -83,7 +83,7 @@ mod test {
         let source = ":: { abc:def }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("abc".to_owned())),
                 value: Expression::String("def".to_owned()).into(),
             }],
@@ -98,7 +98,7 @@ mod test {
         let source = ":: { a:b }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                 value: Expression::String("b".to_owned()).into(),
             }],
@@ -114,11 +114,11 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
             properties: vec![
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                     value: Expression::Int(1).into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
                     value: Expression::Int(2).into(),
                 },
@@ -134,7 +134,7 @@ mod test {
         let source = ":: { --i: --j }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Variable("--i".to_owned()),
                 value: Expression::Variable("--j".to_owned()).into(),
             }],
@@ -149,7 +149,7 @@ mod test {
         let source = ":: { a: -1 - 3 * 2 + 4 / 2 % +5 }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                 value: Expression::BinaryOperator(
                     Expression::BinaryOperator(
@@ -197,7 +197,7 @@ mod test {
         let source = ":: { value: @ }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::Select(LimitedSelector::new().into()).into(),
             }],
@@ -212,7 +212,7 @@ mod test {
         let source = ":: { value: @ || --a && !--b || --i == 0 }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::BinaryOperator(
                     Expression::BinaryOperator(
@@ -251,7 +251,7 @@ mod test {
         let source = ":: { value: @(\"a\" [42]) }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::Select(
                     LimitedSelector::from_path([
@@ -273,7 +273,7 @@ mod test {
         let source = ":: { value: --a && --b ? \"true\" : 1 + --a }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::Conditional(
                     Expression::BinaryOperator(
@@ -399,23 +399,23 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
             properties: vec![
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Display),
                     value: Expression::Unset.into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("display".to_owned())),
                     value: Expression::String("unset".to_owned()).into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Parent),
                     value: Expression::Bool(true).into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Target),
                     value: Expression::Bool(false).into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("--i".to_owned())),
                     value: Expression::Int(1).into(),
                 },
@@ -460,7 +460,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
             properties: vec![
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::IsSet,
@@ -468,7 +468,7 @@ mod test {
                     )
                     .into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeIsA(NodeTypeClass::Root),
@@ -476,7 +476,7 @@ mod test {
                     )
                     .into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("c".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeTypeName,
@@ -484,7 +484,7 @@ mod test {
                     )
                     .into(),
                 },
-                StyleRuleItem {
+                StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("d".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeValue,
@@ -504,7 +504,7 @@ mod test {
         let source = ":: { a: 1 ? --a && 2 ? 3 : 4 : --a && 5 }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::new(),
-            properties: vec![StyleRuleItem {
+            properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                 value: Expression::Conditional(
                     Expression::Int(1).into(),
@@ -573,7 +573,7 @@ mod test {
             },
             StyleRule {
                 selector: Selector::default(),
-                properties: vec![StyleRuleItem {
+                properties: vec![StyleClause {
                     key: StyleKey::Variable("--a".to_owned()),
                     value: Expression::String("b".to_owned()).into(),
                 }],

@@ -17,7 +17,7 @@ pub struct StyleRule {
     pub selector: Selector,
 
     /// Properties assigned to each entity that matches.
-    pub properties: Vec<StyleRuleItem>,
+    pub properties: Vec<StyleClause>,
 }
 
 impl std::fmt::Debug for StyleRule {
@@ -34,7 +34,7 @@ impl std::fmt::Debug for StyleRule {
 /// Single property or variable assignment entry.
 #[derive(PartialEq, Eq, Debug)]
 #[debug("{key:?}: ({value:?})")]
-pub struct StyleRuleItem {
+pub struct StyleClause {
     /// Name of the property or variable to assign.
     ///
     /// Multiple entries of a rule may have the same key.

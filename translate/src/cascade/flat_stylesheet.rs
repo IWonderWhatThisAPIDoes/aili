@@ -1,7 +1,7 @@
 //! Preprocessing of [`Stylesheet`]s to simplify matching.
 
 use super::flat_selector::FlatSelector;
-use crate::stylesheet::{StyleRule, StyleRuleItem, Stylesheet};
+use crate::stylesheet::{StyleClause, StyleRule, Stylesheet};
 
 pub struct FlatStylesheet(pub Vec<FlatStyleRule>);
 
@@ -13,7 +13,7 @@ impl From<Stylesheet> for FlatStylesheet {
 
 pub struct FlatStyleRule {
     pub machine: FlatSelector,
-    pub properties: Vec<StyleRuleItem>,
+    pub properties: Vec<StyleClause>,
 }
 
 impl From<StyleRule> for FlatStyleRule {

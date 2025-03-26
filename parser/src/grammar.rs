@@ -190,10 +190,10 @@ pomelo! {
     %type stylesheet Stylesheet;
     %type sheet_part Stylesheet;
     %type rule       StyleRule;
-    %type body       Vec<StyleRuleItem>;
-    %type proplist   Vec<StyleRuleItem>;
-    %type proplist1  Vec<StyleRuleItem>;
-    %type clause     StyleRuleItem;
+    %type body       Vec<StyleClause>;
+    %type proplist   Vec<StyleClause>;
+    %type proplist1  Vec<StyleClause>;
+    %type clause     StyleClause;
     %type lvalue     StyleKey;
     %type rvalue     Expression;
     %type selector   Selector;
@@ -265,7 +265,7 @@ pomelo! {
     proplist ::= proplist1(mut l) clause(c)            { l.push(c); l }
     proplist1 ::=                                      { Vec::new() }
     proplist1 ::= proplist1(mut l) clause(c) Semicolon { l.push(c); l }
-    clause ::= lvalue(l) Colon rvalue(r)               { StyleRuleItem { key: l, value: r.into() } }
+    clause ::= lvalue(l) Colon rvalue(r)               { StyleClause { key: l, value: r.into() } }
     lvalue ::= Quoted(s)                               { StyleKey::Property(PropertyKey::Attribute(s.to_owned())) }
     lvalue ::= Unquoted(s)                             { unquoted_style_key(s) }
     rvalue ::= rexpr;
@@ -424,7 +424,7 @@ mod test {
             stylesheet,
             Stylesheet(vec![StyleRule {
                 selector: Selector::default(),
-                properties: vec![StyleRuleItem {
+                properties: vec![StyleClause {
                     key: StyleKey::Property(PropertyKey::Display),
                     value: Expression::Unset.into()
                 }]
