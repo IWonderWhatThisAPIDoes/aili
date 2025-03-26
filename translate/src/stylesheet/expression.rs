@@ -293,12 +293,6 @@ pub struct LimitedSelector {
 }
 
 impl LimitedSelector {
-    /// Constructs a limited selector that matches the node
-    /// from which it is run.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// Shorthand for constructing a limited selector that matches a node.
     pub fn from_path(path: impl IntoIterator<Item = EdgeLabel>) -> Self {
         Self {

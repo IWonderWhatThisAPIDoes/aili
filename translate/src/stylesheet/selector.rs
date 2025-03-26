@@ -140,11 +140,6 @@ pub struct Selector {
 }
 
 impl Selector {
-    /// Constructs a selector that matches the root node.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     /// Shorthand for constructing a selector that matches a node.
     pub fn from_path(path: SelectorPath) -> Self {
         Self {

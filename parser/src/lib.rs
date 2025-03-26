@@ -70,7 +70,7 @@ mod test {
     fn minimal_empty_rule() {
         let source = ":: { }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: Vec::new(),
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -82,7 +82,7 @@ mod test {
     fn assign_unquoted_to_unquoted() {
         let source = ":: { abc:def }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("abc".to_owned())),
                 value: Expression::String("def".to_owned()).into(),
@@ -97,7 +97,7 @@ mod test {
     fn assign_single_letter_to_single_letter() {
         let source = ":: { a:b }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                 value: Expression::String("b".to_owned()).into(),
@@ -112,7 +112,7 @@ mod test {
     fn multiple_clauses_with_trailing_semicolon() {
         let source = ":: { a: 1; b: 2; }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
@@ -133,7 +133,7 @@ mod test {
     fn variable_invocations() {
         let source = ":: { --i: --j }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Variable("--i".to_owned()),
                 value: Expression::Variable("--j".to_owned()).into(),
@@ -148,7 +148,7 @@ mod test {
     fn arihhmetic_operators() {
         let source = ":: { a: -1 - 3 * 2 + 4 / 2 % +5 }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                 value: Expression::BinaryOperator(
@@ -196,10 +196,10 @@ mod test {
     fn empty_select_expression() {
         let source = ":: { value: @ }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
-                value: Expression::Select(LimitedSelector::new().into()).into(),
+                value: Expression::Select(LimitedSelector::default().into()).into(),
             }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
@@ -211,12 +211,12 @@ mod test {
     fn logical_operators() {
         let source = ":: { value: @ || --a && !--b || --i == 0 }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::BinaryOperator(
                     Expression::BinaryOperator(
-                        Expression::Select(LimitedSelector::new().into()).into(),
+                        Expression::Select(LimitedSelector::default().into()).into(),
                         BinaryOperator::Or,
                         Expression::BinaryOperator(
                             Expression::Variable("--a".to_owned()).into(),
@@ -250,7 +250,7 @@ mod test {
     fn select_expression_with_path() {
         let source = ":: { value: @(\"a\" [42]) }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::Select(
@@ -272,7 +272,7 @@ mod test {
     fn ternary_operator() {
         let source = ":: { value: --a && --b ? \"true\" : 1 + --a }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::Conditional(
@@ -337,15 +337,15 @@ mod test {
             "::::edge { } ::::extra { } ::::extra(hello-world) { } :: main::edge::extra { }";
         let expected_stylesheet = Stylesheet(vec![
             StyleRule {
-                selector: Selector::new().selecting_edge(),
+                selector: Selector::default().selecting_edge(),
                 properties: Vec::new(),
             },
             StyleRule {
-                selector: Selector::new().with_extra("".to_owned()),
+                selector: Selector::default().with_extra("".to_owned()),
                 properties: Vec::new(),
             },
             StyleRule {
-                selector: Selector::new().with_extra("hello-world".to_owned()),
+                selector: Selector::default().with_extra("hello-world".to_owned()),
                 properties: Vec::new(),
             },
             StyleRule {
@@ -397,7 +397,7 @@ mod test {
     fn special_property_keys() {
         let source = ":: { display: unset; \"display\": \"unset\"; parent: true; target: false; \"--i\": 1 }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Display),
@@ -458,7 +458,7 @@ mod test {
     fn named_operators() {
         let source = ":: { a: isset(--i); b: is-root(@); c: typename(@); d: val(@); }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![
                 StyleClause {
                     key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
@@ -472,7 +472,7 @@ mod test {
                     key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeIsA(NodeTypeClass::Root),
-                        Expression::Select(LimitedSelector::new().into()).into(),
+                        Expression::Select(LimitedSelector::default().into()).into(),
                     )
                     .into(),
                 },
@@ -480,7 +480,7 @@ mod test {
                     key: StyleKey::Property(PropertyKey::Attribute("c".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeTypeName,
-                        Expression::Select(LimitedSelector::new().into()).into(),
+                        Expression::Select(LimitedSelector::default().into()).into(),
                     )
                     .into(),
                 },
@@ -488,7 +488,7 @@ mod test {
                     key: StyleKey::Property(PropertyKey::Attribute("d".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeValue,
-                        Expression::Select(LimitedSelector::new().into()).into(),
+                        Expression::Select(LimitedSelector::default().into()).into(),
                     )
                     .into(),
                 },
@@ -503,7 +503,7 @@ mod test {
     fn conditional_operator_precedence() {
         let source = ":: { a: 1 ? --a && 2 ? 3 : 4 : --a && 5 }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
-            selector: Selector::new(),
+            selector: Selector::default(),
             properties: vec![StyleClause {
                 key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
                 value: Expression::Conditional(
@@ -540,7 +540,7 @@ mod test {
         let source = ":: { } # { }  main > } { } }";
         let expected_stylesheet = Stylesheet(vec![
             StyleRule {
-                selector: Selector::new(),
+                selector: Selector::default(),
                 properties: Vec::new(),
             },
             StyleRule {

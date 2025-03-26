@@ -334,7 +334,7 @@ pomelo! {
     rexpr ::= expr(l) And expr(r)                      { Bop(l.into(), And, r.into()) }
     rexpr ::= expr(l) Or expr(r)                       { Bop(l.into(), Or, r.into()) }
     rexpr ::= expr(c) Question expr(t) Colon expr(f)   { Expression::Conditional(c.into(), t.into(), f.into()) }
-    rexpr ::= At                                       { Expression::Select(LimitedSelector::new().into()) }
+    rexpr ::= At                                       { Expression::Select(LimitedSelector::default().into()) }
     rexpr ::= At OpenParen limsel(s) CloseParen        { Expression::Select(s.into()) }
 }
 
