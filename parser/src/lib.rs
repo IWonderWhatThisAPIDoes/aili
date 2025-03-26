@@ -1,11 +1,12 @@
 mod connect;
 mod grammar;
 mod lexer;
+mod mock_error_handler;
 pub mod symbols;
 
 use aili_translate::stylesheet::Stylesheet;
 use derive_more::{Display, Error, From};
-use grammar::Parser;
+use grammar::{ErrorManager, Parser};
 use lexer::Token;
 use logos::Logos;
 
@@ -13,39 +14,56 @@ use logos::Logos;
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From, Default)]
 pub struct ParseFailure(grammar::ParseError);
 
+/// Error type that indicates recoverable lexer or parser errors.
+#[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
+#[from(forward)]
+pub struct ParseError(ParseErrorInfo);
+
+/// Internal data for recoverable lexer or parser errors.
+#[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
+enum ParseErrorInfo {
+    /// Error originating from the lexer.
+    LexerError(lexer::LexerError),
+
+    /// Error originating from the parser.
+    SyntaxError(grammar::SyntaxError),
+}
+
 /// Parses a [`Stylesheet`].
 ///
 /// The parse function attempts error recovery by discarding unparsable
 /// tokens. The returned stylesheet is a parsable portion of the input.
 /// An error is only returned if the parser irrecoverably fails.
-pub fn parse_stylesheet(source: &str) -> Result<Stylesheet, ParseFailure> {
+pub fn parse_stylesheet(
+    source: &str,
+    error_handler: impl FnMut(ParseError),
+) -> Result<Stylesheet, ParseFailure> {
     let lexer = Token::lexer(source);
-    let mut parser = Parser::new();
-    // We should leave this explicit, silently discarding error tokens is not the way to go
-    #[allow(clippy::manual_flatten)]
+    // Wrap error handler in a RefCell so we can access it
+    // from both lexer and parser
+    let error_handler = std::cell::RefCell::new(error_handler);
+    // Forward syntax errors to the handler
+    let parser_extra = ErrorManager::new(|err| error_handler.borrow_mut()(err.into()));
+    let mut parser = Parser::new(parser_extra);
     for token in lexer {
-        if let Ok(token) = token {
-            parser.parse(token.into())?;
+        match token {
+            Ok(token) => parser.parse(token.into())?,
+            Err(err) => error_handler.borrow_mut()(err.into()),
         }
     }
     // Push end token so we get relevant error descriptions
     parser.parse(grammar::Token::End)?;
-    Ok(parser.end_of_input()?)
+    Ok(parser.end_of_input()?.0)
 }
 
 #[cfg(test)]
 mod test {
     use super::parse_stylesheet;
+    use crate::{grammar::SyntaxError, mock_error_handler::ExpectErrors};
     use aili_model::state::{EdgeLabel, NodeTypeClass};
     use aili_translate::{
         property::PropertyKey,
-        stylesheet::{
-            expression::{BinaryOperator, Expression, LimitedSelector},
-            selector::{
-                EdgeMatcher, RestrictedSelectorSegment, Selector, SelectorPath, SelectorSegment,
-            },
-            *,
-        },
+        stylesheet::{expression::*, selector::*, *},
     };
 
     #[test]
@@ -55,7 +73,8 @@ mod test {
             selector: Selector::new(),
             properties: Vec::new(),
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -69,7 +88,8 @@ mod test {
                 value: Expression::String("def".to_owned()).into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -83,7 +103,8 @@ mod test {
                 value: Expression::String("b".to_owned()).into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -103,7 +124,8 @@ mod test {
                 },
             ],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -117,7 +139,8 @@ mod test {
                 value: Expression::Variable("--j".to_owned()).into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -164,7 +187,8 @@ mod test {
                 .into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -178,7 +202,8 @@ mod test {
                 value: Expression::Select(LimitedSelector::new().into()).into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -216,7 +241,8 @@ mod test {
                 .into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -237,7 +263,8 @@ mod test {
                 .into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -266,7 +293,8 @@ mod test {
                 .into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -298,7 +326,8 @@ mod test {
             )),
             properties: Vec::new(),
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -328,7 +357,8 @@ mod test {
                 properties: Vec::new(),
             },
         ]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -358,7 +388,8 @@ mod test {
             ),
             properties: Vec::new(),
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -390,7 +421,8 @@ mod test {
                 },
             ],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -417,7 +449,8 @@ mod test {
             ),
             properties: Vec::new(),
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -461,7 +494,8 @@ mod test {
                 },
             ],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
     }
 
@@ -495,7 +529,117 @@ mod test {
                 .into(),
             }],
         }]);
-        let parsed_stylesheet = parse_stylesheet(source).expect("Stylesheet should have parsed");
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn invalid_selector() {
+        // The affected rules should be discarded, but all others should be retained
+        let source = ":: { } # { }  main > } { } }";
+        let expected_stylesheet = Stylesheet(vec![
+            StyleRule {
+                selector: Selector::new(),
+                properties: Vec::new(),
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::anything_any_number_of_times().into()].into(),
+                ),
+                properties: Vec::new(),
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::anything_any_number_of_times().into()].into(),
+                ),
+                properties: Vec::new(),
+            },
+        ]);
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn unclosed_rule_body() {
+        let source = ":: % { } :: { --a: b ";
+        let expected_stylesheet = Stylesheet(vec![
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeMatcher::AnyNamed).into()].into(),
+                ),
+                properties: Vec::new(),
+            },
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleRuleItem {
+                    key: StyleKey::Variable("--a".to_owned()),
+                    value: Expression::String("b".to_owned()).into(),
+                }],
+            },
+        ]);
+        let parsed_stylesheet = parse_stylesheet(
+            source,
+            ExpectErrors::exact([SyntaxError::UnterminatedRule.into()]).f(),
+        )
+        .expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn missing_semicolon() {
+        let source = ":: { a: a; b: b /* missing semicolon */ x: x; c: c }";
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(Stylesheet::default(), parsed_stylesheet);
+    }
+
+    #[test]
+    fn empty_clause_right_hand_side() {
+        let source = ":: { a: a; b: /* missing rhs */; c: c }";
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(Stylesheet::default(), parsed_stylesheet);
+    }
+
+    #[test]
+    fn missing_clause_separator() {
+        let source = ":: { a: a; b /* missing colon */ b; c: c }";
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(Stylesheet::default(), parsed_stylesheet);
+    }
+
+    #[test]
+    fn missing_clause_separator_and_right_hand_side() {
+        let source = ":: { a: a; b; c: c }";
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(Stylesheet::default(), parsed_stylesheet);
+    }
+
+    #[test]
+    fn multiple_tokens_on_left_hand_side() {
+        let source = ":: { a: a; b b: b; c: c }";
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(Stylesheet::default(), parsed_stylesheet);
+    }
+
+    #[test]
+    fn invalid_token_on_left_hand_side() {
+        let source = ":: { a: a; 42: b; c: c }";
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(Stylesheet::default(), parsed_stylesheet);
+    }
+
+    #[test]
+    fn extra_semicolon() {
+        let source = ":: { a: a; ; c: c }";
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(Stylesheet::default(), parsed_stylesheet);
     }
 }
