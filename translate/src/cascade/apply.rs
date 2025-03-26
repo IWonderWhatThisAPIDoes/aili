@@ -1,15 +1,20 @@
 //! Evaluation of an entire stylesheet.
 
 use super::{
-    eval::{context::EvaluationOnGraph, evaluate},
+    eval::{
+        context::{EvaluationContext, EvaluationOnGraph},
+        evaluate,
+    },
     flat_selector::FlatSelectorSegment,
     flat_stylesheet::FlatStylesheet,
 };
 use crate::{
     property::*,
-    stylesheet::{StyleKey, selector::EdgeMatcher},
+    stylesheet::{StyleKey, expression::LimitedSelector, selector::EdgeMatcher},
 };
-use aili_model::state::{EdgeLabel, NodeId, ProgramStateNode, RootedProgramStateGraph};
+use aili_model::state::{
+    EdgeLabel, NodeId, ProgramStateGraph, ProgramStateNode, RootedProgramStateGraph,
+};
 use std::collections::{HashMap, HashSet};
 
 /// Applies a stylesheet to a graph.
@@ -25,6 +30,59 @@ pub fn apply_stylesheet<T: RootedProgramStateGraph>(
 /// Identifier of a property variable on an entity.
 #[derive(PartialEq, Eq, Debug, Hash)]
 struct EntityPropertyKey<T: NodeId>(Selectable<T>, PropertyKey);
+
+struct VariablePool<'a, T: NodeId>(Vec<HashMap<&'a str, PropertyValue<T>>>);
+
+impl<'a, T: NodeId> VariablePool<'a, T> {
+    /// Construct a new variable pool with one frame.
+    fn new() -> Self {
+        Self(vec![HashMap::new()])
+    }
+
+    /// Pushes a variable pool frame.
+    ///
+    /// All variables assigned with [`VariablePool::insert`] belong
+    /// to the new frame and will be discarded by a matching call
+    /// to [`VariablePool::pop`].
+    fn push(&mut self) {
+        self.0.push(HashMap::new());
+    }
+
+    /// Pops a variable pool frame.
+    ///
+    /// All variables that have been assigned after
+    /// the matching call to [`VariablePool::push`] are discarded.
+    /// If they had values before then, their old values are reinstated.
+    fn pop(&mut self) {
+        self.0.pop();
+    }
+
+    /// Accesses a variable value by name.
+    ///
+    /// The most recent value assigned to the variable is returned,
+    /// sans values that have been discarded by a call to [`VariablePool::pop`].
+    fn get(&self, variable_name: &str) -> Option<&PropertyValue<T>> {
+        self.0
+            .iter()
+            .rev()
+            .filter_map(|frame| frame.get(variable_name))
+            .next()
+    }
+
+    /// Assigns a value to a variable by its name.
+    ///
+    /// The value will be discarded on the next call to [`VariablePool::pop`].
+    /// If the variable already had a value, the old value will be reinstated.
+    ///
+    /// ## Panics
+    /// Panics if there are no frames in the variable pool.
+    fn insert(&mut self, variable_name: &'a str, value: PropertyValue<T>) {
+        self.0
+            .last_mut()
+            .expect("Attempted to assign variable with no frames in variable pool")
+            .insert(variable_name, value);
+    }
+}
 
 /// Helper for stylesheet applications.
 struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
@@ -46,6 +104,32 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
 
     /// Values assigned to each property on each node.
     properties: HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>>,
+
+    /// Variables that are active at the moment
+    variable_pool: VariablePool<'a, T::NodeId>,
+}
+
+struct GraphPoolEvaluationContext<'a, T: ProgramStateGraph> {
+    graph: &'a T,
+    origin: T::NodeId,
+    variable_pool: &'a VariablePool<'a, T::NodeId>,
+}
+
+impl<T: ProgramStateGraph> ProgramStateGraph for GraphPoolEvaluationContext<'_, T> {
+    type Node = T::Node;
+    type NodeId = T::NodeId;
+    fn get(&self, id: Self::NodeId) -> Option<&Self::Node> {
+        self.graph.get(id)
+    }
+}
+
+impl<T: ProgramStateGraph> EvaluationContext for GraphPoolEvaluationContext<'_, T> {
+    fn select_entity(&self, selector: &LimitedSelector) -> Option<Selectable<Self::NodeId>> {
+        EvaluationOnGraph::new(self.graph, self.origin.clone()).select_entity(selector)
+    }
+    fn get_variable_value(&self, name: &str) -> PropertyValue<Self::NodeId> {
+        self.variable_pool.get(name).cloned().unwrap_or_default()
+    }
 }
 
 impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
@@ -55,6 +139,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             stylesheet,
             matched_sequence_points: HashSet::new(),
             properties: HashMap::new(),
+            variable_pool: VariablePool::new(),
         }
     }
 
@@ -215,9 +300,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 }
                 FlatSelectorSegment::Restrict(condition) => {
                     // Proceed only if the condition holds
-                    if evaluate(condition, &EvaluationOnGraph::new(self.graph, node.clone()))
-                        .is_truthy()
-                    {
+                    if evaluate(condition, &self.evaluation_context(node.clone())).is_truthy() {
                         // continue traversing the state machine linearly
                         open_states.push((state.advance(), committed));
                     }
@@ -249,6 +332,8 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             .into_iter()
             .flat_map(|node| node.successors());
         for (edge_label, successor_node) in successors {
+            // Push a state so we can pop it later
+            self.variable_pool.push();
             // Start traversing from the next node, from all the states where this node ended
             // and the edge matches the blocking matcher
             let starting_states = output_states
@@ -262,24 +347,35 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 Some(starting_node.clone()),
                 Some(edge_label),
             );
+            // Discard all variables that were created here
+            self.variable_pool.pop();
         }
     }
 
     fn selected_entity(&mut self, target: Selectable<T::NodeId>, rule_index: usize) {
         let properties = &self.stylesheet.0[rule_index].properties;
         for property in properties {
+            let value = evaluate(
+                &property.value,
+                &self.evaluation_context(target.node_id.clone()),
+            );
             match &property.key {
                 StyleKey::Property(key) => {
-                    self.properties.insert(
-                        EntityPropertyKey(target.clone(), key.clone()),
-                        evaluate(
-                            &property.value,
-                            &EvaluationOnGraph::new(self.graph, target.node_id.clone()),
-                        ),
-                    );
+                    let property_key = EntityPropertyKey(target.clone(), key.clone());
+                    self.properties.insert(property_key, value);
                 }
-                _ => todo!(),
+                StyleKey::Variable(name) => {
+                    self.variable_pool.insert(name, value);
+                }
             }
+        }
+    }
+
+    fn evaluation_context(&self, origin: T::NodeId) -> impl EvaluationContext<NodeId = T::NodeId> {
+        GraphPoolEvaluationContext {
+            graph: self.graph,
+            origin,
+            variable_pool: &self.variable_pool,
         }
     }
 }
@@ -561,7 +657,7 @@ mod test {
 
     #[test]
     fn coerce_values() {
-        // {
+        // :: {
         //   display: true;
         //   target: @(main);
         // }
@@ -626,6 +722,223 @@ mod test {
                             "value".to_owned(),
                             TestGraph::NUMERIC_NODE_VALUE.to_string()
                         )]),
+                        ..PropertyMap::default()
+                    }
+                ),
+            ]
+            .into()
+        );
+    }
+
+    /// This test verifies simple saving and restoring of variables.
+    ///
+    /// Root node saves a reference to itself in a variable,
+    /// which is then recalled by a successor node.
+    #[test]
+    fn save_variable_at_root() {
+        // :: {
+        //   --root: @;
+        // }
+        //
+        // main {
+        //   parent: --root;
+        // }
+        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Variable("--root".to_owned()),
+                    value: Expression::Select(LimitedSelector::default().into()).into(),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                ),
+                properties: vec![StyleClause {
+                    key: Property(Parent),
+                    value: Expression::Variable("--root".to_owned()).into(),
+                }],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [(
+                Selectable::node(1),
+                PropertyMap {
+                    // Reference to the root node should have been loaded from the variable
+                    parent: Some(Selectable::node(0)),
+                    ..PropertyMap::default()
+                }
+            ),]
+            .into()
+        );
+    }
+
+    /// This test ensures that evaluation of individual clauses in a rule
+    /// is sequentially consistent.
+    ///
+    /// When clauses depend on one another, they must be evaluated
+    /// in the order they are written.
+    #[test]
+    fn variable_assignment_sequential_consistency() {
+        // :: {
+        //   --i: 0;
+        //   a: --i;
+        //   --i: --i + 1;
+        //   b: --i;
+        //   --i: --i + 2;
+        //   c: --i;
+        // }
+        let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
+            selector: Selector::default(),
+            properties: vec![
+                StyleClause {
+                    key: Variable("--i".to_owned()),
+                    value: Expression::Int(0).into(),
+                },
+                StyleClause {
+                    key: Property(Attribute("a".to_owned())),
+                    value: Expression::Variable("--i".to_owned()).into(),
+                },
+                StyleClause {
+                    key: Variable("--i".to_owned()),
+                    value: Expression::BinaryOperator(
+                        Expression::Variable("--i".to_owned()).into(),
+                        BinaryOperator::Plus,
+                        Expression::Int(1).into(),
+                    )
+                    .into(),
+                },
+                StyleClause {
+                    key: Property(Attribute("b".to_owned())),
+                    value: Expression::Variable("--i".to_owned()).into(),
+                },
+                StyleClause {
+                    key: Variable("--i".to_owned()),
+                    value: Expression::BinaryOperator(
+                        Expression::Variable("--i".to_owned()).into(),
+                        BinaryOperator::Plus,
+                        Expression::Int(2).into(),
+                    )
+                    .into(),
+                },
+                StyleClause {
+                    key: Property(Attribute("c".to_owned())),
+                    value: Expression::Variable("--i".to_owned()).into(),
+                },
+            ],
+        }]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [(
+                Selectable::node(0),
+                PropertyMap {
+                    // Reference to the root node should have been loaded from the variable
+                    attributes: HashMap::from_iter([
+                        ("a".to_owned(), "0".to_owned()),
+                        ("b".to_owned(), "1".to_owned()),
+                        ("c".to_owned(), "3".to_owned()),
+                    ]),
+                    ..PropertyMap::default()
+                }
+            ),]
+            .into()
+        );
+    }
+
+    /// This test servesas a proof of concept of depth limitation
+    /// and verifies that it works asexpected.
+    ///
+    /// A depth-tracking variable is initialized in the root node
+    /// and then incremented on each match. Nodes only match until
+    /// the variable reaches the depth limit.
+    ///
+    /// Note that the continuation condition is inside of the `.many`
+    /// matcher instead of after it. This is more efficient as the
+    /// condition is verified on every iteration, not just at the end,
+    /// and the selector stops traversing as soon as depth limit is reached.
+    /// If the condition were outside the `.many` matcher,
+    /// the resolver would traverse the graph to arbitrary depth and then
+    /// filter out the nodes that exceed the depth limit.
+    #[test]
+    fn max_depth_using_variables() {
+        // :: {
+        //   --depth: 0;
+        // }
+        //
+        // main .many(next.if(--depth < 3)) {
+        //   value: --depth;
+        //   --depth: --depth + 1;
+        // }
+        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Variable("--depth".to_owned()),
+                    value: Expression::Int(0).into(),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [
+                        SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                        SelectorSegment::AnyNumberOfTimes(
+                            [RestrictedSelectorSegment {
+                                segment: SelectorSegment::Match(EdgeLabel::Next.into()),
+                                condition: Some(Expression::BinaryOperator(
+                                    Expression::Variable("--depth".to_owned()).into(),
+                                    BinaryOperator::Lt,
+                                    Expression::Int(3).into(),
+                                )),
+                            }]
+                            .into(),
+                        )
+                        .into(),
+                    ]
+                    .into(),
+                ),
+                properties: vec![
+                    StyleClause {
+                        key: Property(Attribute("value".to_owned())),
+                        value: Expression::Variable("--depth".to_owned()).into(),
+                    },
+                    StyleClause {
+                        key: Variable("--depth".to_owned()),
+                        value: Expression::BinaryOperator(
+                            Expression::Variable("--depth".to_owned()).into(),
+                            BinaryOperator::Plus,
+                            Expression::Int(1).into(),
+                        )
+                        .into(),
+                    },
+                ],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [
+                (
+                    Selectable::node(1),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "0".to_owned())]),
+                        ..PropertyMap::default()
+                    }
+                ),
+                (
+                    Selectable::node(2),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "1".to_owned())]),
+                        ..PropertyMap::default()
+                    }
+                ),
+                (
+                    Selectable::node(3),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "2".to_owned())]),
                         ..PropertyMap::default()
                     }
                 ),
