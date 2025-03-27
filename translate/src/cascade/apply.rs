@@ -574,14 +574,14 @@ mod test {
                     PropertyMap {
                         display: Some(DisplayMode::ElementTag("cell".to_owned())),
                         ..PropertyMap::default()
-                    }
+                    },
                 ),
                 (
                     Selectable::node(2).with_extra(Some("abc".to_owned())),
                     PropertyMap {
                         display: Some(DisplayMode::ElementTag("kvt".to_owned())),
                         ..PropertyMap::default()
-                    }
+                    },
                 ),
             ]
             .into()
@@ -620,35 +620,35 @@ mod test {
             [
                 (
                     Selectable::edge(0, EdgeLabel::Main),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
                 (
                     Selectable::edge(0, EdgeLabel::Named("a".to_owned(), 0)),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
                 (
                     Selectable::edge(1, EdgeLabel::Named("a".to_owned(), 0)),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
                 (
                     Selectable::edge(2, EdgeLabel::Next),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
                 (
                     Selectable::edge(5, EdgeLabel::Named("a".to_owned(), 0)),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
                 (
                     Selectable::edge(5, EdgeLabel::Deref),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
                 (
                     Selectable::edge(7, EdgeLabel::Deref),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
                 (
                     Selectable::edge(12, EdgeLabel::Deref),
-                    expected_properties.clone()
+                    expected_properties.clone(),
                 ),
             ]
             .into()
@@ -710,7 +710,7 @@ mod test {
                         display: Some(DisplayMode::ElementTag("true".to_owned())),
                         target: Some(Selectable::node(1)),
                         ..PropertyMap::default()
-                    }
+                    },
                 ),
                 (
                     Selectable::node(5),
@@ -721,7 +721,7 @@ mod test {
                             TestGraph::NUMERIC_NODE_VALUE.to_string()
                         )]),
                         ..PropertyMap::default()
-                    }
+                    },
                 ),
             ]
             .into()
@@ -768,8 +768,8 @@ mod test {
                     // Reference to the root node should have been loaded from the variable
                     parent: Some(Selectable::node(0)),
                     ..PropertyMap::default()
-                }
-            ),]
+                },
+            )]
             .into()
         );
     }
@@ -839,8 +839,8 @@ mod test {
                         ("c".to_owned(), "3".to_owned()),
                     ]),
                     ..PropertyMap::default()
-                }
-            ),]
+                },
+            )]
             .into()
         );
     }
@@ -921,21 +921,21 @@ mod test {
                     PropertyMap {
                         attributes: HashMap::from_iter([("value".to_owned(), "0".to_owned())]),
                         ..PropertyMap::default()
-                    }
+                    },
                 ),
                 (
                     Selectable::node(2),
                     PropertyMap {
                         attributes: HashMap::from_iter([("value".to_owned(), "1".to_owned())]),
                         ..PropertyMap::default()
-                    }
+                    },
                 ),
                 (
                     Selectable::node(3),
                     PropertyMap {
                         attributes: HashMap::from_iter([("value".to_owned(), "2".to_owned())]),
                         ..PropertyMap::default()
-                    }
+                    },
                 ),
             ]
             .into()
