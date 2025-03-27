@@ -424,7 +424,7 @@ mod test {
 
     #[test]
     fn apply_stylesheet_with_one_rule() {
-        // iter(*) "a" {
+        // .many(*) "a" {
         //   display: "cell";
         // }
         let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
@@ -461,10 +461,10 @@ mod test {
 
     #[test]
     fn apply_stylesheet_with_multiple_rules() {
-        // iter(*) index {
+        // .many(*) [] {
         //   display: "cell";
         // }
-        // main iter(next) {
+        // :: main .many(next) {
         //   display: "kvt";
         //   title: 42;
         // }
@@ -532,11 +532,11 @@ mod test {
 
     #[test]
     fn select_extra_entity() {
-        // main::extra {
+        // :: main::extra {
         //   display: "cell";
         // }
         //
-        // main next::extra(abc) {
+        // :: main next::extra(abc) {
         //   display: "kvt";
         // }
         let stylesheet = FlatStylesheet::from(Stylesheet(vec![
@@ -590,7 +590,7 @@ mod test {
 
     #[test]
     fn select_edge() {
-        // iter(*).if(@("a"#0))::edge {
+        // .many(*).if(@("a"#0))::edge {
         //   display: "cell";
         // }
         let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
@@ -662,7 +662,7 @@ mod test {
         //   target: @(main);
         // }
         //
-        // "a" {
+        // :: "a" {
         //   value: @;
         //   display: @([0]);
         // }
@@ -738,7 +738,7 @@ mod test {
         //   --root: @;
         // }
         //
-        // main {
+        // :: main {
         //   parent: --root;
         // }
         let stylesheet = FlatStylesheet::from(Stylesheet(vec![
@@ -865,7 +865,7 @@ mod test {
         //   --depth: 0;
         // }
         //
-        // main .many(next.if(--depth < 3)) {
+        // :: main .many(next.if(--depth < 3)) {
         //   value: --depth;
         //   --depth: --depth + 1;
         // }
