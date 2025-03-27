@@ -4,6 +4,7 @@ use super::{
     eval::{
         context::{EvaluationContext, EvaluationOnGraph},
         evaluate,
+        variable_pool::VariablePool,
     },
     flat_selector::FlatSelectorSegment,
     flat_stylesheet::FlatStylesheet,
@@ -31,59 +32,6 @@ pub fn apply_stylesheet<T: RootedProgramStateGraph>(
 #[derive(PartialEq, Eq, Debug, Hash)]
 struct EntityPropertyKey<T: NodeId>(Selectable<T>, PropertyKey);
 
-struct VariablePool<'a, T: NodeId>(Vec<HashMap<&'a str, PropertyValue<T>>>);
-
-impl<'a, T: NodeId> VariablePool<'a, T> {
-    /// Construct a new variable pool with one frame.
-    fn new() -> Self {
-        Self(vec![HashMap::new()])
-    }
-
-    /// Pushes a variable pool frame.
-    ///
-    /// All variables assigned with [`VariablePool::insert`] belong
-    /// to the new frame and will be discarded by a matching call
-    /// to [`VariablePool::pop`].
-    fn push(&mut self) {
-        self.0.push(HashMap::new());
-    }
-
-    /// Pops a variable pool frame.
-    ///
-    /// All variables that have been assigned after
-    /// the matching call to [`VariablePool::push`] are discarded.
-    /// If they had values before then, their old values are reinstated.
-    fn pop(&mut self) {
-        self.0.pop();
-    }
-
-    /// Accesses a variable value by name.
-    ///
-    /// The most recent value assigned to the variable is returned,
-    /// sans values that have been discarded by a call to [`VariablePool::pop`].
-    fn get(&self, variable_name: &str) -> Option<&PropertyValue<T>> {
-        self.0
-            .iter()
-            .rev()
-            .filter_map(|frame| frame.get(variable_name))
-            .next()
-    }
-
-    /// Assigns a value to a variable by its name.
-    ///
-    /// The value will be discarded on the next call to [`VariablePool::pop`].
-    /// If the variable already had a value, the old value will be reinstated.
-    ///
-    /// ## Panics
-    /// Panics if there are no frames in the variable pool.
-    fn insert(&mut self, variable_name: &'a str, value: PropertyValue<T>) {
-        self.0
-            .last_mut()
-            .expect("Attempted to assign variable with no frames in variable pool")
-            .insert(variable_name, value);
-    }
-}
-
 /// Helper for stylesheet applications.
 struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     /// The graph being traversed.
@@ -106,13 +54,13 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     properties: HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>>,
 
     /// Variables that are active at the moment
-    variable_pool: VariablePool<'a, T::NodeId>,
+    variable_pool: VariablePool<&'a str, T::NodeId>,
 }
 
 struct GraphPoolEvaluationContext<'a, T: ProgramStateGraph> {
     graph: &'a T,
     origin: T::NodeId,
-    variable_pool: &'a VariablePool<'a, T::NodeId>,
+    variable_pool: &'a VariablePool<&'a str, T::NodeId>,
 }
 
 impl<T: ProgramStateGraph> ProgramStateGraph for GraphPoolEvaluationContext<'_, T> {
