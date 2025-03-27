@@ -14,7 +14,7 @@ use crate::{
     stylesheet::{StyleKey, expression::LimitedSelector, selector::EdgeMatcher},
 };
 use aili_model::state::{
-    EdgeLabel, NodeId, ProgramStateGraph, ProgramStateNode, RootedProgramStateGraph,
+    EdgeLabel, NodeId, NodeValue, ProgramStateGraph, ProgramStateNode, RootedProgramStateGraph,
 };
 use std::collections::{HashMap, HashSet};
 
@@ -27,6 +27,21 @@ pub fn apply_stylesheet<T: RootedProgramStateGraph>(
     helper.run();
     helper.result()
 }
+
+/// Name of the magic variable that stores the index
+/// of the [`EdgeLabel::Index`] edge that leads to
+/// the current node, if any.
+pub const VARIABLE_INDEX: &str = "--INDEX";
+
+/// Name of the magic variable that stores the name
+/// of the [`EdgeLabel::Named`] edge that leads to
+/// the current node, if any
+pub const VARIABLE_NAME: &str = "--NAME";
+
+/// Name of the magic variable that stores the discriminator
+/// of the [`EdgeLabel::Named`] edge that leads to
+/// the current node, if any
+pub const VARIABLE_DISCRIMINATOR: &str = "--DISCRIMINATOR";
 
 /// Identifier of a property variable on an entity.
 #[derive(PartialEq, Eq, Debug, Hash)]
@@ -282,6 +297,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         for (edge_label, successor_node) in successors {
             // Push a state so we can pop it later
             self.variable_pool.push();
+            self.create_edge_identifier_variables(edge_label);
             // Start traversing from the next node, from all the states where this node ended
             // and the edge matches the blocking matcher
             let starting_states = output_states
@@ -324,6 +340,40 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             graph: self.graph,
             origin,
             variable_pool: &self.variable_pool,
+        }
+    }
+
+    fn create_edge_identifier_variables(&mut self, edge_label: &EdgeLabel) {
+        match edge_label {
+            EdgeLabel::Index(i) => {
+                self.variable_pool.insert(
+                    VARIABLE_INDEX,
+                    PropertyValue::Value(NodeValue::Uint(*i as u64)),
+                );
+                self.variable_pool
+                    .insert(VARIABLE_NAME, PropertyValue::Unset);
+                self.variable_pool
+                    .insert(VARIABLE_DISCRIMINATOR, PropertyValue::Unset);
+            }
+            EdgeLabel::Named(name, i) => {
+                self.variable_pool
+                    .insert(VARIABLE_INDEX, PropertyValue::Unset);
+                self.variable_pool
+                    .insert(VARIABLE_NAME, PropertyValue::String(name.clone()));
+                self.variable_pool.insert(
+                    VARIABLE_DISCRIMINATOR,
+                    PropertyValue::Value(NodeValue::Uint(*i as u64)),
+                );
+            }
+            _ => {
+                // Clear all the variables that may have been set in previous steps
+                self.variable_pool
+                    .insert(VARIABLE_INDEX, PropertyValue::Unset);
+                self.variable_pool
+                    .insert(VARIABLE_NAME, PropertyValue::Unset);
+                self.variable_pool
+                    .insert(VARIABLE_DISCRIMINATOR, PropertyValue::Unset);
+            }
         }
     }
 }
@@ -882,6 +932,57 @@ mod test {
                     Selectable::node(3),
                     PropertyMap {
                         attributes: HashMap::from_iter([("value".to_owned(), "2".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+            ]
+            .into()
+        );
+    }
+
+    #[test]
+    fn magic_edge_label_variables() {
+        // .many(*).if(isset(--INDEX)) {
+        //   value: --INDEX;
+        // }
+        let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
+            selector: Selector::from_path(
+                [RestrictedSelectorSegment {
+                    segment: SelectorSegment::anything_any_number_of_times(),
+                    condition: Some(Expression::UnaryOperator(
+                        UnaryOperator::IsSet,
+                        Expression::Variable(VARIABLE_INDEX.to_owned()).into(),
+                    )),
+                }]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: Property(Attribute("value".to_owned())),
+                value: Expression::Variable(VARIABLE_INDEX.to_owned()),
+            }],
+        }]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [
+                (
+                    Selectable::node(8),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "0".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(12),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "1".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(13),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "0".to_owned())]),
                         ..PropertyMap::default()
                     },
                 ),
