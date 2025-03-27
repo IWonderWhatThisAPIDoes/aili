@@ -14,10 +14,23 @@ use logos::Logos;
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From, Default)]
 pub struct ParseFailure(grammar::ParseError);
 
-/// Error type that indicates recoverable lexer or parser errors.
-#[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
-#[from(forward)]
-pub struct ParseError(ParseErrorInfo);
+/// Error type that indicates recoverable lexer or parser input errors.
+#[derive(Clone, PartialEq, Eq, Debug, Display, Error)]
+#[display("line {line_number}: {error_data}")]
+pub struct ParseError {
+    /// Information about the error.
+    #[error(source)]
+    error_data: ParseErrorInfo,
+    /// One-based number of the line where the error occurred.
+    line_number: usize,
+}
+
+impl ParseError {
+    /// One-based index of the line where the error occurred.
+    pub fn line_number(&self) -> usize {
+        self.line_number
+    }
+}
 
 /// Internal data for recoverable lexer or parser errors.
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
@@ -39,16 +52,26 @@ pub fn parse_stylesheet(
     error_handler: impl FnMut(ParseError),
 ) -> Result<Stylesheet, ParseFailure> {
     let lexer = Token::lexer(source);
-    // Wrap error handler in a RefCell so we can access it
-    // from both lexer and parser
-    let error_handler = std::cell::RefCell::new(error_handler);
+    // Wrap error handler and lexer in a RefCell so we can access it
+    // from both parser and the main loop
+    let shared = std::cell::RefCell::new((lexer, error_handler));
+    let report_error = |error_data| {
+        let (lexer, error_handler) = &mut *shared.borrow_mut();
+        error_handler(ParseError {
+            error_data,
+            line_number: lexer.extras.line_index + 1,
+        })
+    };
+    // Wrap this in a callback because otherwise the borrow
+    // would not be dropped in time and error reporting would fail
+    let next_token_from_lexer = || shared.borrow_mut().0.next();
     // Forward syntax errors to the handler
-    let parser_extra = ErrorManager::new(|err| error_handler.borrow_mut()(err.into()));
+    let parser_extra = ErrorManager::new(|err| report_error(err.into()));
     let mut parser = Parser::new(parser_extra);
-    for token in lexer {
+    while let Some(token) = next_token_from_lexer() {
         match token {
             Ok(token) => parser.parse(token.into())?,
-            Err(err) => error_handler.borrow_mut()(err.into()),
+            Err(err) => report_error(err.into()),
         }
     }
     // Push end token so we get relevant error descriptions
@@ -58,7 +81,7 @@ pub fn parse_stylesheet(
 
 #[cfg(test)]
 mod test {
-    use super::parse_stylesheet;
+    use super::{ParseError, parse_stylesheet};
     use crate::{grammar::SyntaxError, mock_error_handler::ExpectErrors};
     use aili_model::state::{EdgeLabel, NodeTypeClass};
     use aili_translate::{
@@ -572,7 +595,11 @@ mod test {
         ]);
         let parsed_stylesheet = parse_stylesheet(
             source,
-            ExpectErrors::exact([SyntaxError::UnterminatedRule.into()]).f(),
+            ExpectErrors::exact([ParseError {
+                error_data: SyntaxError::UnterminatedRule.into(),
+                line_number: 1,
+            }])
+            .f(),
         )
         .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);

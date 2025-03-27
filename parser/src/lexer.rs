@@ -28,6 +28,13 @@ pub enum LexerError {
     UnterminatedQuoted,
 }
 
+/// Additional data used by the lexer to track position in source.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct SourceLocationInformation {
+    /// Zero-based index of the line being read.
+    pub line_index: usize,
+}
+
 /// Tokens emited by the lexer.
 ///
 /// Because it implements the [`Logos`] trait,
@@ -35,8 +42,19 @@ pub enum LexerError {
 /// a lexer.
 #[derive(Logos, Clone, Copy, PartialEq, Eq, Debug)]
 #[logos(error = LexerError)]
-#[logos(skip r"[ \n\r\t]|//[^\n]*|/\*[^*]*\*+([^/][^*]*\*+)*/")]
+#[logos(extras = SourceLocationInformation)]
+#[logos(skip r"[ \r\t]|//[^\n]*")]
 pub enum Token<'s> {
+    // =========================================
+    //             LOCATION TRACKING
+    // =========================================
+    #[regex(r"\n|/\*[^*]*\*+([^/][^*]*\*+)*/", |lex| {
+        // Logos does not count lines on its own, so we have to do it manually
+        // Find all newlines in the matched slice, if any, and increment the line counter
+        lex.extras.line_index += lex.slice().chars().enumerate().filter(|(_, c)| *c == '\n').count();
+        // Tell Logos not to emit a token
+        logos::Filter::Skip
+    })]
     // =========================================
     //                 LITERALS
     // =========================================
@@ -271,6 +289,7 @@ pub enum Token<'s> {
 mod test {
     use super::{
         LexerError::*,
+        SourceLocationInformation,
         Token::{self, *},
     };
     use logos::Logos;
@@ -377,5 +396,28 @@ mod test {
             tokens[..],
             [Err(ParseIntError(_)), Err(AlphaCharacterInNumber)]
         ));
+    }
+
+    #[test]
+    fn source_locations() {
+        let mut lexer = Token::lexer("a \nb // x\nc /* \n y \n */ d \n e");
+        let expected_source_locations = [
+            SourceLocationInformation { line_index: 0 },
+            SourceLocationInformation { line_index: 1 },
+            SourceLocationInformation { line_index: 2 },
+            SourceLocationInformation { line_index: 4 },
+            SourceLocationInformation { line_index: 5 },
+        ];
+        for expected in expected_source_locations {
+            lexer
+                .next()
+                .expect("Lexer should not yet be at the end of input")
+                .expect("Token should have parsed successfully");
+            assert_eq!(lexer.extras, expected);
+        }
+        assert!(
+            lexer.next().is_none(),
+            "Lexer should have readhed the end of input"
+        );
     }
 }
