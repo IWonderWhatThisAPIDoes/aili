@@ -118,8 +118,8 @@ pub enum UnaryOperator {
     ///
     /// ## Return Values
     /// [`String`](crate::property::PropertyValue::String) containing the name of the type of the argument
-    /// if it is a selection of a node and it has one of types [`Frame`](aili_model::state::NodeType::Frame),
-    /// [`Atom`](aili_model::state::NodeType::Atom), or [`Struct`](aili_model::state::NodeType::Struct).
+    /// if it is a selection of a node and it has one of types [`Frame`](aili_model::state::NodeTypeClass::Frame),
+    /// [`Atom`](aili_model::state::NodeTypeClass::Atom), or [`Struct`](aili_model::state::NodeTypeClass::Struct).
     /// [`Unset`](crate::property::PropertyValue::Unset) otherwise.
     #[debug("typename")]
     NodeTypeName,

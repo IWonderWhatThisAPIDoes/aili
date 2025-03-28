@@ -90,57 +90,57 @@ impl Ord for NodeValue {
 /// Types of program state edges.
 ///
 /// Each type has specific semantics which determine what kinds
-/// of [`NodeType`] they can connect, but these are not enforced.
+/// of [`NodeTypeClass`] they can connect, but these are not enforced.
 /// Nontheless, implementations should adhere to them.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum EdgeLabel {
     /// Identifies the entry point (the bottom-most stack frame).
     ///
     /// ## Permitted Sources
-    /// [`NodeType::Root`]
+    /// [`NodeTypeClass::Root`]
     ///
     /// ## Permitted Targets
-    /// [`NodeType::Frame`]
+    /// [`NodeTypeClass::Frame`]
     #[debug("main")]
     Main,
 
     /// Indicates an ordering relation between stack frames.
     ///
     /// ## Permitted Sources
-    /// [`NodeType::Frame`]
+    /// [`NodeTypeClass::Frame`]
     ///
     /// ## Permitted Targets
-    /// [`NodeType::Frame`]
+    /// [`NodeTypeClass::Frame`]
     #[debug("next")]
     Next,
 
     /// Identifies the return value of a function call.
     ///
     /// ## Permitted Sources
-    /// [`NodeType::Frame`]
+    /// [`NodeTypeClass::Frame`]
     ///
     /// ## Permitted Targets
-    /// [`NodeType::Atom`], [`NodeType::Struct`], [`NodeType::Array`], [`NodeType::Ref`]
+    /// [`NodeTypeClass::Atom`], [`NodeTypeClass::Struct`], [`NodeTypeClass::Array`], [`NodeTypeClass::Ref`]
     #[debug("ret")]
     Result,
 
     /// Identifies the target of a reference node.
     ///
     /// ## Permitted Sources
-    /// [`NodeType::Ref`]
+    /// [`NodeTypeClass::Ref`]
     ///
     /// ## Permitted Targets
-    /// [`NodeType::Atom`], [`NodeType::Struct`], [`NodeType::Array`], [`NodeType::Ref`]
+    /// [`NodeTypeClass::Atom`], [`NodeTypeClass::Struct`], [`NodeTypeClass::Array`], [`NodeTypeClass::Ref`]
     #[debug("ref")]
     Deref,
 
     /// Identifies an item of a sequence at a specific index.
     ///
     /// ## Permitted Sources
-    /// [`NodeType::Array`]
+    /// [`NodeTypeClass::Array`]
     ///
     /// ## Permitted Targets
-    /// [`NodeType::Atom`], [`NodeType::Struct`], [`NodeType::Array`], [`NodeType::Ref`]
+    /// [`NodeTypeClass::Atom`], [`NodeTypeClass::Struct`], [`NodeTypeClass::Array`], [`NodeTypeClass::Ref`]
     #[debug("[{_0}]")]
     Index(usize),
 
@@ -153,20 +153,20 @@ pub enum EdgeLabel {
     /// Indices should always be sequential.
     ///
     /// ## Permitted Sources
-    /// [`NodeType::Root`], [`NodeType::Frame`], [`NodeType::Struct`]
+    /// [`NodeTypeClass::Root`], [`NodeTypeClass::Frame`], [`NodeTypeClass::Struct`]
     ///
     /// ## Permitted Targets
-    /// [`NodeType::Atom`], [`NodeType::Struct`], [`NodeType::Array`], [`NodeType::Ref`]
+    /// [`NodeTypeClass::Atom`], [`NodeTypeClass::Struct`], [`NodeTypeClass::Array`], [`NodeTypeClass::Ref`]
     #[debug("{_0:?}#{_1}")]
     Named(String, usize),
 
     /// Indicates a variable that stores the length of a sequence.
     ///
     /// ## Permitted Sources
-    /// [`NodeType::Array`]
+    /// [`NodeTypeClass::Array`]
     ///
     /// ## Permitted Targets
-    /// [`NodeType::Atom`]
+    /// [`NodeTypeClass::Atom`]
     #[debug("len")]
     Length,
 }
