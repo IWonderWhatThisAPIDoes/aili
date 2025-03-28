@@ -3,6 +3,7 @@
 use super::flat_selector::FlatSelector;
 use crate::stylesheet::{StyleClause, StyleRule, Stylesheet};
 
+#[derive(Debug)]
 pub struct FlatStylesheet(pub Vec<FlatStyleRule>);
 
 impl From<Stylesheet> for FlatStylesheet {
@@ -11,6 +12,7 @@ impl From<Stylesheet> for FlatStylesheet {
     }
 }
 
+#[derive(Debug)]
 pub struct FlatStyleRule {
     pub machine: FlatSelector,
     pub properties: Vec<StyleClause>,
