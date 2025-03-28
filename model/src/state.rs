@@ -27,6 +27,18 @@ pub trait NodeTypeId: Clone + std::cmp::Eq {
     fn type_name(&self) -> &str;
 }
 
+// Blanket implementation for convenience,
+// allow the use of anything that can be aliased as
+// a str for a type identifier
+impl<T> NodeTypeId for T
+where
+    T: Clone + std::cmp::Eq + std::borrow::Borrow<str>,
+{
+    fn type_name(&self) -> &str {
+        self.borrow()
+    }
+}
+
 /// Enumerates elementary arithmetic values for nodes.
 #[derive(Clone, Copy, Eq, Debug, From)]
 pub enum NodeValue {
