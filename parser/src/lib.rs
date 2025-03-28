@@ -82,7 +82,10 @@ pub fn parse_stylesheet(
 #[cfg(test)]
 mod test {
     use super::{ParseError, parse_stylesheet};
-    use crate::{grammar::SyntaxError, mock_error_handler::ExpectErrors};
+    use crate::{
+        grammar::{self, SyntaxError},
+        mock_error_handler::ExpectErrors,
+    };
     use aili_model::state::{EdgeLabel, NodeTypeClass};
     use aili_translate::{
         property::PropertyKey,
@@ -659,5 +662,30 @@ mod test {
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::some().f())
             .expect("Stylesheet should have parsed");
         assert_eq!(Stylesheet::default(), parsed_stylesheet);
+    }
+
+    /// This test verifies that a parser stack overflow is handled
+    /// gracefully and the right error is returned.
+    ///
+    /// Parser stack overflow can be triggered by deeply nesting
+    /// right-associative expressions (either parenthesized, or right-associative
+    /// by design.
+    #[test]
+    fn stack_overflow() {
+        let source = r"*.if(
+            0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ?
+                0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ?
+                    0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ?
+                        0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ?
+                            0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ? 0 ?
+                                0 ? 0 ? 0 ? 0 ? 0 ? 0 : 0 : 0 : 0 : 0 : 0 :
+                            0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 :
+                        0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 :
+                    0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 :
+                0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 :
+            0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 
+        ) { }";
+        let result = parse_stylesheet(source, ExpectErrors::none().f());
+        assert_eq!(result, Err(grammar::ParseError::StackOverflow.into()));
     }
 }
