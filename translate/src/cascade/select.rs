@@ -1,15 +1,17 @@
 //! Matching against selectors.
 
+#![cfg(test)]
+
 use super::{
     eval::{context::EvaluationOnGraph, evaluate},
-    flat_selector::FlatSelectorSegment,
+    style::FlatSelectorSegment,
 };
 use crate::stylesheet::selector::EdgeMatcher;
 use aili_model::state::{ProgramStateNode, RootedProgramStateGraph};
 use std::collections::HashSet;
 
 /// Tests a selector against all nodes in a graph.
-pub fn get_selector_matches<T: RootedProgramStateGraph>(
+pub(super) fn get_selector_matches<T: RootedProgramStateGraph>(
     path: &Vec<FlatSelectorSegment>,
     graph: &T,
 ) -> HashSet<T::NodeId> {
@@ -175,11 +177,10 @@ impl<'a, T: RootedProgramStateGraph> GetSelectorMatches<'a, T> {
     }
 }
 
-#[cfg(test)]
 mod test {
     use super::*;
     use crate::{
-        cascade::{flat_selector::FlatSelector, test_graph::TestGraph},
+        cascade::{style::FlatSelector, test_graph::TestGraph},
         stylesheet::{expression::*, selector::*},
     };
     use aili_model::state::EdgeLabel;

@@ -1,7 +1,32 @@
-//! Preprocessing of [`Selector`]s to simplify matching.
+//! Preprocessing of [`Stylesheet`]s to simplify matching.
 
-use crate::stylesheet::{expression::Expression, selector::*};
+use crate::stylesheet::{expression::Expression, selector::*, *};
 use derive_more::Debug;
+
+/// Compiled stylesheet that can be used to evaluate the cascade.
+#[derive(Debug)]
+pub struct CascadeStyle(pub(super) Vec<FlatStyleRule>);
+
+impl From<Stylesheet> for CascadeStyle {
+    fn from(value: Stylesheet) -> Self {
+        Self(value.0.into_iter().map(FlatStyleRule::from).collect())
+    }
+}
+
+#[derive(Debug)]
+pub struct FlatStyleRule {
+    pub machine: FlatSelector,
+    pub properties: Vec<StyleClause>,
+}
+
+impl From<StyleRule> for FlatStyleRule {
+    fn from(value: StyleRule) -> Self {
+        Self {
+            machine: value.selector.into(),
+            properties: value.properties,
+        }
+    }
+}
 
 /// [`Selector`] flattened to simplify matching against it.
 ///

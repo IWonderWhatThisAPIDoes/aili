@@ -6,8 +6,7 @@ use super::{
         evaluate,
         variable_pool::VariablePool,
     },
-    flat_selector::FlatSelectorSegment,
-    flat_stylesheet::FlatStylesheet,
+    style::{CascadeStyle, FlatSelectorSegment},
 };
 use crate::{
     property::*,
@@ -20,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 
 /// Applies a stylesheet to a graph.
 pub fn apply_stylesheet<T: RootedProgramStateGraph>(
-    stylesheet: &FlatStylesheet,
+    stylesheet: &CascadeStyle,
     graph: &T,
 ) -> EntityPropertyMapping<T::NodeId> {
     let mut helper = ApplyStylesheet::new(stylesheet, graph);
@@ -53,7 +52,7 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     graph: &'g T,
 
     /// The stylesheet being evaluated.
-    stylesheet: &'a FlatStylesheet,
+    stylesheet: &'a CascadeStyle,
 
     /// Pairs of nodes and selector sequence points
     /// that have already been matched.
@@ -61,7 +60,7 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     /// Each node can only be matched by each sequence point
     /// once. If it is matched again, the match fails.
     ///
-    /// A sequence point is a [`MatchNode`](super::flat_selector::FlatSelectorSegment::MatchNode)
+    /// A sequence point is a [`MatchNode`](super::style::FlatSelectorSegment::MatchNode)
     /// transition in the state machine.
     matched_sequence_points: HashSet<(T::NodeId, SequencePointRef)>,
 
@@ -99,7 +98,7 @@ impl<T: ProgramStateGraph> EvaluationContext for GraphPoolEvaluationContext<'_, 
 }
 
 impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
-    fn new(stylesheet: &'a FlatStylesheet, graph: &'g T) -> Self {
+    fn new(stylesheet: &'a CascadeStyle, graph: &'g T) -> Self {
         Self {
             graph,
             stylesheet,
@@ -424,7 +423,7 @@ mod test {
         // .many(*) "a" {
         //   display: "cell";
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
                 [
                     SelectorSegment::anything_any_number_of_times().into(),
@@ -465,7 +464,7 @@ mod test {
         //   display: "kvt";
         //   title: 42;
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::from_path(
                     [
@@ -536,7 +535,7 @@ mod test {
         // :: main next::extra(abc) {
         //   display: "kvt";
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::from_path(
                     [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
@@ -590,7 +589,7 @@ mod test {
         // .many(*).if(@("a"#0))::edge {
         //   display: "cell";
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
                 [RestrictedSelectorSegment {
                     segment: SelectorSegment::anything_any_number_of_times(),
@@ -663,7 +662,7 @@ mod test {
         //   value: @;
         //   display: @([0]);
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::default(),
                 properties: vec![
@@ -738,7 +737,7 @@ mod test {
         // :: main {
         //   parent: --root;
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
@@ -786,7 +785,7 @@ mod test {
         //   --i: --i + 2;
         //   c: --i;
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![
                 StyleClause {
@@ -866,7 +865,7 @@ mod test {
         //   value: --depth;
         //   --depth: --depth + 1;
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
@@ -944,7 +943,7 @@ mod test {
         // .many(*).if(isset(--INDEX)) {
         //   value: --INDEX;
         // }
-        let stylesheet = FlatStylesheet::from(Stylesheet(vec![StyleRule {
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
                 [RestrictedSelectorSegment {
                     segment: SelectorSegment::anything_any_number_of_times(),

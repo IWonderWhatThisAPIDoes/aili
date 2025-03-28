@@ -10,11 +10,6 @@ use std::collections::HashMap;
 pub struct TestGraph(Vec<TestNode>);
 
 impl TestGraph {
-    /// Shorthand for a graph with only a root node.
-    pub fn singular() -> Self {
-        Self(vec![TestNode([].into(), None)])
-    }
-
     /// Shorthand for a minimalistic pre-constructed graph.
     pub fn simple_graph() -> Self {
         /*
