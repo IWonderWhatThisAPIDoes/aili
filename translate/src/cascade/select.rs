@@ -159,12 +159,10 @@ impl<'a, T: RootedProgramStateGraph> GetSelectorMatches<'a, T> {
         starting_node: T::NodeId,
         output_states: &Vec<(&EdgeMatcher, usize)>,
     ) {
-        let successors = self
-            .graph
-            .get(starting_node.clone())
-            .into_iter()
-            .flat_map(|node| node.successors());
-        for (edge_label, successor_node) in successors {
+        let Some(starting_node) = self.graph.get(&starting_node) else {
+            return;
+        };
+        for (edge_label, successor_node) in starting_node.successors() {
             // Start traversing from the next node, from all the states where this node ended
             // and the edge matches the blocking matcher
             let starting_states = output_states

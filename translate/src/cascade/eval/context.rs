@@ -26,8 +26,8 @@ pub struct StatelessEvaluation;
 
 impl ProgramStateGraph for StatelessEvaluation {
     type NodeId = Never;
-    type Node = Never;
-    fn get(&self, _: Self::NodeId) -> Option<&Self::Node> {
+    type NodeRef<'a> = Never;
+    fn get(&self, _: &Self::NodeId) -> Option<Self::NodeRef<'_>> {
         None
     }
 }
@@ -40,19 +40,20 @@ pub enum Never {}
 
 impl ProgramStateNode for Never {
     type NodeId = Never;
-    type AtomId = Never;
-    type FunId = Never;
-    type ObjId = Never;
+    type NodeTypeId<'a> = &'a str;
     fn get_successor(&self, _: &aili_model::state::EdgeLabel) -> Option<Self::NodeId> {
         unreachable!()
     }
-    fn node_type(&self) -> &aili_model::state::NodeType<Self::FunId, Self::AtomId, Self::ObjId> {
+    fn node_type_class(&self) -> aili_model::state::NodeTypeClass {
+        unreachable!()
+    }
+    fn node_type_id(&self) -> Option<Self::NodeTypeId<'_>> {
         unreachable!()
     }
     fn successors(&self) -> impl Iterator<Item = (&aili_model::state::EdgeLabel, Self::NodeId)> {
         std::iter::empty()
     }
-    fn value(&self) -> Option<&aili_model::state::NodeValue> {
+    fn value(&self) -> Option<aili_model::state::NodeValue> {
         unreachable!()
     }
 }
@@ -83,8 +84,11 @@ impl<'a, T: ProgramStateGraph> EvaluationOnGraph<'a, T> {
 
 impl<T: ProgramStateGraph> ProgramStateGraph for EvaluationOnGraph<'_, T> {
     type NodeId = T::NodeId;
-    type Node = T::Node;
-    fn get(&self, id: Self::NodeId) -> Option<&Self::Node> {
+    type NodeRef<'a>
+        = T::NodeRef<'a>
+    where
+        Self: 'a;
+    fn get(&self, id: &Self::NodeId) -> Option<Self::NodeRef<'_>> {
         self.graph.get(id)
     }
 }
@@ -97,7 +101,7 @@ impl<T: ProgramStateGraph> EvaluationContext for EvaluationOnGraph<'_, T> {
             // and move to the node at its end
             current_node = self
                 .graph
-                .get(current_node.clone())
+                .get(&current_node)
                 .and_then(|node| node.get_successor(segment))?;
         }
         Some(Selectable::node(current_node).with_extra(selector.extra_label.clone()))

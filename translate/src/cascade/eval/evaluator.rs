@@ -71,21 +71,17 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
             Not => (!operand.is_truthy()).into(),
             NodeValue => self
                 .coerce_to_node(operand)
-                .and_then(ProgramStateNode::value)
-                .cloned()
+                .and_then(|node| node.value())
                 .map(Into::into)
                 .unwrap_or_default(),
             NodeIsA(type_class) => self
                 .coerce_to_node(operand)
-                .map(ProgramStateNode::node_type)
-                .map(NodeTypeClass::from)
+                .map(|node| node.node_type_class())
                 .is_some_and(|cls| cls == type_class)
                 .into(),
             NodeTypeName => self
                 .coerce_to_node(operand)
-                .map(ProgramStateNode::node_type)
-                .and_then(NodeType::type_name)
-                .map(str::to_owned)
+                .and_then(|node| node.node_type_id().map(|tid| tid.type_name().to_owned()))
                 .map(Into::into)
                 .unwrap_or_default(),
             IsSet => (!matches!(operand, PropertyValue::Unset)).into(),
@@ -189,13 +185,13 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
     }
 
     /// Shorthand for retrieving the node that a property value is referencing, if any
-    fn coerce_to_node(&self, value: PropertyValue<T::NodeId>) -> Option<&T::Node> {
+    fn coerce_to_node(&self, value: PropertyValue<T::NodeId>) -> Option<T::NodeRef<'_>> {
         match value {
             PropertyValue::Selection(target) => {
                 if target.edge_label.is_some() || target.extra_label.is_some() {
                     None
                 } else {
-                    self.0.get(target.node_id)
+                    self.0.get(&target.node_id)
                 }
             }
             _ => None,
@@ -211,9 +207,8 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
                     PropertyValue::Unset
                 } else {
                     self.0
-                        .get(target.node_id)
-                        .and_then(ProgramStateNode::value)
-                        .cloned()
+                        .get(&target.node_id)
+                        .and_then(|x| x.value())
                         .map(Into::into)
                         .unwrap_or_default()
                 }

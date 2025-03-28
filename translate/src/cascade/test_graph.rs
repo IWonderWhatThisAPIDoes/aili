@@ -155,9 +155,9 @@ impl TestGraph {
 
 impl ProgramStateGraph for TestGraph {
     type NodeId = usize;
-    type Node = TestNode;
-    fn get(&self, id: Self::NodeId) -> Option<&Self::Node> {
-        self.0.get(id)
+    type NodeRef<'a> = &'a TestNode;
+    fn get(&self, id: &Self::NodeId) -> Option<Self::NodeRef<'_>> {
+        self.0.get(*id)
     }
 }
 
@@ -170,39 +170,25 @@ impl RootedProgramStateGraph for TestGraph {
 /// Node of [`TestGraph`].
 pub struct TestNode(HashMap<EdgeLabel, usize>, Option<NodeValue>);
 
-impl TestNode {
-    const NODE_TYPE: NodeType<TestNodeType, TestNodeType, TestNodeType> = NodeType::Root;
-}
-
-impl ProgramStateNode for TestNode {
+impl ProgramStateNode for &TestNode {
     type NodeId = usize;
-    type AtomId = TestNodeType;
-    type FunId = TestNodeType;
-    type ObjId = TestNodeType;
+    type NodeTypeId<'a>
+        = &'a str
+    where
+        Self: 'a;
     fn get_successor(&self, edge: &EdgeLabel) -> Option<Self::NodeId> {
         self.0.get(edge).copied()
     }
     fn successors(&self) -> impl Iterator<Item = (&EdgeLabel, Self::NodeId)> {
         self.0.iter().map(|(k, v)| (k, *v))
     }
-    fn node_type(&self) -> &NodeType<Self::FunId, Self::AtomId, Self::ObjId> {
-        &TestNode::NODE_TYPE
+    fn node_type_class(&self) -> NodeTypeClass {
+        NodeTypeClass::Root
     }
-    fn value(&self) -> Option<&NodeValue> {
-        self.1.as_ref()
+    fn node_type_id(&self) -> Option<Self::NodeTypeId<'_>> {
+        None
     }
-}
-
-/// Node of [`TestGraph`].
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub struct TestNodeType;
-
-impl TestNodeType {
-    const TYPE_NAME: &'static str = "";
-}
-
-impl NodeTypeId for TestNodeType {
-    fn type_name(&self) -> &str {
-        Self::TYPE_NAME
+    fn value(&self) -> Option<NodeValue> {
+        self.1
     }
 }

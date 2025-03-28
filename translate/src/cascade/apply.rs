@@ -79,9 +79,12 @@ struct GraphPoolEvaluationContext<'a, T: ProgramStateGraph> {
 }
 
 impl<T: ProgramStateGraph> ProgramStateGraph for GraphPoolEvaluationContext<'_, T> {
-    type Node = T::Node;
+    type NodeRef<'a>
+        = T::NodeRef<'a>
+    where
+        Self: 'a;
     type NodeId = T::NodeId;
-    fn get(&self, id: Self::NodeId) -> Option<&Self::Node> {
+    fn get(&self, id: &Self::NodeId) -> Option<Self::NodeRef<'_>> {
         self.graph.get(id)
     }
 }
@@ -115,9 +118,8 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                     let value = if let PropertyValue::Selection(sel) = &value {
                         if sel.extra_label.is_none() && sel.edge_label.is_none() {
                             self.graph
-                                .get(sel.node_id.clone())
+                                .get(&sel.node_id)
                                 .and_then(|node| node.value())
-                                .cloned()
                                 .map(Into::into)
                                 .unwrap_or_default()
                         } else {
@@ -134,9 +136,8 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                         PropertyValue::Selection(sel) => {
                             if sel.extra_label.is_none() && sel.edge_label.is_none() {
                                 self.graph
-                                    .get(sel.node_id.clone())
+                                    .get(&sel.node_id)
                                     .and_then(|node| node.value())
-                                    .cloned()
                                     .map(PropertyValue::<T::NodeId>::from)
                                     .as_ref()
                                     .map(PropertyValue::to_string)
@@ -289,12 +290,10 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         starting_node: T::NodeId,
         output_states: &Vec<(&EdgeMatcher, SequencePointRef)>,
     ) {
-        let successors = self
-            .graph
-            .get(starting_node.clone())
-            .into_iter()
-            .flat_map(|node| node.successors());
-        for (edge_label, successor_node) in successors {
+        let Some(node) = self.graph.get(&starting_node) else {
+            return;
+        };
+        for (edge_label, successor_node) in node.successors() {
             // Push a state so we can pop it later
             self.variable_pool.push();
             self.create_edge_identifier_variables(edge_label);

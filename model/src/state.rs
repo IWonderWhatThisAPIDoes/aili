@@ -171,17 +171,26 @@ pub enum EdgeLabel {
     Length,
 }
 
-/// Types of program state nodes.
+/// Categories of types of program state nodes.
 ///
 /// Each type has specific semantics which determine what types
 /// of incoming and outgoing [`EdgeLabel`]s are allowed, but these
 /// are not enforced. Nontheless, implementations should adhere to them.
-#[derive(Clone, Debug)]
-pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
+///
+/// Some types can be further classified using [`NodeTypeId`]s.
+/// It is not enforced either.
+///
+/// Nodes of some types may be characterized with a [`NodeValue`],
+/// usualy a numeric one.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum NodeTypeClass {
     /// Type of the node that represents the program's global scope.
     ///
-    /// ## Required Value
-    /// No.
+    /// ## Properties
+    /// | Property | Usage |
+    /// |----------|-------|
+    /// | Value    | No    |
+    /// | Type ID  | No    |
     ///
     /// ## Permitted Incoming Edges
     /// None.
@@ -198,8 +207,11 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     ///
     /// Parametrized by an identifier of the function image.
     ///
-    /// ## Required Value
-    /// No.
+    /// ## Properties
+    /// | Property | Usage    | Notes                             |
+    /// |----------|----------|-----------------------------------|
+    /// | Value    | Optional | Address of the stack frame        |
+    /// | Type ID  | Yes      | Distinguishes different functions |
     ///
     /// ## Permitted Incoming Edges
     /// | Edge label                                 | Multiplicity |
@@ -213,15 +225,18 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     /// | [`EdgeLabel::Named`]  | *            | Local variables             |
     /// | [`EdgeLabel::Result`] | 0..1         | The function's return value |
     ///
-    #[debug("fun:{}", _0.type_name())]
-    Frame(FunId),
+    #[debug("fun")]
+    Frame,
 
     /// Type of nodes that represent elementary values.
     ///
     /// Parametrized by the type of the value.
     ///
-    /// ## Required Value
-    /// Yes.
+    /// ## Properties
+    /// | Property | Usage | Notes                                    |
+    /// |----------|-------|------------------------------------------|
+    /// | Value    | Yes   | The elementary value                     |
+    /// | Type ID  | Yes   | Distinguishes different elementary types |
     ///
     /// ## Permitted Incoming Edges
     /// | Edge label                                                                                     | Multiplicity |
@@ -231,15 +246,18 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     ///
     /// ## Permitted Outgoing Edges
     /// None.
-    #[debug("val:{}", _0.type_name())]
-    Atom(AtomId),
+    #[debug("val")]
+    Atom,
 
     /// Type of nodes that represent structured values.
     ///
     /// Parametrized by the type of the value.
     ///
-    /// ## Required Value
-    /// No.
+    /// ## Properties
+    /// | Property | Usage | Notes                           |
+    /// |----------|-------|---------------------------------|
+    /// | Value    | No    |                                 |
+    /// | Type ID  | Yes   | Distinguishes different classes |
     ///
     /// ## Permitted Incoming Edges
     /// | Edge label                                                            | Multiplicity |
@@ -251,13 +269,16 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     /// | Edge label           | Multiplicity | Semantics             |
     /// |----------------------|--------------|-----------------------|
     /// | [`EdgeLabel::Named`] | *            | Member variables      |
-    #[debug("obj:{}", _0.type_name())]
-    Struct(ObjId),
+    #[debug("struct")]
+    Struct,
 
     /// Type of nodes that represent sequence (array) values.
     ///
-    /// ## Required Value
-    /// No.
+    /// ## Properties
+    /// | Property | Usage |
+    /// |----------|-------|
+    /// | Value    | No    |
+    /// | Type ID  | No    |
     ///
     /// ## Permitted Incoming Edges
     /// | Edge label                                                            | Multiplicity |
@@ -275,8 +296,11 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
 
     /// Type of nodes that represent references.
     ///
-    /// ## Required Value
-    /// No.
+    /// ## Properties
+    /// | Property | Usage    | Notes                                   |
+    /// |----------|----------|-----------------------------------------|
+    /// | Value    | Optional | Address of the reference                |
+    /// | Type ID  | Optional | Distinguishes different reference types |
     ///
     /// ## Permitted Incoming Edges
     /// | Edge label                                                            | Multiplicity |
@@ -292,74 +316,16 @@ pub enum NodeType<FunId: NodeTypeId, AtomId: NodeTypeId, ObjId: NodeTypeId> {
     Ref,
 }
 
-impl<T: NodeTypeId, U: NodeTypeId, V: NodeTypeId> NodeType<T, U, V> {
-    /// Gets the name of a node type if it is one of the named type classes.
-    pub fn type_name(&self) -> Option<&str> {
-        match self {
-            NodeType::Root => None,
-            NodeType::Frame(type_id) => Some(type_id.type_name()),
-            NodeType::Atom(type_id) => Some(type_id.type_name()),
-            NodeType::Struct(type_id) => Some(type_id.type_name()),
-            NodeType::Array => None,
-            NodeType::Ref => None,
-        }
-    }
-}
-
-/// Labels of [`NodeType`].
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum NodeTypeClass {
-    /// [`NodeType::Root`].
-    #[debug("root")]
-    Root,
-
-    /// [`NodeType::Frame`].
-    #[debug("fun")]
-    Frame,
-
-    /// [`NodeType::Atom`].
-    #[debug("var")]
-    Atom,
-
-    /// [`NodeType::Struct`].
-    #[debug("obj")]
-    Struct,
-
-    /// [`NodeType::Array`].
-    #[debug("arr")]
-    Array,
-
-    /// [`NodeType::Ref`].
-    #[debug("ref")]
-    Ref,
-}
-
-impl<T: NodeTypeId, U: NodeTypeId, V: NodeTypeId> From<&NodeType<T, U, V>> for NodeTypeClass {
-    fn from(value: &NodeType<T, U, V>) -> Self {
-        match value {
-            NodeType::Root => Self::Root,
-            NodeType::Frame(_) => Self::Frame,
-            NodeType::Atom(_) => Self::Atom,
-            NodeType::Struct(_) => Self::Struct,
-            NodeType::Array => Self::Array,
-            NodeType::Ref => Self::Ref,
-        }
-    }
-}
-
 /// Node in the program state graph.
 pub trait ProgramStateNode {
     /// Type of unique identifiers for nodes.
     type NodeId: NodeId;
 
-    /// Type of unique identifiers for [`NodeType::Frame`] node types.
-    type FunId: NodeTypeId;
-
-    /// Type of unique identifiers for [`NodeType::Atom`] node types.
-    type AtomId: NodeTypeId;
-
-    /// Type of unique identifiers for [`NodeType::Struct`] node types.
-    type ObjId: NodeTypeId;
+    /// Type of identifiers that firther identify node types
+    /// of the same [`NodeTypeClass`] category.
+    type NodeTypeId<'a>: NodeTypeId + 'a
+    where
+        Self: 'a;
 
     /// Finds a successor node by navigating along a specified edge.
     fn get_successor(&self, edge: &EdgeLabel) -> Option<Self::NodeId>;
@@ -368,11 +334,14 @@ pub trait ProgramStateNode {
     /// that lead to them. Edge labels are unique.
     fn successors(&self) -> impl Iterator<Item = (&EdgeLabel, Self::NodeId)>;
 
-    /// Gets the type of the node.
-    fn node_type(&self) -> &NodeType<Self::FunId, Self::AtomId, Self::ObjId>;
+    /// Gets the categorical type of the node.
+    fn node_type_class(&self) -> NodeTypeClass;
+
+    /// Gets the specific type ID of the node.
+    fn node_type_id(&self) -> Option<Self::NodeTypeId<'_>>;
 
     /// Gets the value of the node, if any.
-    fn value(&self) -> Option<&NodeValue>;
+    fn value(&self) -> Option<NodeValue>;
 }
 
 /// Container for a program state graph.
@@ -381,10 +350,12 @@ pub trait ProgramStateGraph {
     type NodeId: NodeId;
 
     /// Type of references to nodes.
-    type Node: ProgramStateNode<NodeId = Self::NodeId>;
+    type NodeRef<'a>: ProgramStateNode<NodeId = Self::NodeId> + 'a
+    where
+        Self: 'a;
 
     /// Get a reference to a state node by its ID.
-    fn get(&self, id: Self::NodeId) -> Option<&Self::Node>;
+    fn get(&self, id: &Self::NodeId) -> Option<Self::NodeRef<'_>>;
 }
 
 /// [`ProgramStateGraph`] that additionally allows accessing the root node.
