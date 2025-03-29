@@ -15,7 +15,7 @@ use crate::{
 use aili_model::state::{
     EdgeLabel, NodeId, NodeValue, ProgramStateGraph, ProgramStateNode, RootedProgramStateGraph,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 /// Applies a stylesheet to a graph.
 pub fn apply_stylesheet<T: RootedProgramStateGraph>(
@@ -46,6 +46,10 @@ pub const VARIABLE_DISCRIMINATOR: &str = "--DISCRIMINATOR";
 #[derive(PartialEq, Eq, Debug, Hash)]
 struct EntityPropertyKey<T: NodeId>(Selectable<T>, PropertyKey);
 
+/// Value assigned to a property variable based on a rule
+#[derive(Debug)]
+struct RulePropertyValue<T: NodeId>(PropertyValue<T>, usize);
+
 /// Helper for stylesheet applications.
 struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     /// The graph being traversed.
@@ -65,7 +69,7 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     matched_sequence_points: HashSet<(T::NodeId, SequencePointRef)>,
 
     /// Values assigned to each property on each node.
-    properties: HashMap<EntityPropertyKey<T::NodeId>, PropertyValue<T::NodeId>>,
+    properties: HashMap<EntityPropertyKey<T::NodeId>, RulePropertyValue<T::NodeId>>,
 
     /// Variables that are active at the moment
     variable_pool: VariablePool<&'a str, T::NodeId>,
@@ -110,8 +114,9 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
 
     fn result(self) -> EntityPropertyMapping<T::NodeId> {
         let mut mapping = EntityPropertyMapping::new();
-        for (EntityPropertyKey(entity, property), value) in self.properties {
-            let entity_properties = mapping.0.entry(entity).or_insert_with(PropertyMap::default);
+        for (EntityPropertyKey(entity, property), RulePropertyValue(value, _)) in self.properties {
+            // Insert the property map lazily
+            let entity_properties = || mapping.0.entry(entity).or_insert_with(PropertyMap::default);
             match property {
                 PropertyKey::Attribute(name) => {
                     let value = if let PropertyValue::Selection(sel) = &value {
@@ -127,10 +132,15 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                     } else {
                         value
                     };
-                    entity_properties.attributes.insert(name, value.to_string());
+                    // If value if Unset, the attribute should not be saved at all
+                    if value != PropertyValue::Unset {
+                        entity_properties()
+                            .attributes
+                            .insert(name, value.to_string());
+                    }
                 }
                 PropertyKey::Display => {
-                    entity_properties.display = match &value {
+                    let display_mode = match &value {
                         PropertyValue::Unset => None,
                         PropertyValue::Selection(sel) => {
                             if sel.extra_label.is_none() && sel.edge_label.is_none() {
@@ -146,16 +156,19 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                             }
                         }
                         _ => Some(DisplayMode::from_name(value.to_string())),
+                    };
+                    if display_mode.is_some() {
+                        entity_properties().display = display_mode;
                     }
                 }
                 PropertyKey::Parent => {
                     if let PropertyValue::Selection(sel) = value {
-                        entity_properties.parent = Some(*sel);
+                        entity_properties().parent = Some(*sel);
                     }
                 }
                 PropertyKey::Target => {
                     if let PropertyValue::Selection(sel) = value {
-                        entity_properties.target = Some(*sel);
+                        entity_properties().target = Some(*sel);
                     }
                 }
                 PropertyKey::Detach => {}
@@ -180,8 +193,36 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         previous_node: Option<T::NodeId>,
         previous_edge: Option<&EdgeLabel>,
     ) {
-        let output_states =
-            self.resolve_node(node.clone(), starting_states, previous_node, previous_edge);
+        let ResolveNodeResult {
+            output_states,
+            mut matched_rules,
+        } = self.resolve_node(node.clone(), starting_states);
+
+        // Resolve rules in correct order
+        matched_rules.sort_by_cached_key(|&(rule_index, matched_node)| {
+            let has_extra = self.stylesheet.0[rule_index].machine.extra.is_some();
+            // Primary ordering: incoming edge before node
+            // Secondary ordering: nodes and edges before extras
+            // Tertiary ordering: declaration order in the stylesheet
+            (matched_node, has_extra, rule_index)
+        });
+
+        // Resolve all entities that matched
+        for (rule_index, selected_node) in matched_rules {
+            let selected = if selected_node {
+                Selectable::node(node.clone())
+            } else if let Some(selected) = previous_node.clone().and_then(|node| {
+                previous_edge
+                    .cloned()
+                    .map(|edge| Selectable::edge(node, edge))
+            }) {
+                selected
+            } else {
+                continue;
+            }
+            .with_extra(self.stylesheet.0[rule_index].machine.extra.clone());
+            self.selected_entity(selected, &node, rule_index);
+        }
 
         // This is our termination condition:
         // We stop once there is nothing else to explore
@@ -198,9 +239,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         &mut self,
         node: T::NodeId,
         starting_states: impl IntoIterator<Item = SequencePointRef>,
-        previous_node: Option<T::NodeId>,
-        previous_edge: Option<&EdgeLabel>,
-    ) -> Vec<(&'a EdgeMatcher, SequencePointRef)> {
+    ) -> ResolveNodeResult<'a> {
         // States of the selector state machine that have been visited
         // while evaluating this node
         let mut visited_states = HashSet::new();
@@ -210,6 +249,8 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         // States that are blocked by an edge matcher
         // and must be resolved by traversing further down the graph
         let mut output_states = Vec::new();
+        // Rules whose selector selected this element or a related entity
+        let mut matched_rules = Vec::new();
 
         // Make a transitive closure of selector states reachable at this node
         while let Some((state, committed)) = open_states.pop() {
@@ -217,19 +258,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             if state.state_index >= selector.path.len() {
                 // We made it to the end of the selector
                 // That means it has matched the node
-                let selected = if committed {
-                    Selectable::node(node.clone())
-                } else if let Some(selected) = previous_node.clone().and_then(|node| {
-                    previous_edge
-                        .cloned()
-                        .map(|edge| Selectable::edge(node, edge))
-                }) {
-                    selected
-                } else {
-                    continue;
-                }
-                .with_extra(selector.extra.clone());
-                self.selected_entity(selected, state.rule_index);
+                matched_rules.push((state.rule_index, committed));
                 continue;
             }
             // Proceed, unless we have been here already
@@ -280,7 +309,10 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             }
         }
 
-        output_states
+        ResolveNodeResult {
+            output_states,
+            matched_rules,
+        }
     }
 
     /// Traverses depth-first through all outgoing edges of a node.
@@ -314,22 +346,47 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
     }
 
-    fn selected_entity(&mut self, target: Selectable<T::NodeId>, rule_index: usize) {
+    fn selected_entity(
+        &mut self,
+        target: Selectable<T::NodeId>,
+        select_origin: &T::NodeId,
+        rule_index: usize,
+    ) {
+        // Extra entities get their own variable scope
+        // so they cannot affect anything outside
+        if target.extra_label.is_some() {
+            self.variable_pool.push();
+        }
         let properties = &self.stylesheet.0[rule_index].properties;
         for property in properties {
             let value = evaluate(
                 &property.value,
-                &self.evaluation_context(target.node_id.clone()),
+                &self.evaluation_context(select_origin.clone()),
             );
             match &property.key {
                 StyleKey::Property(key) => {
                     let property_key = EntityPropertyKey(target.clone(), key.clone());
-                    self.properties.insert(property_key, value);
+                    // Only insert value if the existing value does not come from a rule with
+                    // greater precedence (greater declaration order)
+                    match self.properties.entry(property_key) {
+                        Entry::Occupied(mut entry) => {
+                            let current_value = entry.get_mut();
+                            if current_value.1 < rule_index {
+                                *current_value = RulePropertyValue(value, rule_index);
+                            }
+                        }
+                        Entry::Vacant(entry) => {
+                            entry.insert(RulePropertyValue(value, rule_index));
+                        }
+                    }
                 }
                 StyleKey::Variable(name) => {
                     self.variable_pool.insert(name, value);
                 }
             }
+        }
+        if target.extra_label.is_some() {
+            self.variable_pool.pop();
         }
     }
 
@@ -397,6 +454,16 @@ impl SequencePointRef {
             state_index: next_state,
         }
     }
+}
+
+/// Result of [`ApplyStylesheet::resolve_node`].
+struct ResolveNodeResult<'a> {
+    /// States in which the selectors await
+    output_states: Vec<(&'a EdgeMatcher, SequencePointRef)>,
+    /// Rules that have selected the node,
+    /// with a flag indicating whether it was the node that was selected
+    /// (true), or the edge leading to it (false)
+    matched_rules: Vec<(usize, bool)>,
 }
 
 impl DisplayMode {
@@ -987,5 +1054,494 @@ mod test {
             ]
             .into()
         );
+    }
+
+    /// This test case reproduces a discovered bug where
+    /// select expressions run from the body of a rule
+    /// that selects an edge are not evaluated correctly.
+    ///
+    /// Select expressions should be evaluated
+    /// relative to the target node.
+    #[test]
+    fn select_expressions_in_edge_rule() {
+        // :: {
+        //   --root: @;
+        // }
+        //
+        // :: main::edge {
+        //   parent: --root;
+        //   target: @;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Variable("--root".to_owned()),
+                    value: Expression::Select(LimitedSelector::default().into()),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                )
+                .selecting_edge(),
+                properties: vec![
+                    StyleClause {
+                        key: Property(Parent),
+                        value: Expression::Variable("--root".to_owned()),
+                    },
+                    StyleClause {
+                        key: Property(Target),
+                        value: Expression::Select(LimitedSelector::default().into()),
+                    },
+                ],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [(
+                Selectable::edge(0, EdgeLabel::Main),
+                PropertyMap {
+                    parent: Some(Selectable::node(0)),
+                    target: Some(Selectable::node(1)),
+                    ..PropertyMap::default()
+                },
+            )]
+            .into()
+        );
+    }
+
+    /// This test case verifies that select expressions
+    /// in the bodies of rules that select extra entities
+    /// are relative to the owning element.
+    #[test]
+    fn select_expressions_in_extra_rule() {
+        // :: ::extra {
+        //   parent: @;
+        // }
+        //
+        // :: main::edge::extra {
+        //   parent: @;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default().with_extra("".to_owned()),
+                properties: vec![StyleClause {
+                    key: Property(Parent),
+                    value: Expression::Select(LimitedSelector::default().into()),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                )
+                .selecting_edge()
+                .with_extra("".to_owned()),
+                properties: vec![StyleClause {
+                    key: Property(Parent),
+                    value: Expression::Select(LimitedSelector::default().into()),
+                }],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [
+                (
+                    Selectable::node(0).with_extra(Some("".to_owned())),
+                    PropertyMap {
+                        parent: Some(Selectable::node(0)),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
+                    PropertyMap {
+                        parent: Some(Selectable::node(1)),
+                        ..PropertyMap::default()
+                    },
+                ),
+            ]
+            .into()
+        );
+    }
+
+    /// This test verifies that rules are applied in order of declaration.
+    ///
+    /// The last rule should override properties set by earlier rules,
+    /// even if they are resolved through different paths.
+    #[test]
+    fn rule_precedence_in_declaration_order() {
+        // :: "a" .many(*) ref {
+        //   display: cell;
+        // }
+        //
+        // :: main .many(next) "a" {
+        //   display: kvt;
+        // }
+        //
+        // .many(*) "b" {
+        //   display: graph;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::from_path(
+                    [
+                        SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                        SelectorSegment::anything_any_number_of_times().into(),
+                        SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
+                    ]
+                    .into(),
+                ),
+                properties: vec![StyleClause {
+                    key: Property(Display),
+                    value: Expression::String("cell".to_owned()),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [
+                        SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                        SelectorSegment::AnyNumberOfTimes(
+                            [SelectorSegment::Match(EdgeLabel::Next.into()).into()].into(),
+                        )
+                        .into(),
+                        SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                    ]
+                    .into(),
+                ),
+                properties: vec![StyleClause {
+                    key: Property(Display),
+                    value: Expression::String("kvt".to_owned()),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [
+                        SelectorSegment::anything_any_number_of_times().into(),
+                        SelectorSegment::Match(EdgeMatcher::Named("b".to_owned())).into(),
+                    ]
+                    .into(),
+                ),
+                properties: vec![StyleClause {
+                    key: Property(Display),
+                    value: Expression::String("graph".to_owned()),
+                }],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [
+                (
+                    Selectable::node(5),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(7),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("graph".to_owned())),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(9),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(10),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("kvt".to_owned())),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(12),
+                    PropertyMap {
+                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
+                        ..PropertyMap::default()
+                    },
+                ),
+            ]
+            .into()
+        );
+    }
+
+    /// This test case reproduces a discovered bug where
+    /// variables assigned by earlier rules are not accessible
+    /// in later rules, even in the same run.
+    #[test]
+    fn variable_sequential_consistency_across_rules() {
+        // :: {
+        //   --a: a;
+        // }
+        //
+        // :: {
+        //   value: --a + --b;
+        // }
+        //
+        // :: {
+        //   --b: b;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Variable("--a".into()),
+                    value: Expression::String("a".to_owned()),
+                }],
+            },
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Property(Attribute("value".into())),
+                    value: Expression::BinaryOperator(
+                        Expression::Variable("--a".to_owned()).into(),
+                        BinaryOperator::Plus,
+                        Expression::Variable("--b".to_owned()).into(),
+                    ),
+                }],
+            },
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Variable("--b".into()),
+                    value: Expression::String("b".to_owned()),
+                }],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [(
+                Selectable::node(0),
+                PropertyMap {
+                    attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
+                    ..PropertyMap::default()
+                },
+            )]
+            .into()
+        );
+    }
+
+    /// This test verifies that variables are inherited correctly
+    /// when `::edge` and `::extra` matchers are involved.
+    ///
+    /// - `::edge` selector should have access to variables
+    ///   assigned by its source node
+    /// - `::edge` selector should provide variables for its
+    ///   target node
+    /// - `::extra` matchers should have access to variables
+    ///   assigned by their owner entities
+    /// - Variables assigned by `::extra` matchers should not
+    ///   be visible from anywhere else
+    ///
+    /// In essence, the variable scope propagation graph
+    /// should look as follows.
+    /// ```text
+    /// [node] --> [edge] --> [node]
+    ///     \          \
+    ///      v          v
+    ///     [extra]    [extra]
+    /// ```
+    #[test]
+    fn variable_scopes_with_edge_and_extra_matchers() {
+        // :: main {
+        //   value: --a + --b + --c + --d + --e;
+        // }
+        //
+        // :: main::edge::extra {
+        //   value: --a + --b + --c + --d + --e;
+        //   --e: e;
+        // }
+        //
+        // :: main::edge {
+        //   value: --a + --b + --c + --d + --e;
+        //   --d: d;
+        // }
+        //
+        // :: ::extra {
+        //   value: --a + --b + --c + --d + --e;
+        //   --b: b;
+        // }
+        //
+        // :: ::extra(other) {
+        //   value: --a + --b + --c + --d + --e;
+        //   --c: c;
+        // }
+        //
+        // :: {
+        //   value: --a + --b + --c + --d + --e;
+        //   --a: a;
+        // }
+        let value_assignment = StyleClause {
+            key: Property(Attribute("value".to_owned())),
+            value: Expression::BinaryOperator(
+                Expression::BinaryOperator(
+                    Expression::BinaryOperator(
+                        Expression::BinaryOperator(
+                            Expression::Variable("--a".to_owned()).into(),
+                            BinaryOperator::Plus,
+                            Expression::Variable("--b".to_owned()).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Plus,
+                        Expression::Variable("--c".to_owned()).into(),
+                    )
+                    .into(),
+                    BinaryOperator::Plus,
+                    Expression::Variable("--d".to_owned()).into(),
+                )
+                .into(),
+                BinaryOperator::Plus,
+                Expression::Variable("--e".to_owned()).into(),
+            ),
+        };
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                ),
+                properties: vec![value_assignment.clone()],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                )
+                .selecting_edge()
+                .with_extra("".to_owned()),
+                properties: vec![
+                    value_assignment.clone(),
+                    StyleClause {
+                        key: Variable("--e".to_owned()),
+                        value: Expression::String("e".to_owned()),
+                    },
+                ],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                )
+                .selecting_edge(),
+                properties: vec![
+                    value_assignment.clone(),
+                    StyleClause {
+                        key: Variable("--d".to_owned()),
+                        value: Expression::String("d".to_owned()),
+                    },
+                ],
+            },
+            StyleRule {
+                selector: Selector::default().with_extra("".to_owned()),
+                properties: vec![
+                    value_assignment.clone(),
+                    StyleClause {
+                        key: Variable("--b".to_owned()),
+                        value: Expression::String("b".to_owned()),
+                    },
+                ],
+            },
+            StyleRule {
+                selector: Selector::default().with_extra("other".to_owned()),
+                properties: vec![
+                    value_assignment.clone(),
+                    StyleClause {
+                        key: Variable("--c".to_owned()),
+                        value: Expression::String("c".to_owned()),
+                    },
+                ],
+            },
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![
+                    value_assignment.clone(),
+                    StyleClause {
+                        key: Variable("--a".to_owned()),
+                        value: Expression::String("a".to_owned()),
+                    },
+                ],
+            },
+        ]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(
+            resolved,
+            [
+                (
+                    Selectable::node(0).with_extra(Some("".to_owned())),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(0).with_extra(Some("other".to_owned())),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::edge(0, EdgeLabel::Main),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "ad".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+                (
+                    Selectable::node(1),
+                    PropertyMap {
+                        attributes: HashMap::from_iter([("value".to_owned(), "ad".to_owned())]),
+                        ..PropertyMap::default()
+                    },
+                ),
+            ]
+            .into()
+        );
+    }
+
+    /// This test verifies that if [`PropertyValue::Unset`]
+    /// is assigned to a property, the attribute will not
+    /// exist in the result.
+    #[test]
+    fn assigning_unset_erases_property() {
+        // :: {
+        //   value: none;
+        //   display: none;
+        //   parent: none;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
+            selector: Selector::default(),
+            properties: vec![
+                StyleClause {
+                    key: Property(Attribute("value".to_owned())),
+                    value: Expression::Unset.to_owned(),
+                },
+                StyleClause {
+                    key: Property(Display),
+                    value: Expression::Unset.to_owned(),
+                },
+                StyleClause {
+                    key: Property(Parent),
+                    value: Expression::Unset.to_owned(),
+                },
+            ],
+        }]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        // The element should not have an entry at all
+        assert_eq!(resolved, EntityPropertyMapping::new());
     }
 }

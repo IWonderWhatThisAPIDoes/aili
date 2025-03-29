@@ -32,7 +32,7 @@ impl std::fmt::Debug for StyleRule {
 }
 
 /// Single property or variable assignment entry.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 #[debug("{key:?}: ({value:?})")]
 pub struct StyleClause {
     /// Name of the property or variable to assign.
