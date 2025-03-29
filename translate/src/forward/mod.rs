@@ -9,9 +9,9 @@ use std::collections::HashMap;
 
 /// Updates the structure of a [`VisTree`] to reflect
 /// changes in stylesheet resolution.
-pub struct Renderer<'v, T: NodeId, V: VisTree> {
+pub struct Renderer<T: NodeId, V: VisTree> {
     /// The target visualization tree.
-    vis_tree: &'v mut V,
+    vis_tree: V,
 
     /// Selectable entity whose associated visual element
     /// is currently at the root of the visualization tree.
@@ -22,14 +22,20 @@ pub struct Renderer<'v, T: NodeId, V: VisTree> {
     current_mappping: HashMap<Selectable<T>, EntityRendering<T, V>>,
 }
 
-impl<'v, T: NodeId, V: VisTree> Renderer<'v, T, V> {
+impl<T: NodeId, V: VisTree> Renderer<T, V> {
     /// Constructs a new renderer that renders into a tree.
-    pub fn new(vis_tree: &'v mut V) -> Self {
+    pub fn new(vis_tree: V) -> Self {
         Self {
             vis_tree,
             current_root: None,
             current_mappping: HashMap::new(),
         }
+    }
+
+    /// Consumes self and returns the [`VisTree`] that was passed
+    /// to the constructor.
+    pub fn reclaim_vis_tree(self) -> V {
+        self.vis_tree
     }
 
     /// Changes the root element.
@@ -389,40 +395,36 @@ mod test {
 
     #[test]
     fn create_element() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         ]);
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![{ tag_name: "cell".to_owned() }]
         );
     }
 
     #[test]
     fn create_connector() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::Connector) },
         ]);
-        assert_eq!(tree.connectors, expect_connectors![{}]);
+        assert_eq!(renderer.vis_tree.connectors, expect_connectors![{}]);
     }
 
     #[test]
     fn create_nothing() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![0 => { display: None }]);
-        assert!(tree.connectors.is_empty());
-        assert!(tree.elements.is_empty());
+        assert!(renderer.vis_tree.connectors.is_empty());
+        assert!(renderer.vis_tree.elements.is_empty());
     }
 
     #[test]
     fn create_element_with_attributes() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         let attributes = HashMap::from_iter([
             ("hello".to_owned(), "world".to_owned()),
             ("a".to_owned(), "b".to_owned()),
@@ -434,15 +436,14 @@ mod test {
             },
         ]);
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![{ tag_name: "cell".to_owned(), attributes }]
         );
     }
 
     #[test]
     fn update_element_attributes() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         let attributes = HashMap::from_iter([
             ("hello".to_owned(), "world".to_owned()),
             ("a".to_owned(), "b".to_owned()),
@@ -466,15 +467,14 @@ mod test {
         // The element should not be recreated, only its attributes should be updated.
         // Attributes should be added, updated, and deleted
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![{ tag_name: "cell".to_owned(), attributes: updated_attributes }]
         );
     }
 
     #[test]
     fn create_element_with_parent() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
             1 => {
@@ -482,13 +482,12 @@ mod test {
                 parent: Some(Selectable::node(0))
             },
         ]);
-        expect_one_parent_and_child(&tree);
+        expect_one_parent_and_child(&renderer.vis_tree);
     }
 
     #[test]
     fn create_element_without_parent() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => {
                 display: Some(DisplayMode::ElementTag("cell".to_owned())),
@@ -497,15 +496,14 @@ mod test {
         ]);
         // The parent should simply not be set
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![{ tag_name: "cell".to_owned() }]
         );
     }
 
     #[test]
     fn create_element_with_connector_for_parent() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::Connector) },
             1 => {
@@ -515,15 +513,14 @@ mod test {
         ]);
         // The parent should not be set, it is not an element
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![{ tag_name: "cell".to_owned() }]
         );
     }
 
     #[test]
     fn update_parent_of_element() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
             1 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
@@ -535,13 +532,12 @@ mod test {
                 parent: Some(Selectable::node(0)),
             },
         ]);
-        expect_one_parent_and_child(&tree);
+        expect_one_parent_and_child(&renderer.vis_tree);
     }
 
     #[test]
     fn unset_parent_of_element() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
             1 => {
@@ -555,7 +551,7 @@ mod test {
         ]);
         // The parent should have been removed
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![
                 { tag_name: "cell".to_owned() },
                 { tag_name: "cell".to_owned(), parent_index: None },
@@ -565,8 +561,7 @@ mod test {
 
     #[test]
     fn remove_parent_of_element() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
             1 => {
@@ -582,7 +577,7 @@ mod test {
             },
         ]);
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![
                 // This is the old representation of element 0,
                 // we do not have a garbage collector, so it stays
@@ -595,8 +590,7 @@ mod test {
 
     #[test]
     fn create_connector_with_pins() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
             1 => { display: Some(DisplayMode::ElementTag("kvt".to_owned())) },
@@ -606,14 +600,16 @@ mod test {
                 target: Some(Selectable::node(1)),
             },
         ]);
-        let index_of_first = tree
+        let index_of_first = renderer
+            .vis_tree
             .elements
             .iter()
             .enumerate()
             .find(|(_, e)| e.tag_name == "cell")
             .expect("One <cell> element should be present")
             .0;
-        let index_of_second = tree
+        let index_of_second = renderer
+            .vis_tree
             .elements
             .iter()
             .enumerate()
@@ -621,7 +617,7 @@ mod test {
             .expect("One <kvt> element should be present")
             .0;
         assert_eq!(
-            tree.connectors,
+            renderer.vis_tree.connectors,
             expect_connectors![{
                 start: TestVisPin { target_index: Some(index_of_first) },
                 end: TestVisPin { target_index: Some(index_of_second) },
@@ -631,8 +627,7 @@ mod test {
 
     #[test]
     fn change_element_into_connector() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
             1 => {
@@ -648,7 +643,7 @@ mod test {
             },
         ]);
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![
                 // This is the old representation of element 0,
                 // we do not have a garbage collector, so it stays
@@ -657,13 +652,12 @@ mod test {
                 { tag_name: "cell".to_owned() },
             ]
         );
-        assert_eq!(tree.connectors, expect_connectors![{}]);
+        assert_eq!(renderer.vis_tree.connectors, expect_connectors![{}]);
     }
 
     #[test]
     fn change_connector_into_element() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::Connector) },
             1 => {
@@ -679,7 +673,7 @@ mod test {
             },
         ]);
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![
                 // Element 1 should have automatically attached
                 // itself to its parent
@@ -692,8 +686,7 @@ mod test {
 
     #[test]
     fn change_element_tag_name() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         ]);
@@ -701,7 +694,7 @@ mod test {
             0 => { display: Some(DisplayMode::ElementTag("kvt".to_owned())) },
         ]);
         assert_eq!(
-            tree.elements,
+            renderer.vis_tree.elements,
             expect_elements![
                 // This is the old representation
                 // W do not have GC, so it stays
@@ -714,8 +707,7 @@ mod test {
 
     #[test]
     fn change_parent_element_tag_name() {
-        let mut tree = TestVisTree::default();
-        let mut renderer = Renderer::new(&mut tree);
+        let mut renderer = Renderer::new(TestVisTree::default());
         renderer.update(mapping![
             0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
             1 => {
@@ -732,7 +724,9 @@ mod test {
         ]);
         // Child's parent should now be the last inserted node
         // since it has just been recreated
-        tree.elements
+        renderer
+            .vis_tree
+            .elements
             .iter()
             .enumerate()
             .find(|(_, e)| e.parent_index == Some(2))
