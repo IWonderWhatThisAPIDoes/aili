@@ -908,8 +908,8 @@ mod test {
         );
     }
 
-    /// This test servesas a proof of concept of depth limitation
-    /// and verifies that it works asexpected.
+    /// This test serves as a proof of concept of depth limitation
+    /// and verifies that it works as expected.
     ///
     /// A depth-tracking variable is initialized in the root node
     /// and then incremented on each match. Nodes only match until
