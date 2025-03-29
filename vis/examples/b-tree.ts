@@ -5,8 +5,7 @@
  */
 
 import {
-    DEFAULT_MODELS,
-    FallbackViewModel,
+    DEFAULT_MODEL_FACTORY,
     GraphLayoutModel,
     TAG_CELL,
     TAG_GRAPH,
@@ -94,5 +93,5 @@ addEventListener('load', () => {
 
     // Attach to the DOM
     const container = document.getElementById('app');
-    new Viewport(container, DEFAULT_MODELS, FallbackViewModel).root = root;
+    new Viewport(container, DEFAULT_MODEL_FACTORY).root = root;
 });

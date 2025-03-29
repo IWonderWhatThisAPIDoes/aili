@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { Viewport } from '../../src/viewport';
 import { VisConnector, VisElement } from '../../src/tree';
 import { CLASS_ELEMENT, TestViewModel } from './test-model';
+import { ViewModelFactory } from '../../src';
 import * as jsplumb from '@jsplumb/browser-ui';
 
 const ELEMENT_TAG_NAME = 'test';
@@ -13,6 +14,8 @@ const CONTAINER_ID = 'app';
 const SELECTOR_ELEMENT = `#${CONTAINER_ID} .${CLASS_ELEMENT}`;
 const SELECTOR_CONNECTOR = `#${CONTAINER_ID} .${jsplumb.CLASS_CONNECTOR}`;
 const SELECTOR_CONNECTED = `#${CONTAINER_ID} .${jsplumb.CLASS_CONNECTED}`;
+
+const viewModelFactory = new ViewModelFactory(new Map(), TestViewModel);
 
 describe(Viewport, () => {
     let container: HTMLDivElement;
@@ -24,7 +27,7 @@ describe(Viewport, () => {
         container.id = CONTAINER_ID;
         document.body.append(container);
         root = new VisElement(ELEMENT_TAG_NAME);
-        viewport = new Viewport(container, new Map(), TestViewModel);
+        viewport = new Viewport(container, viewModelFactory);
         viewport.root = root;
     });
 

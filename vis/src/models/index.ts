@@ -5,9 +5,10 @@
  */
 
 import { ViewModel } from '../model';
-import { ViewModelConstructor } from '../model-factory';
+import { ViewModelConstructor, ViewModelFactory } from '../model-factory';
 import { CellViewModel } from './cell';
 import { CheckboxViewModel } from './checkbox';
+import { FallbackViewModel } from './fallback';
 import { GraphViewModel } from './graph';
 import { KeyValueTableViewModel } from './kvt';
 import { LabelViewModel } from './label';
@@ -65,3 +66,10 @@ export const DEFAULT_MODELS: Map<string, ViewModelConstructor> = new Map([
     [TAG_ROW, RowViewModel],
     [TAG_TEXT, TextViewModel],
 ]);
+
+/**
+ * The default {@link ViewModelFactory} that provides
+ * {@link DEFAULT_MODELS} and {@link FallbackViewModel} as fallback.
+ */
+export const DEFAULT_MODEL_FACTORY: ViewModelFactory =
+    new ViewModelFactory(DEFAULT_MODELS, FallbackViewModel);

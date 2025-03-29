@@ -1,21 +1,21 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { ViewModelFactory } from '../../src/model-factory';
+import { ContextFreeViewModelFactory, ViewModelFactory } from '../../src/model-factory';
 import { ViewportContext } from '../../src/viewport-dom';
 import { ViewModel, VisElement } from '../../src';
 
 const TAG_NAME = 'abc';
 const NOT_TAG_NAME = 'xyz';
 
-describe(ViewModelFactory, () => {
+describe(ContextFreeViewModelFactory, () => {
     const model = {} as ViewModel;
     const mockConstructorOne = jest.fn(() => model).mockName('ConstructorOne');
     const mockFallbackConstructor = jest.fn(() => model).mockName('FallbackConstructor');
     const context = {} as ViewportContext;
-    const factory = new ViewModelFactory(
+    const innerFactory = new ViewModelFactory(
         new Map([[TAG_NAME, mockConstructorOne]]),
         mockFallbackConstructor,
-        context,
     );
+    const factory = new ContextFreeViewModelFactory(innerFactory, context);
 
     beforeEach(() => {
         mockConstructorOne.mockClear();

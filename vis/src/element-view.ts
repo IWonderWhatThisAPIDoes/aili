@@ -8,7 +8,7 @@ import { ReadonlyVisElement, VisElement } from './tree';
 import { ViewModel, ViewLayoutMode } from './model';
 import { ElementViewSlot } from './slots';
 import { ViewBase, ViewContainer } from './view-container';
-import { ViewModelFactory } from './model-factory';
+import { ContextFreeViewModelFactory } from './model-factory';
 
 /**
  * Container that manages the {@link ElementView}s of individual {@link ReadonlyVisElement}s.
@@ -19,7 +19,7 @@ export class ElementViewContainer extends ViewContainer<ReadonlyVisElement, Elem
      * 
      * @param modelFactory Factory for constructing view models for elements.
      */
-    constructor(modelFactory: ViewModelFactory) {
+    constructor(modelFactory: ContextFreeViewModelFactory) {
         super();
         this.modelFactory = modelFactory;
     }
@@ -27,7 +27,7 @@ export class ElementViewContainer extends ViewContainer<ReadonlyVisElement, Elem
         const model = this.modelFactory.createViewModel(element);
         return new ElementViewImpl(element, model);
     }
-    private readonly modelFactory: ViewModelFactory;
+    private readonly modelFactory: ContextFreeViewModelFactory;
 }
 
 /**
