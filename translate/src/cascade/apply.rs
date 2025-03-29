@@ -503,23 +503,19 @@ mod test {
                 value: Expression::String("cell".to_owned()),
             }],
         }]));
-        let expected_properties = PropertyMap {
-            display: Some(DisplayMode::ElementTag("cell".to_owned())),
-            ..PropertyMap::default()
-        };
+        let expected_properties =
+            PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned()));
+        let expected_mapping = [
+            (Selectable::node(5), expected_properties.clone()),
+            (Selectable::node(6), expected_properties.clone()),
+            (Selectable::node(7), expected_properties.clone()),
+            (Selectable::node(10), expected_properties.clone()),
+            (Selectable::node(11), expected_properties.clone()),
+            (Selectable::node(12), expected_properties.clone()),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (Selectable::node(5), expected_properties.clone()),
-                (Selectable::node(6), expected_properties.clone()),
-                (Selectable::node(7), expected_properties.clone()),
-                (Selectable::node(10), expected_properties.clone()),
-                (Selectable::node(11), expected_properties.clone()),
-                (Selectable::node(12), expected_properties.clone()),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     #[test]
@@ -568,29 +564,23 @@ mod test {
                 ],
             },
         ]));
-        let expected_properties_1 = PropertyMap {
-            display: Some(DisplayMode::ElementTag("cell".to_owned())),
-            ..PropertyMap::default()
-        };
-        let expected_properties_2 = PropertyMap {
-            display: Some(DisplayMode::ElementTag("kvt".to_owned())),
-            attributes: [("title".to_owned(), "42".to_owned())].into(),
-            ..PropertyMap::default()
-        };
+        let expected_properties_1 =
+            PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned()));
+        let expected_properties_2 = PropertyMap::new()
+            .with_display(DisplayMode::ElementTag("kvt".to_owned()))
+            .with_attribute("title".to_owned(), "42".to_owned());
+        let expected_mapping = [
+            (Selectable::node(1), expected_properties_2.clone()),
+            (Selectable::node(2), expected_properties_2.clone()),
+            (Selectable::node(3), expected_properties_2.clone()),
+            (Selectable::node(4), expected_properties_2.clone()),
+            (Selectable::node(8), expected_properties_1.clone()),
+            (Selectable::node(12), expected_properties_1.clone()),
+            (Selectable::node(13), expected_properties_1.clone()),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (Selectable::node(1), expected_properties_2.clone()),
-                (Selectable::node(2), expected_properties_2.clone()),
-                (Selectable::node(3), expected_properties_2.clone()),
-                (Selectable::node(4), expected_properties_2.clone()),
-                (Selectable::node(8), expected_properties_1.clone()),
-                (Selectable::node(12), expected_properties_1.clone()),
-                (Selectable::node(13), expected_properties_1.clone()),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     #[test]
@@ -628,27 +618,19 @@ mod test {
                 }],
             },
         ]));
+        let expected_mapping = [
+            (
+                Selectable::node(1).with_extra(Some("".to_owned())),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+            ),
+            (
+                Selectable::node(2).with_extra(Some("abc".to_owned())),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("kvt".to_owned())),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::node(1).with_extra(Some("".to_owned())),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(2).with_extra(Some("abc".to_owned())),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("kvt".to_owned())),
-                        ..PropertyMap::default()
-                    },
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     #[test]
@@ -673,49 +655,45 @@ mod test {
                 value: Expression::String("cell".to_owned()),
             }],
         }]));
-        let expected_properties = PropertyMap {
-            display: Some(DisplayMode::ElementTag("cell".to_owned())),
-            ..PropertyMap::default()
-        };
+        let expected_properties =
+            PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned()));
+        let expected_mapping = [
+            (
+                Selectable::edge(0, EdgeLabel::Main),
+                expected_properties.clone(),
+            ),
+            (
+                Selectable::edge(0, EdgeLabel::Named("a".to_owned(), 0)),
+                expected_properties.clone(),
+            ),
+            (
+                Selectable::edge(1, EdgeLabel::Named("a".to_owned(), 0)),
+                expected_properties.clone(),
+            ),
+            (
+                Selectable::edge(2, EdgeLabel::Next),
+                expected_properties.clone(),
+            ),
+            (
+                Selectable::edge(5, EdgeLabel::Named("a".to_owned(), 0)),
+                expected_properties.clone(),
+            ),
+            (
+                Selectable::edge(5, EdgeLabel::Deref),
+                expected_properties.clone(),
+            ),
+            (
+                Selectable::edge(7, EdgeLabel::Deref),
+                expected_properties.clone(),
+            ),
+            (
+                Selectable::edge(12, EdgeLabel::Deref),
+                expected_properties.clone(),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::edge(0, EdgeLabel::Main),
-                    expected_properties.clone(),
-                ),
-                (
-                    Selectable::edge(0, EdgeLabel::Named("a".to_owned(), 0)),
-                    expected_properties.clone(),
-                ),
-                (
-                    Selectable::edge(1, EdgeLabel::Named("a".to_owned(), 0)),
-                    expected_properties.clone(),
-                ),
-                (
-                    Selectable::edge(2, EdgeLabel::Next),
-                    expected_properties.clone(),
-                ),
-                (
-                    Selectable::edge(5, EdgeLabel::Named("a".to_owned(), 0)),
-                    expected_properties.clone(),
-                ),
-                (
-                    Selectable::edge(5, EdgeLabel::Deref),
-                    expected_properties.clone(),
-                ),
-                (
-                    Selectable::edge(7, EdgeLabel::Deref),
-                    expected_properties.clone(),
-                ),
-                (
-                    Selectable::edge(12, EdgeLabel::Deref),
-                    expected_properties.clone(),
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     #[test]
@@ -763,32 +741,24 @@ mod test {
                 ],
             },
         ]));
+        let expected_mapping = [
+            (
+                Selectable::node(0),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("true".to_owned()))
+                    .with_target(Selectable::node(1)),
+            ),
+            (
+                Selectable::node(5),
+                PropertyMap::new().with_attribute(
+                    "value".to_owned(),
+                    TestGraph::NUMERIC_NODE_VALUE.to_string(),
+                ),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::node(0),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("true".to_owned())),
-                        target: Some(Selectable::node(1)),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(5),
-                    PropertyMap {
-                        display: None,
-                        attributes: HashMap::from_iter([(
-                            "value".to_owned(),
-                            TestGraph::NUMERIC_NODE_VALUE.to_string()
-                        )]),
-                        ..PropertyMap::default()
-                    },
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test verifies simple saving and restoring of variables.
@@ -822,19 +792,14 @@ mod test {
                 }],
             },
         ]));
+        let expected_mapping = [(
+            Selectable::node(1),
+            // Reference to the root node should have been loaded from the variable
+            PropertyMap::new().with_parent(Selectable::node(0)),
+        )]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [(
-                Selectable::node(1),
-                PropertyMap {
-                    // Reference to the root node should have been loaded from the variable
-                    parent: Some(Selectable::node(0)),
-                    ..PropertyMap::default()
-                },
-            )]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test ensures that evaluation of individual clauses in a rule
@@ -889,23 +854,16 @@ mod test {
                 },
             ],
         }]));
+        let expected_mapping = [(
+            Selectable::node(0),
+            PropertyMap::new()
+                .with_attribute("a".to_owned(), "0".to_owned())
+                .with_attribute("b".to_owned(), "1".to_owned())
+                .with_attribute("c".to_owned(), "3".to_owned()),
+        )]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [(
-                Selectable::node(0),
-                PropertyMap {
-                    // Reference to the root node should have been loaded from the variable
-                    attributes: HashMap::from_iter([
-                        ("a".to_owned(), "0".to_owned()),
-                        ("b".to_owned(), "1".to_owned()),
-                        ("c".to_owned(), "3".to_owned()),
-                    ]),
-                    ..PropertyMap::default()
-                },
-            )]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test serves as a proof of concept of depth limitation
@@ -975,34 +933,23 @@ mod test {
                 ],
             },
         ]));
+        let expected_mapping = [
+            (
+                Selectable::node(1),
+                PropertyMap::new().with_attribute("value".to_owned(), "0".to_owned()),
+            ),
+            (
+                Selectable::node(2),
+                PropertyMap::new().with_attribute("value".to_owned(), "1".to_owned()),
+            ),
+            (
+                Selectable::node(3),
+                PropertyMap::new().with_attribute("value".to_owned(), "2".to_owned()),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::node(1),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "0".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(2),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "1".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(3),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "2".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     #[test]
@@ -1026,34 +973,23 @@ mod test {
                 value: Expression::Variable(VARIABLE_INDEX.to_owned()),
             }],
         }]));
+        let expected_mapping = [
+            (
+                Selectable::node(8),
+                PropertyMap::new().with_attribute("value".to_owned(), "0".to_owned()),
+            ),
+            (
+                Selectable::node(12),
+                PropertyMap::new().with_attribute("value".to_owned(), "1".to_owned()),
+            ),
+            (
+                Selectable::node(13),
+                PropertyMap::new().with_attribute("value".to_owned(), "0".to_owned()),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::node(8),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "0".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(12),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "1".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(13),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "0".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test case reproduces a discovered bug where
@@ -1097,19 +1033,15 @@ mod test {
                 ],
             },
         ]));
+        let expected_mapping = [(
+            Selectable::edge(0, EdgeLabel::Main),
+            PropertyMap::new()
+                .with_parent(Selectable::node(0))
+                .with_target(Selectable::node(1)),
+        )]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [(
-                Selectable::edge(0, EdgeLabel::Main),
-                PropertyMap {
-                    parent: Some(Selectable::node(0)),
-                    target: Some(Selectable::node(1)),
-                    ..PropertyMap::default()
-                },
-            )]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test case verifies that select expressions
@@ -1144,27 +1076,19 @@ mod test {
                 }],
             },
         ]));
+        let expected_mapping = [
+            (
+                Selectable::node(0).with_extra(Some("".to_owned())),
+                PropertyMap::new().with_parent(Selectable::node(0)),
+            ),
+            (
+                Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
+                PropertyMap::new().with_parent(Selectable::node(1)),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::node(0).with_extra(Some("".to_owned())),
-                    PropertyMap {
-                        parent: Some(Selectable::node(0)),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
-                    PropertyMap {
-                        parent: Some(Selectable::node(1)),
-                        ..PropertyMap::default()
-                    },
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test verifies that rules are applied in order of declaration.
@@ -1230,48 +1154,31 @@ mod test {
                 }],
             },
         ]));
+        let expected_mapping = [
+            (
+                Selectable::node(5),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+            ),
+            (
+                Selectable::node(7),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("graph".to_owned())),
+            ),
+            (
+                Selectable::node(9),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+            ),
+            (
+                Selectable::node(10),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("kvt".to_owned())),
+            ),
+            (
+                Selectable::node(12),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::node(5),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(7),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("graph".to_owned())),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(9),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(10),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("kvt".to_owned())),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(12),
-                    PropertyMap {
-                        display: Some(DisplayMode::ElementTag("cell".to_owned())),
-                        ..PropertyMap::default()
-                    },
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test case reproduces a discovered bug where
@@ -1317,18 +1224,13 @@ mod test {
                 }],
             },
         ]));
+        let expected_mapping = [(
+            Selectable::node(0),
+            PropertyMap::new().with_attribute("value".to_owned(), "a".to_owned()),
+        )]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [(
-                Selectable::node(0),
-                PropertyMap {
-                    attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
-                    ..PropertyMap::default()
-                },
-            )]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test verifies that variables are inherited correctly
@@ -1469,48 +1371,31 @@ mod test {
                 ],
             },
         ]));
+        let expected_mapping = [
+            (
+                Selectable::node(0).with_extra(Some("".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "a".to_owned()),
+            ),
+            (
+                Selectable::node(0).with_extra(Some("other".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "a".to_owned()),
+            ),
+            (
+                Selectable::edge(0, EdgeLabel::Main),
+                PropertyMap::new().with_attribute("value".to_owned(), "a".to_owned()),
+            ),
+            (
+                Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "ad".to_owned()),
+            ),
+            (
+                Selectable::node(1),
+                PropertyMap::new().with_attribute("value".to_owned(), "ad".to_owned()),
+            ),
+        ]
+        .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
-        assert_eq!(
-            resolved,
-            [
-                (
-                    Selectable::node(0).with_extra(Some("".to_owned())),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(0).with_extra(Some("other".to_owned())),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::edge(0, EdgeLabel::Main),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "a".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "ad".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-                (
-                    Selectable::node(1),
-                    PropertyMap {
-                        attributes: HashMap::from_iter([("value".to_owned(), "ad".to_owned())]),
-                        ..PropertyMap::default()
-                    },
-                ),
-            ]
-            .into()
-        );
+        assert_eq!(resolved, expected_mapping);
     }
 
     /// This test verifies that if [`PropertyValue::Unset`]

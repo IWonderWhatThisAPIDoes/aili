@@ -50,6 +50,37 @@ pub struct PropertyMap<T: NodeId> {
     pub target: Option<Selectable<T>>,
 }
 
+impl<T: NodeId> PropertyMap<T> {
+    /// Constructs an empty property map.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds a display mode to the property map.
+    pub fn with_display(mut self, display_mode: DisplayMode) -> Self {
+        self.display = Some(display_mode);
+        self
+    }
+
+    /// Adds a parent reference to the property map.
+    pub fn with_parent(mut self, parent: Selectable<T>) -> Self {
+        self.parent = Some(parent);
+        self
+    }
+
+    /// Adds a target reference to the property map.
+    pub fn with_target(mut self, target: Selectable<T>) -> Self {
+        self.target = Some(target);
+        self
+    }
+
+    /// Adds an attribute value to the property map.
+    pub fn with_attribute(mut self, attribute_name: String, attribute_value: String) -> Self {
+        self.attributes.insert(attribute_name, attribute_value);
+        self
+    }
+}
+
 impl<T: NodeId> Default for PropertyMap<T> {
     fn default() -> Self {
         Self {
