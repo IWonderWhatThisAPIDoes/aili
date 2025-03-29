@@ -93,7 +93,7 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
         const bb = (layout as { bb: string }).bb.split(',').map(Number.parseFloat);
         this.width = bb[2];
         this.height = bb[3];
-        for (const object of (layout as { objects: { name: string, pos: string, width: string, height: string }[] }).objects) {
+        for (const object of (layout as { objects: { name: string, pos: string, width: string, height: string }[] }).objects ?? []) {
             const slot = this.nodes[object.name];
             const pos = object.pos.split(',').map(Number.parseFloat);
             slot.left = pos[0] - Number.parseFloat(object.width) * POINTS_PER_INCH / 2;

@@ -67,6 +67,15 @@ describe(vis.GraphViewModel, () => {
         expect(children).toHaveLength(CHILD_COUNT);
     });
 
+    it('has nonzero size when emptied again', async() => {
+        await t.setupViewport();
+        const [childHandle] = await insertChildren(1);
+        page.evaluate(child => child.parent = undefined, childHandle);
+        const bounds = await t.boundingBox();
+        expect(bounds.width).toBeGreaterThan(0);
+        expect(bounds.height).toBeGreaterThan(0);
+    });
+
     it('adds padding as requested', async () => {
         await t.rootElement((root, padding) => root.attributes.padding.value = padding, String(PADDING));
         await insertChildren(CHILD_COUNT);
