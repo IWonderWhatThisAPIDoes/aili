@@ -25,10 +25,10 @@
         "test:component:run": "jest -c test/component/jest.config.js -i",
         "doc": "typedoc",
         "examples": "npm run examples:linked-list && npm run examples:structure && npm run examples:graph && npm run examples:b-tree",
-        "examples:linked-list": "rollup -c examples/rollup.config.js -i examples/linked-list.js -d examples/out/linked-list",
-        "examples:structure": "rollup -c examples/rollup.config.js -i examples/structure.js -d examples/out/structure",
-        "examples:graph": "rollup -c examples/rollup.config.js -i examples/graph.js -d examples/out/graph",
-        "examples:b-tree": "rollup -c examples/rollup.config.js -i examples/b-tree.js -d examples/out/b-tree"
+        "examples:linked-list": "rollup -c examples/rollup.config.js -i examples/linked-list.ts -d examples/out/linked-list",
+        "examples:structure": "rollup -c examples/rollup.config.js -i examples/structure.ts -d examples/out/structure",
+        "examples:graph": "rollup -c examples/rollup.config.js -i examples/graph.ts -d examples/out/graph",
+        "examples:b-tree": "rollup -c examples/rollup.config.js -i examples/b-tree.ts -d examples/out/b-tree"
     },
     "dependencies": {
         "@jsplumb/browser-ui": "^6.2.10",
