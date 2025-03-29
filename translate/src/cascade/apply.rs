@@ -48,7 +48,35 @@ struct EntityPropertyKey<T: NodeId>(Selectable<T>, PropertyKey);
 
 /// Value assigned to a property variable based on a rule
 #[derive(Debug)]
-struct RulePropertyValue<T: NodeId>(PropertyValue<T>, usize);
+struct RulePropertyValue<T: NodeId> {
+    /// Value assigned to the property.
+    value: PropertyValue<T>,
+    /// Index of the rule that assigned the value.
+    /// Relevant for calculating precedence.
+    rule_index: usize,
+    /// Whether the value was assigned explicitly
+    /// or as the side effect of another assignment.
+    passive: bool,
+}
+
+impl<T: NodeId> RulePropertyValue<T> {
+    /// Overwrites the existing value with a new one, but only
+    /// if the new value has greater or equal precedence.
+    ///
+    /// ## Return Value
+    /// True if the new value was written, false otherwise.
+    fn assign_new_value(&mut self, candidate_value: Self) -> bool {
+        // Passive assignments take lower priority always,
+        // otherwise the precedence is decided based on evaluation order
+        let precedence = |value: &Self| (!value.passive, value.rule_index);
+        if precedence(&candidate_value) >= precedence(self) {
+            *self = candidate_value;
+            true
+        } else {
+            false
+        }
+    }
+}
 
 /// Helper for stylesheet applications.
 struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
@@ -114,7 +142,9 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
 
     fn result(self) -> EntityPropertyMapping<T::NodeId> {
         let mut mapping = EntityPropertyMapping::new();
-        for (EntityPropertyKey(entity, property), RulePropertyValue(value, _)) in self.properties {
+        for (EntityPropertyKey(entity, property), RulePropertyValue { value, .. }) in
+            self.properties
+        {
             // Insert the property map lazily
             let entity_properties = || mapping.0.entry(entity).or_insert_with(PropertyMap::default);
             match property {
@@ -365,20 +395,14 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             );
             match &property.key {
                 StyleKey::Property(key) => {
-                    let property_key = EntityPropertyKey(target.clone(), key.clone());
-                    // Only insert value if the existing value does not come from a rule with
-                    // greater precedence (greater declaration order)
-                    match self.properties.entry(property_key) {
-                        Entry::Occupied(mut entry) => {
-                            let current_value = entry.get_mut();
-                            if current_value.1 < rule_index {
-                                *current_value = RulePropertyValue(value, rule_index);
-                            }
-                        }
-                        Entry::Vacant(entry) => {
-                            entry.insert(RulePropertyValue(value, rule_index));
-                        }
-                    }
+                    self.write_property(
+                        EntityPropertyKey(target.clone(), key.clone()),
+                        RulePropertyValue {
+                            value,
+                            rule_index,
+                            passive: false,
+                        },
+                    );
                 }
                 StyleKey::Variable(name) => {
                     self.variable_pool.insert(name, value);
@@ -395,6 +419,20 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             graph: self.graph,
             origin,
             variable_pool: &self.variable_pool,
+        }
+    }
+
+    fn write_property(
+        &mut self,
+        key: EntityPropertyKey<T::NodeId>,
+        value: RulePropertyValue<T::NodeId>,
+    ) -> bool {
+        match self.properties.entry(key) {
+            Entry::Occupied(mut existing) => existing.get_mut().assign_new_value(value),
+            Entry::Vacant(entry) => {
+                entry.insert(value);
+                true
+            }
         }
     }
 
@@ -1427,6 +1465,37 @@ mod test {
         }]));
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
         // The element should not have an entry at all
+        assert_eq!(resolved, EntityPropertyMapping::new());
+    }
+
+    /// This test verifies that if the same rule
+    /// assigns the same property more than once,
+    /// the last assignment counts.
+    ///
+    /// The same rule for variables is already verified by
+    /// [`variable_assignment_sequential_consistency`].
+    #[test]
+    fn latter_property_assignments_take_priority() {
+        // :: {
+        //   display: connector;
+        //   display: none;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
+            selector: Selector::default(),
+            properties: vec![
+                StyleClause {
+                    key: Property(Display),
+                    value: Expression::String("connector".to_owned()),
+                },
+                StyleClause {
+                    key: Property(Display),
+                    value: Expression::Unset.to_owned(),
+                },
+            ],
+        }]));
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        // Display property was removed by last assignment,
+        // so the mapping should be empty
         assert_eq!(resolved, EntityPropertyMapping::new());
     }
 }
