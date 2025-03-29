@@ -73,5 +73,5 @@ addEventListener('load', () => {
 
     // Attach to the DOM
     const container = document.getElementById('app');
-    new Viewport(container, root, DEFAULT_MODELS, FallbackViewModel);
+    new Viewport(container, DEFAULT_MODELS, FallbackViewModel).root = root;
 });

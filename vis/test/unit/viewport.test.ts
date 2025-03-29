@@ -17,13 +17,15 @@ const SELECTOR_CONNECTED = `#${CONTAINER_ID} .${jsplumb.CLASS_CONNECTED}`;
 describe(Viewport, () => {
     let container: HTMLDivElement;
     let root: VisElement;
+    let viewport: Viewport;
 
     beforeEach(() => {
         container = document.createElement('div');
         container.id = CONTAINER_ID;
         document.body.append(container);
         root = new VisElement(ELEMENT_TAG_NAME);
-        new Viewport(container, root, new Map(), TestViewModel);
+        viewport = new Viewport(container, new Map(), TestViewModel);
+        viewport.root = root;
     });
 
     afterEach(() => {
@@ -433,5 +435,18 @@ describe(Viewport, () => {
         // Detach the child that contains the connector somewhere in its subtree
         child.parent = undefined;
         expect(document.querySelectorAll(SELECTOR_CONNECTOR)).not.toContainEqual(expect.anything());
+    });
+
+    it('unrenders everything when root element is detached', () => {
+        viewport.root = undefined;
+        expect(document.querySelectorAll(SELECTOR_ELEMENT)).not.toContainEqual(expect.anything());
+    });
+
+    it('renders the new tree when root is swapped', () => {
+        const newRoot = new VisElement(ELEMENT_TAG_NAME);
+        const child = new VisElement(ELEMENT_TAG_NAME);
+        child.parent = newRoot;
+        viewport.root = newRoot;
+        expect(document.querySelectorAll(SELECTOR_ELEMENT)).toHaveLength(2);
     });
 });

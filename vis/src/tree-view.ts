@@ -46,11 +46,15 @@ export class TreeView {
         this.connectorObservers = new WeakMap();
     }
     /**
-     * Adds a new element that will forever remain tracked by the view.
+     * Adds a new element that will remain tracked by the view until forcibly removed.
      * All elements tracked by the view are descendants of a root element.
      * 
      * The view will update itself as needed to always track
      * the whole subtree and all connectors within it.
+     * 
+     * Tracked trees are expected to be disjoint. No guarantees are made
+     * on the behavior if a root is an ancestor of another one.
+     * Connectors may connect different trees.
      * 
      * @param rootElement The root element that will be an entry point of the view.
      * @param rootSlot Special view slot that the root will be embedded in.
@@ -59,6 +63,19 @@ export class TreeView {
      */
     addRootElement(rootElement: ReadonlyVisElement, rootSlot: ElementViewSlot): void {
         this.elementMovedToEmbedding(rootElement, { slot: rootSlot });
+    }
+    /**
+     * Revokes an element's root status, which means the element
+     * and its whole subtree will be removed from the visualization.
+     * 
+     * @param expiringElement The root element that should lose its root status.
+     */
+    removeRootElement(expiringElement: ReadonlyVisElement): void {
+        const view = this.elementViews.get(expiringElement);
+        // Only proceed if the element is actually a root
+        if (view?.hasExplicitEmbedding) {
+            this.removeElementWithSubtreeAndConnectors(expiringElement);
+        }
     }
     /**
      * Handles any change in the embedding of a tracked element.

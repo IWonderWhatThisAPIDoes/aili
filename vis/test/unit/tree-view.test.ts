@@ -322,4 +322,28 @@ describe(TreeView, () => {
         child.parent = undefined;
         expect(connView._destroy).toBeCalled();
     });
+
+    it('removes whole tree when root is detached', () => {
+        const child = new VisElement(ELEMENT_TAG_NAME);
+        const childView = new MockElementView(child, 'childView');
+        child.parent = root;
+        elementViews.expectCalls([root, rootView], [child, childView]);
+        treeView.addRootElement(root, rootSlot);
+        treeView.removeRootElement(root);
+        expect(childView._destroy).toBeCalled();
+        expect(rootView._destroy).toBeCalled();
+    });
+
+    it('embeds a connector that connects different trees', () => {
+        const otherRoot = new VisElement(ELEMENT_TAG_NAME);
+        const otherRootView = new MockElementView(otherRoot, 'childView');
+        elementViews.expectCalls([root, rootView]);
+        elementViews.expectCalls([otherRoot, otherRootView]);
+        connectorViews.expectCalls([conn, connView]);
+        conn.start.target = root;
+        conn.end.target = otherRoot;
+        treeView.addRootElement(root, rootSlot);
+        treeView.addRootElement(otherRoot, rootSlot);
+        expect(connView.useEndpoints).toBeCalledWith(rootView, otherRootView);
+    });
 });

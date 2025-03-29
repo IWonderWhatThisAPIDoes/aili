@@ -115,7 +115,7 @@ export class Testbed {
      */
     async setupViewport(): Promise<void> {
         await page.evaluate(
-            (container, root) => new vis.Viewport(container, root, vis.DEFAULT_MODELS, vis.FallbackViewModel),
+            (container, root) => new vis.Viewport(container, vis.DEFAULT_MODELS, vis.FallbackViewModel).root = root,
             this.appContainer,
             this.rootElementHandle,
         );

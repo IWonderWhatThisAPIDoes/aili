@@ -21,7 +21,6 @@ export class Viewport {
      * tree into a provided DOM container.
      * 
      * @param container The DOM element that the viewport will render to.
-     * @param rootElement The root of the visualization tree.
      * @param viewModels View models that will be available for rendering
      *                   tree elements, mapped by the element's
      *                   {@link ReadonlyVisElement.tagName}.
@@ -31,7 +30,6 @@ export class Viewport {
      */
     constructor(
         container: HTMLElement,
-        rootElement: ReadonlyVisElement,
         viewModels: ReadonlyMap<string, ViewModelConstructor>,
         fallbackModel: ViewModelConstructor,
     ) {
@@ -40,6 +38,36 @@ export class Viewport {
         const elementViews = new ElementViewContainer(modelFactory);
         const connectorViews = new ConnectorViewContainer(root.context);
         const view = new TreeView(elementViews, connectorViews);
-        view.addRootElement(rootElement, root.slot);
+        this.treeView = view;
+        this.rootDom = root;
     }
+    /**
+     * Sets the element that is at the root of the viewport.
+     * 
+     * @param newRoot The new root element.
+     */
+    set root(newRoot: ReadonlyVisElement | undefined) {
+        if (newRoot == this.currentRoot) {
+            // No-op
+            return;
+        }
+        if (this.currentRoot) {
+            // Get rid of the old root so we free up the root slot
+            this.treeView.removeRootElement(this.currentRoot);
+        }
+        if (newRoot) {
+            // The root slot is never destroyed, so we can reuse it right away
+            this.treeView.addRootElement(newRoot, this.rootDom.slot);
+        }
+        this.currentRoot = newRoot;
+    }
+    /**
+     * Gets the current root element.
+     */
+    get root(): ReadonlyVisElement | undefined {
+        return this.currentRoot;
+    }
+    private treeView: TreeView;
+    private rootDom: ViewportDOMRoot;
+    private currentRoot: ReadonlyVisElement;
 }
