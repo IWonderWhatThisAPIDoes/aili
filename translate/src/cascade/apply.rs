@@ -150,7 +150,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             match property {
                 PropertyKey::Attribute(name) => {
                     let value = if let PropertyValue::Selection(sel) = &value {
-                        if sel.extra_label.is_none() && sel.edge_label.is_none() {
+                        if sel.is_node() {
                             self.graph
                                 .get(&sel.node_id)
                                 .and_then(|node| node.value())
@@ -173,7 +173,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                     let display_mode = match &value {
                         PropertyValue::Unset => None,
                         PropertyValue::Selection(sel) => {
-                            if sel.extra_label.is_none() && sel.edge_label.is_none() {
+                            if sel.is_node() {
                                 self.graph
                                     .get(&sel.node_id)
                                     .and_then(|node| node.value())
@@ -384,7 +384,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
     ) {
         // Extra entities get their own variable scope
         // so they cannot affect anything outside
-        if target.extra_label.is_some() {
+        if target.is_extra() {
             self.variable_pool.push();
         }
         let properties = &self.stylesheet.0[rule_index].properties;
@@ -409,7 +409,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 }
             }
         }
-        if target.extra_label.is_some() {
+        if target.is_extra() {
             self.variable_pool.pop();
         }
     }

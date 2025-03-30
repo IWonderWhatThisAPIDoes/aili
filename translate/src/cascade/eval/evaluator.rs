@@ -188,10 +188,10 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
     fn coerce_to_node(&self, value: PropertyValue<T::NodeId>) -> Option<T::NodeRef<'_>> {
         match value {
             PropertyValue::Selection(target) => {
-                if target.edge_label.is_some() || target.extra_label.is_some() {
-                    None
-                } else {
+                if target.is_node() {
                     self.0.get(&target.node_id)
+                } else {
+                    None
                 }
             }
             _ => None,
@@ -203,14 +203,14 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
     fn coerce_to_value(&self, value: PropertyValue<T::NodeId>) -> PropertyValue<T::NodeId> {
         match value {
             PropertyValue::Selection(target) => {
-                if target.edge_label.is_some() || target.extra_label.is_some() {
-                    PropertyValue::Unset
-                } else {
+                if target.is_node() {
                     self.0
                         .get(&target.node_id)
                         .and_then(|x| x.value())
                         .map(Into::into)
                         .unwrap_or_default()
+                } else {
+                    PropertyValue::Unset
                 }
             }
             _ => value,

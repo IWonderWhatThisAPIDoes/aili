@@ -49,6 +49,21 @@ impl<T: NodeId> Selectable<T> {
         self.extra_label = extra_label;
         self
     }
+
+    /// Checks whether the selection is a main node (i. e. not an extra).
+    pub fn is_node(&self) -> bool {
+        self.edge_label.is_none() && self.extra_label.is_none()
+    }
+
+    /// Checks whether the selection is a main edge (i. e. not an extra).
+    pub fn is_edge(&self) -> bool {
+        self.edge_label.is_some() && self.extra_label.is_none()
+    }
+
+    /// Checks whether the selection is an extra entity.
+    pub fn is_extra(&self) -> bool {
+        self.extra_label.is_some()
+    }
 }
 
 impl<T: NodeId> std::fmt::Debug for Selectable<T> {
