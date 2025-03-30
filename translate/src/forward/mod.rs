@@ -1,6 +1,7 @@
 //! Forwarding results of the [cascade](crate::cascade)
 //! to the [visualization tree](aili_model::vis).
 
+mod debug;
 mod test_vis;
 
 use crate::property::{DisplayMode, EntityPropertyMapping, PropertyMap, Selectable};

@@ -4,7 +4,7 @@ mod selectable;
 mod values;
 
 use aili_model::state::NodeId;
-use derive_more::From;
+use derive_more::{Debug, From};
 pub use selectable::Selectable;
 use std::collections::HashMap;
 pub use values::PropertyValue;
@@ -116,9 +116,11 @@ impl<T: NodeId> std::fmt::Debug for PropertyMap<T> {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum DisplayMode {
     /// Entity is displayed as a connector.
+    #[debug("connector")]
     Connector,
 
     /// Entity is displayed as an element with the provided tag name.
+    #[debug("<{_0}>")]
     ElementTag(String),
 }
 
