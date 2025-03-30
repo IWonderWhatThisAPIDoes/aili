@@ -76,6 +76,7 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
 
     /// Updates the parent-child and pin-target relationships of all active visual entities.
     fn update_inter_entity_relations(&mut self) {
+        let mut retry_element_insertions = Vec::new();
         for mapping in self.current_mappping.values() {
             match &mapping.vis_handle {
                 EitherVisHandle::Element(handle) => {
@@ -89,10 +90,22 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
                         .as_ref()
                         .and_then(|key| self.current_mappping.get(key))
                         .and_then(|mapping| mapping.vis_handle.element());
-                    // We do not care if this operation fails,
-                    // worst case, something is not going to render
-                    // (todo: log)
-                    let _ = element.insert_into(parent_handle);
+                    match element.insert_into(parent_handle) {
+                        Ok(()) => {}
+                        Err(ParentAssignmentError::InvalidHandle(_)) => {
+                            panic!("The handle should remain valid")
+                        }
+                        Err(ParentAssignmentError::StructureViolation) => {
+                            // This does not always mean that the user has supplied
+                            // an invalid stylesheet. It may happen when we intend
+                            // to swap a parent and its child. That cannot happen
+                            // unless we disconnect one first and reconnect it later.
+                            element
+                                .insert_into(None)
+                                .expect("Detachment should never fail");
+                            retry_element_insertions.push((handle, parent_handle));
+                        }
+                    }
                 }
                 EitherVisHandle::Connector(handle) => {
                     let mut connector = self
@@ -111,13 +124,28 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
                         .as_ref()
                         .and_then(|key| self.current_mappping.get(key))
                         .and_then(|mapping| mapping.vis_handle.element());
-                    // We do not care if this operation fails,
-                    // worst case, something is not going to render
-                    // (todo: log)
-                    let _ = connector.start_mut().attach_to(start_handle);
-                    let _ = connector.end_mut().attach_to(end_handle);
+                    connector
+                        .start_mut()
+                        .attach_to(start_handle)
+                        .expect("The handle should remain valid");
+                    connector
+                        .end_mut()
+                        .attach_to(end_handle)
+                        .expect("The handle should remain valid");
                 }
             }
+        }
+        // We have inserted everything except a few elements that we have detached
+        // from their parents. This is where we retry failed assignments
+        for (child_handle, parent_handle) in retry_element_insertions {
+            // If the insertion fails again, we know for sure it is because
+            // the user forced a loop with their stylesheet
+            // todo: log the error
+            let _ = self
+                .vis_tree
+                .get_element(child_handle)
+                .expect("The handle should remain valid")
+                .insert_into(parent_handle);
         }
     }
 
@@ -732,5 +760,46 @@ mod test {
             .enumerate()
             .find(|(_, e)| e.parent_index == Some(2))
             .expect("Child element should have moved under new representation of its parent");
+    }
+
+    #[test]
+    fn swap_parent_and_child() {
+        let mut renderer = Renderer::new(TestVisTree::default());
+        renderer.update(mapping![
+            0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
+            1 => {
+                display: Some(DisplayMode::ElementTag("kvt".to_owned())),
+                parent: Some(Selectable::node(0)),
+            },
+            2 => {
+                display: Some(DisplayMode::ElementTag("label".to_owned())),
+                parent: Some(Selectable::node(1)),
+            },
+        ]);
+        renderer.update(mapping![
+            0 => {
+                display: Some(DisplayMode::ElementTag("cell".to_owned())),
+                parent: Some(Selectable::node(1)),
+            },
+            1 => {
+                display: Some(DisplayMode::ElementTag("kvt".to_owned())),
+                parent: Some(Selectable::node(2)),
+            },
+            2 => { display: Some(DisplayMode::ElementTag("label".to_owned())) },
+        ]);
+        // Verify the structural order between nodes
+        // (they may have been inserted in any order, so we must reconstruct the order)
+        let element_2 = renderer
+            .vis_tree
+            .expect_find_element(|e| e.tag_name == "label");
+        let element_1 = renderer
+            .vis_tree
+            .expect_find_element(|e| e.tag_name == "kvt");
+        let element_0 = renderer
+            .vis_tree
+            .expect_find_element(|e| e.tag_name == "cell");
+        assert_eq!(renderer.vis_tree.elements[element_2].parent_index, None);
+        assert_eq!(renderer.vis_tree.elements[element_1].parent_index, Some(2));
+        assert_eq!(renderer.vis_tree.elements[element_0].parent_index, Some(1));
     }
 }

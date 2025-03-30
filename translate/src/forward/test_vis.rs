@@ -19,6 +19,8 @@ pub struct TestVisElement {
     pub parent_index: Option<usize>,
 }
 
+pub struct TestVisElementRef<'a>(&'a mut TestVisTree, usize);
+
 #[derive(PartialEq, Eq, Debug, Default)]
 pub struct TestVisConnector {
     pub attributes: HashMap<String, String>,
@@ -34,7 +36,7 @@ pub struct TestVisPin {
 impl VisTree for TestVisTree {
     type ElementHandle = usize;
     type ConnectorHandle = usize;
-    type ElementRef<'a> = &'a mut TestVisElement;
+    type ElementRef<'a> = TestVisElementRef<'a>;
     type ConnectorRef<'a> = &'a mut TestVisConnector;
 
     fn add_connector(&mut self) -> Self::ConnectorHandle {
@@ -61,7 +63,7 @@ impl VisTree for TestVisTree {
         &mut self,
         handle: &Self::ElementHandle,
     ) -> Result<Self::ElementRef<'_>, InvalidHandle> {
-        Ok(&mut self.elements[*handle])
+        Ok(TestVisElementRef(self, *handle))
     }
 
     fn set_root(&mut self, handle: Option<&Self::ElementHandle>) -> Result<(), InvalidHandle> {
@@ -70,28 +72,32 @@ impl VisTree for TestVisTree {
     }
 }
 
-impl AttributeMap for &mut TestVisElement {
+impl AttributeMap for TestVisElementRef<'_> {
     fn get_attribute(&self, name: &str) -> Option<&str> {
-        self.attributes.get(name).map(String::as_str)
+        self.element().attributes.get(name).map(String::as_str)
     }
 
     fn set_attribute(&mut self, name: &str, value: Option<&str>) {
         if let Some(value) = value {
-            self.attributes.insert(name.to_owned(), value.to_owned());
+            self.element_mut()
+                .attributes
+                .insert(name.to_owned(), value.to_owned());
         } else {
-            self.attributes.remove(name);
+            self.element_mut().attributes.remove(name);
         }
     }
 }
 
-impl VisElement for &mut TestVisElement {
+impl VisElement for TestVisElementRef<'_> {
     type Handle = usize;
 
     fn insert_into(&mut self, parent: Option<&Self::Handle>) -> Result<(), ParentAssignmentError> {
-        // We disregard the possibility of creating circular references here,
-        // that is not what this test is about
-        self.parent_index = parent.copied();
-        Ok(())
+        if parent.is_some_and(|p| self.0.is_ancestor_of(self.1, *p)) {
+            Err(ParentAssignmentError::StructureViolation)
+        } else {
+            self.element_mut().parent_index = parent.copied();
+            Ok(())
+        }
     }
 }
 
@@ -141,5 +147,38 @@ impl VisPin for &mut TestVisPin {
     fn attach_to(&mut self, target: Option<&Self::Handle>) -> Result<(), InvalidHandle> {
         self.target_index = target.copied();
         Ok(())
+    }
+}
+
+impl TestVisElementRef<'_> {
+    fn element(&self) -> &TestVisElement {
+        &self.0.elements[self.1]
+    }
+
+    fn element_mut(&mut self) -> &mut TestVisElement {
+        &mut self.0.elements[self.1]
+    }
+}
+
+impl TestVisTree {
+    fn is_ancestor_of(&self, ancestor: usize, mut descendant: usize) -> bool {
+        loop {
+            if descendant == ancestor {
+                break true;
+            }
+            match self.elements[descendant].parent_index {
+                Some(parent) => descendant = parent,
+                None => break false,
+            }
+        }
+    }
+
+    pub fn expect_find_element(&self, pred: impl Fn(&TestVisElement) -> bool) -> usize {
+        self.elements
+            .iter()
+            .enumerate()
+            .find(|(_, e)| pred(e))
+            .map(|(i, _)| i)
+            .expect("Expected element was not found")
     }
 }
