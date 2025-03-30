@@ -212,7 +212,13 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             rule_index,
             state_index: 0,
         });
-        self.run_from(self.graph.root(), starting_states, None, None);
+        self.run_from(
+            self.graph.root(),
+            starting_states,
+            None,
+            None,
+            &AutoAssignmentContext::default(),
+        );
     }
 
     /// Traverses depth-first from a specified node and evaluates the selector.
@@ -222,6 +228,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         starting_states: impl IntoIterator<Item = SequencePointRef>,
         previous_node: Option<T::NodeId>,
         previous_edge: Option<&EdgeLabel>,
+        auto_context: &AutoAssignmentContext<T::NodeId>,
     ) {
         let ResolveNodeResult {
             output_states,
@@ -237,6 +244,10 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             (matched_node, has_extra, rule_index)
         });
 
+        // The auto-assignment context we are going to pass along
+        // to the next layer
+        let mut new_auto_context = auto_context.clone();
+
         // Resolve all entities that matched
         for (rule_index, selected_node) in matched_rules {
             let selected = if selected_node {
@@ -251,7 +262,13 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 continue;
             }
             .with_extra(self.stylesheet.0[rule_index].machine.extra.clone());
-            self.selected_entity(selected, &node, rule_index);
+            self.selected_entity(
+                selected,
+                &node,
+                rule_index,
+                auto_context,
+                &mut new_auto_context,
+            );
         }
 
         // This is our termination condition:
@@ -261,7 +278,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
 
         // Traverse down the tree through all edges
-        self.traverse_outgoing_edges(node, &output_states);
+        self.traverse_outgoing_edges(node, &output_states, &new_auto_context);
     }
 
     /// Runs segments of the state machine at a given node.
@@ -350,6 +367,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         &mut self,
         starting_node: T::NodeId,
         output_states: &Vec<(&EdgeMatcher, SequencePointRef)>,
+        auto_context: &AutoAssignmentContext<T::NodeId>,
     ) {
         let Some(node) = self.graph.get(&starting_node) else {
             return;
@@ -370,6 +388,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 starting_states,
                 Some(starting_node.clone()),
                 Some(edge_label),
+                auto_context,
             );
             // Discard all variables that were created here
             self.variable_pool.pop();
@@ -381,7 +400,36 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         target: Selectable<T::NodeId>,
         select_origin: &T::NodeId,
         rule_index: usize,
+        input_auto_context: &AutoAssignmentContext<T::NodeId>,
+        output_auto_context: &mut AutoAssignmentContext<T::NodeId>,
     ) {
+        // Edges that are selected are automatically displayed as conenctors
+        if target.is_edge() {
+            // Display as connector
+            let display_key = EntityPropertyKey(target.clone(), PropertyKey::Display);
+            let display_value = RulePropertyValue {
+                value: PropertyValue::String(DisplayMode::CONNECTOR_NAME.to_owned()),
+                rule_index,
+                passive: true,
+            };
+            self.write_property(display_key, display_value);
+            // Parent is source
+            let parent_key = EntityPropertyKey(target.clone(), PropertyKey::Parent);
+            let parent_value = RulePropertyValue {
+                value: PropertyValue::Selection(Selectable::node(target.node_id.clone()).into()),
+                rule_index,
+                passive: true,
+            };
+            self.write_property(parent_key, parent_value);
+            // Target is target
+            let target_key = EntityPropertyKey(target.clone(), PropertyKey::Target);
+            let target_value = RulePropertyValue {
+                value: PropertyValue::Selection(Selectable::node(select_origin.clone()).into()),
+                rule_index,
+                passive: true,
+            };
+            self.write_property(target_key, target_value);
+        }
         // Extra entities get their own variable scope
         // so they cannot affect anything outside
         if target.is_extra() {
@@ -395,14 +443,46 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             );
             match &property.key {
                 StyleKey::Property(key) => {
-                    self.write_property(
-                        EntityPropertyKey(target.clone(), key.clone()),
-                        RulePropertyValue {
-                            value,
-                            rule_index,
-                            passive: false,
-                        },
-                    );
+                    let full_key = EntityPropertyKey(target.clone(), key.clone());
+                    let full_value = RulePropertyValue {
+                        value,
+                        rule_index,
+                        passive: false,
+                    };
+                    let updated_property = self.write_property(full_key, full_value);
+                    // If we just chaned the display mode of an entity,
+                    // we should auto-assign common values to other properties
+                    if updated_property && *key == PropertyKey::Display {
+                        if target.is_node() {
+                            // If the display property of a node is explicitly
+                            // assigned, that node becomes the parent of its successors
+                            // by default
+                            output_auto_context.parent = Some(target.clone());
+                            // Likewise, it is adopted by its predecessor, if any
+                            if let Some(parent) = &input_auto_context.parent {
+                                let parent_key =
+                                    EntityPropertyKey(target.clone(), PropertyKey::Parent);
+                                let parent_value = RulePropertyValue {
+                                    value: PropertyValue::Selection(parent.clone().into()),
+                                    rule_index,
+                                    passive: true,
+                                };
+                                self.write_property(parent_key, parent_value);
+                            }
+                        }
+                        if target.is_extra() {
+                            // Extra will be adopted by its owner
+                            let parent_key = EntityPropertyKey(target.clone(), PropertyKey::Parent);
+                            let parent_value = RulePropertyValue {
+                                value: PropertyValue::Selection(
+                                    target.clone().with_extra(None).into(),
+                                ),
+                                rule_index,
+                                passive: true,
+                            };
+                            self.write_property(parent_key, parent_value);
+                        }
+                    }
                 }
                 StyleKey::Variable(name) => {
                     self.variable_pool.insert(name, value);
@@ -504,6 +584,20 @@ struct ResolveNodeResult<'a> {
     matched_rules: Vec<(usize, bool)>,
 }
 
+/// Information that must be carried around
+/// in order to auto-assign [`PropertyKey::Parent`]
+/// and [`PropertyKey::Target`] properties.
+#[derive(Clone)]
+struct AutoAssignmentContext<T: NodeId> {
+    parent: Option<Selectable<T>>,
+}
+
+impl<T: NodeId> Default for AutoAssignmentContext<T> {
+    fn default() -> Self {
+        Self { parent: None }
+    }
+}
+
 impl DisplayMode {
     const CONNECTOR_NAME: &'static str = "connector";
 
@@ -526,7 +620,7 @@ mod test {
     #[test]
     fn apply_stylesheet_with_one_rule() {
         // .many(*) "a" {
-        //   display: "cell";
+        //   value: 42;
         // }
         let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
@@ -537,12 +631,12 @@ mod test {
                 .into(),
             ),
             properties: vec![StyleClause {
-                key: Property(Display),
-                value: Expression::String("cell".to_owned()),
+                key: Property(Attribute("value".to_owned())),
+                value: Expression::Int(42),
             }],
         }]));
         let expected_properties =
-            PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned()));
+            PropertyMap::new().with_attribute("value".to_owned(), "42".to_owned());
         let expected_mapping = [
             (Selectable::node(5), expected_properties.clone()),
             (Selectable::node(6), expected_properties.clone()),
@@ -559,10 +653,10 @@ mod test {
     #[test]
     fn apply_stylesheet_with_multiple_rules() {
         // .many(*) [] {
-        //   display: "cell";
+        //   value: "cell";
         // }
         // :: main .many(next) {
-        //   display: "kvt";
+        //   value: "kvt";
         //   title: 42;
         // }
         let stylesheet = CascadeStyle::from(Stylesheet(vec![
@@ -575,7 +669,7 @@ mod test {
                     .into(),
                 ),
                 properties: vec![StyleClause {
-                    key: Property(Display),
+                    key: Property(Attribute("value".to_owned())),
                     value: Expression::String("cell".to_owned()),
                 }],
             },
@@ -592,7 +686,7 @@ mod test {
                 ),
                 properties: vec![
                     StyleClause {
-                        key: Property(Display),
+                        key: Property(Attribute("value".to_owned())),
                         value: Expression::String("kvt".to_owned()),
                     },
                     StyleClause {
@@ -603,9 +697,9 @@ mod test {
             },
         ]));
         let expected_properties_1 =
-            PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned()));
+            PropertyMap::new().with_attribute("value".to_owned(), "cell".to_owned());
         let expected_properties_2 = PropertyMap::new()
-            .with_display(DisplayMode::ElementTag("kvt".to_owned()))
+            .with_attribute("value".to_owned(), "kvt".to_owned())
             .with_attribute("title".to_owned(), "42".to_owned());
         let expected_mapping = [
             (Selectable::node(1), expected_properties_2.clone()),
@@ -659,11 +753,17 @@ mod test {
         let expected_mapping = [
             (
                 Selectable::node(1).with_extra(Some("".to_owned())),
-                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("cell".to_owned()))
+                    // Parent is assigned automatically
+                    .with_parent(Selectable::node(1)),
             ),
             (
                 Selectable::node(2).with_extra(Some("abc".to_owned())),
-                PropertyMap::new().with_display(DisplayMode::ElementTag("kvt".to_owned())),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("kvt".to_owned()))
+                    // Parent is assigned automatically
+                    .with_parent(Selectable::node(2)),
             ),
         ]
         .into();
@@ -673,9 +773,7 @@ mod test {
 
     #[test]
     fn select_edge() {
-        // .many(*).if(@("a"#0))::edge {
-        //   display: "cell";
-        // }
+        // .many(*).if(@("a"#0))::edge { }
         let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
                 [RestrictedSelectorSegment {
@@ -688,45 +786,67 @@ mod test {
                 .into(),
             )
             .selecting_edge(),
-            properties: vec![StyleClause {
-                key: Property(Display),
-                value: Expression::String("cell".to_owned()),
-            }],
+            // These are edges, so all we need to do is select them,
+            // properties do not need to be assigned
+            properties: Vec::new(),
         }]));
-        let expected_properties =
-            PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned()));
+        // Display, parent, and target are assigned automatically
         let expected_mapping = [
             (
                 Selectable::edge(0, EdgeLabel::Main),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(0))
+                    .with_target(Selectable::node(1)),
             ),
             (
                 Selectable::edge(0, EdgeLabel::Named("a".to_owned(), 0)),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(0))
+                    .with_target(Selectable::node(5)),
             ),
             (
                 Selectable::edge(1, EdgeLabel::Named("a".to_owned(), 0)),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(1))
+                    .with_target(Selectable::node(10)),
             ),
             (
                 Selectable::edge(2, EdgeLabel::Next),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(2))
+                    .with_target(Selectable::node(3)),
             ),
             (
                 Selectable::edge(5, EdgeLabel::Named("a".to_owned(), 0)),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(5))
+                    .with_target(Selectable::node(6)),
             ),
             (
                 Selectable::edge(5, EdgeLabel::Deref),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(5))
+                    .with_target(Selectable::node(10)),
             ),
             (
                 Selectable::edge(7, EdgeLabel::Deref),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(7))
+                    .with_target(Selectable::node(5)),
             ),
             (
                 Selectable::edge(12, EdgeLabel::Deref),
-                expected_properties.clone(),
+                PropertyMap::new()
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(12))
+                    .with_target(Selectable::node(10)),
             ),
         ]
         .into();
@@ -788,10 +908,13 @@ mod test {
             ),
             (
                 Selectable::node(5),
-                PropertyMap::new().with_attribute(
-                    "value".to_owned(),
-                    TestGraph::NUMERIC_NODE_VALUE.to_string(),
-                ),
+                PropertyMap::new()
+                    // Parent is assigned automatically
+                    .with_parent(Selectable::node(0))
+                    .with_attribute(
+                        "value".to_owned(),
+                        TestGraph::NUMERIC_NODE_VALUE.to_string(),
+                    ),
             ),
         ]
         .into();
@@ -1039,19 +1162,19 @@ mod test {
     #[test]
     fn select_expressions_in_edge_rule() {
         // :: {
-        //   --root: @;
+        //   --root: @(main);
         // }
         //
         // :: main::edge {
         //   parent: --root;
-        //   target: @;
+        //   target: @(next);
         // }
         let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
                     key: Variable("--root".to_owned()),
-                    value: Expression::Select(LimitedSelector::default().into()),
+                    value: Expression::Select(LimitedSelector::from_path([EdgeLabel::Main]).into()),
                 }],
             },
             StyleRule {
@@ -1066,7 +1189,9 @@ mod test {
                     },
                     StyleClause {
                         key: Property(Target),
-                        value: Expression::Select(LimitedSelector::default().into()),
+                        value: Expression::Select(
+                            LimitedSelector::from_path([EdgeLabel::Next]).into(),
+                        ),
                     },
                 ],
             },
@@ -1074,8 +1199,9 @@ mod test {
         let expected_mapping = [(
             Selectable::edge(0, EdgeLabel::Main),
             PropertyMap::new()
-                .with_parent(Selectable::node(0))
-                .with_target(Selectable::node(1)),
+                .with_display(DisplayMode::Connector) // Assigned automatically
+                .with_parent(Selectable::node(1))
+                .with_target(Selectable::node(2)),
         )]
         .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
@@ -1136,15 +1262,15 @@ mod test {
     #[test]
     fn rule_precedence_in_declaration_order() {
         // :: "a" .many(*) ref {
-        //   display: cell;
+        //   value: cell;
         // }
         //
         // :: main .many(next) "a" {
-        //   display: kvt;
+        //   value: kvt;
         // }
         //
         // .many(*) "b" {
-        //   display: graph;
+        //   value: graph;
         // }
         let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
@@ -1157,7 +1283,7 @@ mod test {
                     .into(),
                 ),
                 properties: vec![StyleClause {
-                    key: Property(Display),
+                    key: Property(Attribute("value".to_owned())),
                     value: Expression::String("cell".to_owned()),
                 }],
             },
@@ -1174,7 +1300,7 @@ mod test {
                     .into(),
                 ),
                 properties: vec![StyleClause {
-                    key: Property(Display),
+                    key: Property(Attribute("value".to_owned())),
                     value: Expression::String("kvt".to_owned()),
                 }],
             },
@@ -1187,7 +1313,7 @@ mod test {
                     .into(),
                 ),
                 properties: vec![StyleClause {
-                    key: Property(Display),
+                    key: Property(Attribute("value".to_owned())),
                     value: Expression::String("graph".to_owned()),
                 }],
             },
@@ -1195,23 +1321,23 @@ mod test {
         let expected_mapping = [
             (
                 Selectable::node(5),
-                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "cell".to_owned()),
             ),
             (
                 Selectable::node(7),
-                PropertyMap::new().with_display(DisplayMode::ElementTag("graph".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "graph".to_owned()),
             ),
             (
                 Selectable::node(9),
-                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "cell".to_owned()),
             ),
             (
                 Selectable::node(10),
-                PropertyMap::new().with_display(DisplayMode::ElementTag("kvt".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "kvt".to_owned()),
             ),
             (
                 Selectable::node(12),
-                PropertyMap::new().with_display(DisplayMode::ElementTag("cell".to_owned())),
+                PropertyMap::new().with_attribute("value".to_owned(), "cell".to_owned()),
             ),
         ]
         .into();
@@ -1420,7 +1546,12 @@ mod test {
             ),
             (
                 Selectable::edge(0, EdgeLabel::Main),
-                PropertyMap::new().with_attribute("value".to_owned(), "a".to_owned()),
+                PropertyMap::new()
+                    .with_attribute("value".to_owned(), "a".to_owned())
+                    // Display, parent, and target assigned automatically
+                    .with_display(DisplayMode::Connector)
+                    .with_parent(Selectable::node(0))
+                    .with_target(Selectable::node(1)),
             ),
             (
                 Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
@@ -1497,5 +1628,94 @@ mod test {
         // Display property was removed by last assignment,
         // so the mapping should be empty
         assert_eq!(resolved, EntityPropertyMapping::new());
+    }
+
+    #[test]
+    fn automatic_node_parent_assignment() {
+        // :: {
+        //   display: graph;
+        // }
+        //
+        // :: .alt(main, main "a", "a", "a" ref "a") {
+        //   display: cell;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Property(Display),
+                    value: Expression::String("graph".to_owned()),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Branch(vec![
+                        [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                        [
+                            SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                        ]
+                        .into(),
+                        [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into()].into(),
+                        [
+                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                            SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
+                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                        ]
+                        .into(),
+                    ])
+                    .into()]
+                    .into(),
+                ),
+                properties: vec![StyleClause {
+                    key: Property(Display),
+                    value: Expression::String("cell".to_owned()),
+                }],
+            },
+        ]));
+        let expected_mapping = [
+            (
+                Selectable::node(0),
+                PropertyMap::new().with_display(DisplayMode::ElementTag("graph".to_owned())),
+            ),
+            (
+                Selectable::node(1),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("cell".to_owned()))
+                    .with_parent(Selectable::node(0)),
+            ),
+            (
+                Selectable::node(5),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("cell".to_owned()))
+                    .with_parent(Selectable::node(0)),
+            ),
+            (
+                Selectable::node(10),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("cell".to_owned()))
+                    // This node was reached by the (:: main next "a") selector,
+                    // so its default parent is resolved along that path
+                    .with_parent(Selectable::node(1)),
+            ),
+            (
+                Selectable::node(11),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("cell".to_owned()))
+                    // These two nodes were reached by the (:: "a" ref "a") selector,
+                    // so although node 10 is along the way, it does not participate
+                    // in parent assignment
+                    .with_parent(Selectable::node(5)),
+            ),
+            (
+                Selectable::node(12),
+                PropertyMap::new()
+                    .with_display(DisplayMode::ElementTag("cell".to_owned()))
+                    .with_parent(Selectable::node(5)),
+            ),
+        ]
+        .into();
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(resolved, expected_mapping);
     }
 }
