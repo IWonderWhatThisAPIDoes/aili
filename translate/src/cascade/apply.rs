@@ -250,7 +250,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
 
         // Resolve all entities that matched
         for (rule_index, selected_node) in matched_rules {
-            let selected = if selected_node {
+            let mut selected = if selected_node {
                 Selectable::node(node.clone())
             } else if let Some(selected) = previous_node.clone().and_then(|node| {
                 previous_edge
@@ -260,8 +260,8 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 selected
             } else {
                 continue;
-            }
-            .with_extra(self.stylesheet.0[rule_index].machine.extra.clone());
+            };
+            selected.extra_label = self.stylesheet.0[rule_index].machine.extra.clone();
             self.selected_entity(
                 selected,
                 &node,
@@ -475,7 +475,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                             let parent_key = EntityPropertyKey(target.clone(), PropertyKey::Parent);
                             let parent_value = RulePropertyValue {
                                 value: PropertyValue::Selection(
-                                    target.clone().with_extra(None).into(),
+                                    target.clone().without_extra().into(),
                                 ),
                                 rule_index,
                                 passive: true,
@@ -752,14 +752,14 @@ mod test {
         ]));
         let expected_mapping = [
             (
-                Selectable::node(1).with_extra(Some("".to_owned())),
+                Selectable::node(1).with_extra("".to_owned()),
                 PropertyMap::new()
                     .with_display(DisplayMode::ElementTag("cell".to_owned()))
                     // Parent is assigned automatically
                     .with_parent(Selectable::node(1)),
             ),
             (
-                Selectable::node(2).with_extra(Some("abc".to_owned())),
+                Selectable::node(2).with_extra("abc".to_owned()),
                 PropertyMap::new()
                     .with_display(DisplayMode::ElementTag("kvt".to_owned()))
                     // Parent is assigned automatically
@@ -1242,11 +1242,11 @@ mod test {
         ]));
         let expected_mapping = [
             (
-                Selectable::node(0).with_extra(Some("".to_owned())),
+                Selectable::node(0).with_extra("".to_owned()),
                 PropertyMap::new().with_parent(Selectable::node(0)),
             ),
             (
-                Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
+                Selectable::edge(0, EdgeLabel::Main).with_extra("".to_owned()),
                 PropertyMap::new().with_parent(Selectable::node(1)),
             ),
         ]
@@ -1537,11 +1537,11 @@ mod test {
         ]));
         let expected_mapping = [
             (
-                Selectable::node(0).with_extra(Some("".to_owned())),
+                Selectable::node(0).with_extra("".to_owned()),
                 PropertyMap::new().with_attribute("value".to_owned(), "a".to_owned()),
             ),
             (
-                Selectable::node(0).with_extra(Some("other".to_owned())),
+                Selectable::node(0).with_extra("other".to_owned()),
                 PropertyMap::new().with_attribute("value".to_owned(), "a".to_owned()),
             ),
             (
@@ -1554,7 +1554,7 @@ mod test {
                     .with_target(Selectable::node(1)),
             ),
             (
-                Selectable::edge(0, EdgeLabel::Main).with_extra(Some("".to_owned())),
+                Selectable::edge(0, EdgeLabel::Main).with_extra("".to_owned()),
                 PropertyMap::new().with_attribute("value".to_owned(), "ad".to_owned()),
             ),
             (

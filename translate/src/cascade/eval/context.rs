@@ -104,7 +104,9 @@ impl<T: ProgramStateGraph> EvaluationContext for EvaluationOnGraph<'_, T> {
                 .get(&current_node)
                 .and_then(|node| node.get_successor(segment))?;
         }
-        Some(Selectable::node(current_node).with_extra(selector.extra_label.clone()))
+        let mut selection = Selectable::node(current_node);
+        selection.extra_label = selector.extra_label.clone();
+        Some(selection)
     }
 }
 

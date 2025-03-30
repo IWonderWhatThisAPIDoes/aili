@@ -45,8 +45,15 @@ impl<T: NodeId> Selectable<T> {
     /// Adds an extra label to the identifier. The identifier no longer
     /// refers to a program state entity, but to a virtual entity
     /// that can be mapped to a visual.
-    pub fn with_extra(mut self, extra_label: Option<String>) -> Self {
-        self.extra_label = extra_label;
+    pub fn with_extra(mut self, extra_label: String) -> Self {
+        self.extra_label = Some(extra_label);
+        self
+    }
+
+    /// Removes an extra label from the identifier. The identifier
+    /// will refer to the owner of the extra entity.
+    pub fn without_extra(mut self) -> Self {
+        self.extra_label = None;
         self
     }
 
