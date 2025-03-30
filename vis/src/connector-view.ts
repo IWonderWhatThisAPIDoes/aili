@@ -126,6 +126,7 @@ class PinView {
 
 const DECORATION_OVERLAY_ID = ['back', 'front'];
 const LABEL_OVERLAY_ID = 'label';
+const DEFAULT_STROKE_COLOR = 'black';
 
 class ConnectorViewModel {
     constructor(
@@ -143,7 +144,7 @@ class ConnectorViewModel {
             // as the one JSPlumb uses
             paintStyle: {
                 strokeWidth: 1,
-                stroke: 'black',
+                stroke: DEFAULT_STROKE_COLOR,
             },
             // Use attributes et al to figure out connector appearence.
             // This cannot be changed later without recreating the whole connector,
@@ -155,6 +156,7 @@ class ConnectorViewModel {
 
         this.connectorObserver = setAttributeBindings(connector.attributes, {
             stroke(value) {
+                value ??= DEFAULT_STROKE_COLOR;
                 connection.paintStyle.stroke = value;
                 connection.endpoints[0].paintStyle.fill = value;
                 connection.endpoints[1].paintStyle.fill = value;
