@@ -140,32 +140,31 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
     }
 
-    fn result(self) -> EntityPropertyMapping<T::NodeId> {
+    fn result(mut self) -> EntityPropertyMapping<T::NodeId> {
         let mut mapping = EntityPropertyMapping::new();
         for (EntityPropertyKey(entity, property), RulePropertyValue { value, .. }) in
-            self.properties
+            std::mem::take(&mut self.properties)
         {
             // Insert the property map lazily
             let entity_properties = || mapping.0.entry(entity).or_default();
             match property {
                 PropertyKey::Attribute(name) => {
-                    let value = if let PropertyValue::Selection(sel) = &value {
-                        if sel.is_node() {
-                            self.graph
-                                .get(&sel.node_id)
-                                .and_then(|node| node.value())
-                                .map(Into::into)
-                                .unwrap_or_default()
-                        } else {
-                            PropertyValue::Unset
-                        }
-                    } else {
-                        value
-                    };
+                    let value = self.to_true_value(value);
                     // If value if Unset, the attribute should not be saved at all
                     if value != PropertyValue::Unset {
                         entity_properties()
                             .attributes
+                            .insert(name, value.to_string());
+                    }
+                }
+                PropertyKey::FragmentAttribute(fragment, name) => {
+                    let value = self.to_true_value(value);
+                    // If value is Unset, the attribute should not be saved at all
+                    if value != PropertyValue::Unset {
+                        entity_properties()
+                            .fragment_attributes
+                            .entry(fragment)
+                            .or_default()
                             .insert(name, value.to_string());
                     }
                 }
@@ -547,6 +546,22 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 self.variable_pool
                     .insert(VARIABLE_DISCRIMINATOR, PropertyValue::Unset);
             }
+        }
+    }
+
+    fn to_true_value(&self, value: PropertyValue<T::NodeId>) -> PropertyValue<T::NodeId> {
+        if let PropertyValue::Selection(sel) = &value {
+            if sel.is_node() {
+                self.graph
+                    .get(&sel.node_id)
+                    .and_then(|node| node.value())
+                    .map(Into::into)
+                    .unwrap_or_default()
+            } else {
+                PropertyValue::Unset
+            }
+        } else {
+            value
         }
     }
 }
@@ -1714,6 +1729,36 @@ mod test {
                     .with_parent(Selectable::node(5)),
             ),
         ]
+        .into();
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(resolved, expected_mapping);
+    }
+
+    #[test]
+    fn fragment_attributes() {
+        // :: {
+        //   start/value: 42;
+        //   end/key: abc;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
+            selector: Selector::default(),
+            properties: vec![
+                StyleClause {
+                    key: Property(FragmentAttribute(FragmentKey::Start, "value".to_owned())),
+                    value: Expression::Int(42),
+                },
+                StyleClause {
+                    key: Property(FragmentAttribute(FragmentKey::End, "key".to_owned())),
+                    value: Expression::String("abc".to_owned()),
+                },
+            ],
+        }]));
+        let expected_mapping = [(
+            Selectable::node(0),
+            PropertyMap::new()
+                .with_fragment_attribute(FragmentKey::Start, "value".to_owned(), "42".to_owned())
+                .with_fragment_attribute(FragmentKey::End, "key".to_owned(), "abc".to_owned()),
+        )]
         .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
         assert_eq!(resolved, expected_mapping);

@@ -4,7 +4,7 @@
 mod debug;
 mod test_vis;
 
-use crate::property::{DisplayMode, EntityPropertyMapping, PropertyMap, Selectable};
+use crate::property::*;
 use aili_model::{state::NodeId, vis::*};
 use std::collections::HashMap;
 
@@ -237,6 +237,18 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
                         .iter()
                         .map(|(k, v)| (k.as_str(), v.as_str())),
                 );
+                if let Some(start_attrs) = properties.fragment_attributes.get(&FragmentKey::Start) {
+                    Self::set_attributes(
+                        &mut connector.start_mut(),
+                        start_attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())),
+                    );
+                }
+                if let Some(end_attrs) = properties.fragment_attributes.get(&FragmentKey::End) {
+                    Self::set_attributes(
+                        &mut connector.end_mut(),
+                        end_attrs.iter().map(|(k, v)| (k.as_str(), v.as_str())),
+                    );
+                }
                 EitherVisHandle::Connector(handle)
             }
             // If display is not set, do not render the entity at all
@@ -282,6 +294,34 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
                     properties
                         .attributes
                         .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str())),
+                );
+                Self::update_attribute_map(
+                    &mut connector.start_mut(),
+                    mapping
+                        .properties
+                        .fragment_attributes
+                        .remove(&FragmentKey::Start)
+                        .unwrap_or_default(),
+                    properties
+                        .fragment_attributes
+                        .get(&FragmentKey::Start)
+                        .into_iter()
+                        .flatten()
+                        .map(|(k, v)| (k.as_str(), v.as_str())),
+                );
+                Self::update_attribute_map(
+                    &mut connector.end_mut(),
+                    mapping
+                        .properties
+                        .fragment_attributes
+                        .remove(&FragmentKey::End)
+                        .unwrap_or_default(),
+                    properties
+                        .fragment_attributes
+                        .get(&FragmentKey::End)
+                        .into_iter()
+                        .flatten()
                         .map(|(k, v)| (k.as_str(), v.as_str())),
                 );
                 mapping.properties = properties;
@@ -648,8 +688,8 @@ mod test {
         assert_eq!(
             renderer.vis_tree.connectors,
             expect_connectors![{
-                start: TestVisPin { target_index: Some(index_of_first) },
-                end: TestVisPin { target_index: Some(index_of_second) },
+                start: TestVisPin { target_index: Some(index_of_first), attributes: [].into() },
+                end: TestVisPin { target_index: Some(index_of_second), attributes: [].into() },
             }]
         );
     }
@@ -806,6 +846,83 @@ mod test {
         assert_eq!(
             renderer.vis_tree.elements[element_0].parent_index,
             Some(element_1)
+        );
+    }
+
+    #[test]
+    fn set_connector_fragment_attributes() {
+        let mut renderer = Renderer::new(TestVisTree::default());
+        renderer.update(mapping![
+            0 => {
+                display: Some(DisplayMode::Connector),
+                fragment_attributes: [
+                    (FragmentKey::Start, [("key".to_owned(), "a".to_owned())].into()),
+                    (FragmentKey::End, [("value".to_owned(), "b".to_owned())].into()),
+                ]
+                .into(),
+            },
+        ]);
+        assert_eq!(
+            renderer.vis_tree.connectors,
+            expect_connectors![{
+                start: TestVisPin {
+                    target_index: None,
+                    attributes: [("key".to_owned(), "a".to_owned())].into(),
+                },
+                end: TestVisPin {
+                    target_index: None,
+                    attributes: [("value".to_owned(), "b".to_owned())].into(),
+                },
+            }],
+        );
+    }
+
+    #[test]
+    fn update_connector_fragment_attributes() {
+        let mut renderer = Renderer::new(TestVisTree::default());
+        renderer.update(mapping![
+            0 => {
+                display: Some(DisplayMode::Connector),
+                fragment_attributes: [
+                    (
+                        FragmentKey::Start,
+                        [
+                            ("a".to_owned(), "a".to_owned()),
+                            ("b".to_owned(), "b".to_owned()),
+                        ]
+                        .into()),
+                ]
+                .into(),
+            },
+        ]);
+        renderer.update(mapping![
+            0 => {
+                display: Some(DisplayMode::Connector),
+                fragment_attributes: [
+                    (
+                        FragmentKey::Start,
+                        [
+                            ("b".to_owned(), "d".to_owned()),
+                            ("c".to_owned(), "c".to_owned()),
+                        ]
+                        .into()),
+                ]
+                .into(),
+            },
+        ]);
+        assert_eq!(
+            renderer.vis_tree.connectors,
+            expect_connectors![{
+                start: TestVisPin {
+                    target_index: None,
+                    attributes: [
+                        ("b".to_owned(), "d".to_owned()),
+                        ("c".to_owned(), "c".to_owned()),
+                    ]
+                    .into(),
+                },
+                end: TestVisPin { target_index: None, attributes: [].into() },
+            }],
         );
     }
 }

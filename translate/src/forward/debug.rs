@@ -65,6 +65,12 @@ where
                 for (name, value) in &rendering.properties.attributes {
                     mapping_printouts.push((format!("{name:?}"), format!("{value:?}")));
                 }
+                for (fragment, attributes) in &rendering.properties.fragment_attributes {
+                    for (name, value) in attributes {
+                        mapping_printouts
+                            .push((format!("{fragment:?}/{name:?}"), format!("{value:?}")));
+                    }
+                }
                 (key_printout, mapping_printouts)
             })
             .collect::<Vec<_>>();

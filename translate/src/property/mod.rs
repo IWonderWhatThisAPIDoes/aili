@@ -15,6 +15,9 @@ pub enum PropertyKey {
     /// Assigns value to an attribute of the selected entity.
     Attribute(String),
 
+    /// Assigns value to an attribute of a fragment of the selected entity.
+    FragmentAttribute(FragmentKey, String),
+
     /// Assigns value
     /// Modifies the display mode of the selected entity.
     Display,
@@ -34,6 +37,10 @@ pub enum PropertyKey {
 pub struct PropertyMap<T: NodeId> {
     /// Attributes with string values.
     pub attributes: HashMap<String, String>,
+
+    /// Attributes with string values that belong to fragments
+    /// of the visual element, rather than the element as a whole.
+    pub fragment_attributes: HashMap<FragmentKey, HashMap<String, String>>,
 
     /// Display mode of the entity.
     pub display: Option<DisplayMode>,
@@ -79,12 +86,27 @@ impl<T: NodeId> PropertyMap<T> {
         self.attributes.insert(attribute_name, attribute_value);
         self
     }
+
+    /// Adds an attribute value of a fragment to the property map
+    pub fn with_fragment_attribute(
+        mut self,
+        fragment: FragmentKey,
+        attribute_name: String,
+        attribute_value: String,
+    ) -> Self {
+        self.fragment_attributes
+            .entry(fragment)
+            .or_default()
+            .insert(attribute_name, attribute_value);
+        self
+    }
 }
 
 impl<T: NodeId> Default for PropertyMap<T> {
     fn default() -> Self {
         Self {
             attributes: HashMap::default(),
+            fragment_attributes: HashMap::default(),
             display: None,
             parent: None,
             target: None,
@@ -107,6 +129,11 @@ impl<T: NodeId> std::fmt::Debug for PropertyMap<T> {
         for (key, value) in &self.attributes {
             write!(f, "{key:?}: {value:?}; ")?;
         }
+        for (fragment, attributes) in &self.fragment_attributes {
+            for (key, value) in attributes {
+                write!(f, "{fragment:?}/{key:?}: {value:?}; ")?;
+            }
+        }
         write!(f, "}}")?;
         Ok(())
     }
@@ -122,6 +149,27 @@ pub enum DisplayMode {
     /// Entity is displayed as an element with the provided tag name.
     #[debug("<{_0}>")]
     ElementTag(String),
+}
+
+/// Identifies fragments of entities that are recognized by the renderer.
+///
+/// [`PropertyMap`]s can assign attributes not just to whole entities,
+/// but to their fragments as well. These keys identify the known fragment types.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
+pub enum FragmentKey {
+    /// The start endpoint of an entity with [`DisplayMode::Connector`].
+    ///
+    /// If the display mode is not [`DisplayMode::Connector`],
+    /// attributes assigned to this fragment are ignored.
+    #[debug("start")]
+    Start,
+
+    /// The end endpoint of an entity with [`DisplayMode::Connector`].
+    ///
+    /// If the display mode is not [`DisplayMode::Connector`],
+    /// attributes assigned to this fragment are ignored.
+    #[debug("end")]
+    End,
 }
 
 /// Represents the mapping between selectable entities and their display

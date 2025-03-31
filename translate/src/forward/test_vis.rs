@@ -30,6 +30,7 @@ pub struct TestVisConnector {
 
 #[derive(PartialEq, Eq, Debug, Default)]
 pub struct TestVisPin {
+    pub attributes: HashMap<String, String>,
     pub target_index: Option<usize>,
 }
 
@@ -132,12 +133,16 @@ impl VisConnector for &mut TestVisConnector {
 }
 
 impl AttributeMap for &mut TestVisPin {
-    fn get_attribute(&self, _: &str) -> Option<&str> {
-        unimplemented!()
+    fn get_attribute(&self, name: &str) -> Option<&str> {
+        self.attributes.get(name).map(String::as_str)
     }
 
-    fn set_attribute(&mut self, _: &str, _: Option<&str>) {
-        unimplemented!()
+    fn set_attribute(&mut self, name: &str, value: Option<&str>) {
+        if let Some(value) = value {
+            self.attributes.insert(name.to_owned(), value.to_owned());
+        } else {
+            self.attributes.remove(name);
+        }
     }
 }
 
