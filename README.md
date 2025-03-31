@@ -21,3 +21,7 @@ models based on a stylesheet.
 ### Parser
 
 Parser for stylesheets of the Translate module.
+
+### JSAPI
+
+Bindings between modules written in Rust and Javascript.
