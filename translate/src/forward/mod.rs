@@ -799,7 +799,13 @@ mod test {
             .vis_tree
             .expect_find_element(|e| e.tag_name == "cell");
         assert_eq!(renderer.vis_tree.elements[element_2].parent_index, None);
-        assert_eq!(renderer.vis_tree.elements[element_1].parent_index, Some(2));
-        assert_eq!(renderer.vis_tree.elements[element_0].parent_index, Some(1));
+        assert_eq!(
+            renderer.vis_tree.elements[element_1].parent_index,
+            Some(element_2)
+        );
+        assert_eq!(
+            renderer.vis_tree.elements[element_0].parent_index,
+            Some(element_1)
+        );
     }
 }
