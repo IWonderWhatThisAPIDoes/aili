@@ -152,3 +152,20 @@ jobs:
           components: rustfmt
       - name: Check documentation
         run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --document-private-items --no-deps
+
+  build-demo:
+    runs-on: ubuntu-latest
+    name: Build Demo
+    needs: npm-install
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node_modules
+      - name: Build Demo
+        run: npm run build -w demo
