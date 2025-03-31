@@ -8,42 +8,94 @@ on:
 
 jobs:
 
+  build-jsapi:
+    runs-on: ubuntu-latest
+    name: Build JSAPI
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: wasm-pack
+      - name: Build
+        run: wasm-pack jsapi --target bundler
+      - name: Save build outputs
+        uses: actions/cache/save@v3
+        with:
+          path: jsapi/pkg
+          key: jsapi-package
+  
+  npm-install:
+    runs-on: ubuntu-latest
+    name: Install Node packages
+    needs: build-jsapi
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Load JSAPI package
+        uses: actions/cache/restore@v3
+        with:
+          path: jsapi/pkg
+          key: jsapi-package
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Install Node packages
+        run: npm ci
+      - name: Cache installed packages
+        uses: actions/cache/save@v3
+        with:
+          path: node_modules
+          key: node_modules
+
   test-vis:
     runs-on: ubuntu-latest
     name: Tests (vis)
+    needs: npm-install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
-      - name: Install Node packages
-        run: npm ci
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node_modules
       - name: Run tests
         run: npm test -w vis
 
   doc-vis:
     runs-on: ubuntu-latest
     name: Docs (vis)
+    needs: npm-install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
-      - name: Install Node packages
-        run: npm ci
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node_modules
       - name: Check documentation
         run: npm run doc -w vis
 
   examples-vis:
     runs-on: ubuntu-latest
     name: Examples (vis)
+    needs: npm-install
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
-      - name: Install Node packages
-        run: npm ci
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node_modules
       - name: Check examples
         run: npm run examples -w vis
 
