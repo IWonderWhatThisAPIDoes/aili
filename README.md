@@ -25,3 +25,7 @@ Parser for stylesheets of the Translate module.
 ### JSAPI
 
 Bindings between modules written in Rust and Javascript.
+
+### Demo
+
+Demo application that showcases Vis and Translate modules.

@@ -1,0 +1,51 @@
+<html>
+    <head>
+        <script type="module" src="./src/index.ts"></script>
+        <link rel="stylesheet" href="./src/index.css">
+    </head>
+    <body>
+        <div id="app" class="row">
+            <div class="column w-33">
+                <!-- Stylesheet frame -->
+                <div class="frame fill">
+                    <div class="frame-head">
+                        <div class="frame-title">Stylesheet</div>
+                        <select id="base-style"></select>
+                        <button id="reset-style" class="btn">Reset</button>
+                        <button id="apply" class="btn">Apply</button>
+                    </div>
+                    <div class="frame-body column">
+                        <div class="scroll-view fill">
+                            <div id="stylesheet" class="scroll-client terminal" contenteditable="plaintext-only"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Log frame -->
+                <div class="h-33 frame">
+                    <div class="frame-head">
+                        <div class="frame-title">Log</div>
+                        <button id="clear" class="btn">Clear</button>
+                    </div>
+                    <div class="frame-body column">
+                        <div class="scroll-view fill">
+                            <div id="log" class="scroll-client terminal"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Viewport frame -->
+            <div class="frame fill">
+                <div class="frame-head">
+                    <div class="frame-title">Viewport</div>
+                    <button id="print-vis" class="btn">Debug: vis tree</button>
+                    <button id="print-mapping" class="btn">Debug: resolved style</button>
+                </div>
+                <div class="frame-body column">
+                    <div class="scroll-view fill">
+                        <div id="viewport" class="scroll-client"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
