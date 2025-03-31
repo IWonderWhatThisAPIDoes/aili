@@ -1,4 +1,4 @@
-//! Pretty.printing [`Renderer`]s.
+//! Pretty-printing [`Renderer`]s.
 
 use super::Renderer;
 use aili_model::{state::NodeId, vis::VisTree};
