@@ -173,5 +173,10 @@ jobs:
         with:
           path: node_modules
           key: node_modules
+      - name: Load JSAPI
+        uses: actions/cache/restore@v3
+        with:
+          path: jsapi/pkg
+          key: jsapi-package
       - name: Build Demo
         run: npm run build -w demo
