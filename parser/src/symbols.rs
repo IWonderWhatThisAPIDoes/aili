@@ -73,28 +73,50 @@ pub fn is_variable_name(key: &str) -> bool {
 /// Maps function-like [`UnaryOperator`]s to their names.
 ///
 /// ## Symbol Names
-/// | Symbol name | Associated operator                                                        |
-/// |-------------|----------------------------------------------------------------------------|
-/// | `isset`     | [`IsSet`](UnaryOperator::IsSet),                                           |
-/// | `val`       | [`NodeValue`](UnaryOperator::NodeValue),                                   |
-/// | `typename`  | [`NodeTypeName`](UnaryOperator::NodeTypeName),                             |
-/// | `is-root`   | [`NodeIsA`](UnaryOperator::NodeIsA)`(`[`Root`](NodeTypeClass::Root)`)`     |
-/// | `is-frame`  | [`NodeIsA`](UnaryOperator::NodeIsA)`(`[`Frame`](NodeTypeClass::Frame)`)`   |
-/// | `is-val`    | [`NodeIsA`](UnaryOperator::NodeIsA)`(`[`Atom`](NodeTypeClass::Atom)`)`     |
-/// | `is-struct` | [`NodeIsA`](UnaryOperator::NodeIsA)`(`[`Struct`](NodeTypeClass::Struct)`)` |
-/// | `is-arr`    | [`NodeIsA`](UnaryOperator::NodeIsA)`(`[`Array`](NodeTypeClass::Array)`)`   |
-/// | `is-ref`    | [`NodeIsA`](UnaryOperator::NodeIsA)`(`[`Ref`](NodeTypeClass::Ref)`)`       |
+/// | Symbol name                                        | Associated operator                           |
+/// |----------------------------------------------------|-----------------------------------------------|
+/// | `isset`                                            | [`IsSet`](UnaryOperator::IsSet)               |
+/// | `val`                                              | [`NodeValue`](UnaryOperator::NodeValue)       |
+/// | `typename`                                         | [`NodeTypeName`](UnaryOperator::NodeTypeName) |
+/// | `is-`[suffix matching [`node_type_class_by_name`]] | [`NodeIsA`](UnaryOperator::NodeIsA)           |
 pub fn unary_function_by_name(name: &str) -> Result<UnaryOperator, InvalidSymbol> {
     match name {
         "isset" => Ok(UnaryOperator::IsSet),
         "val" => Ok(UnaryOperator::NodeValue),
         "typename" => Ok(UnaryOperator::NodeTypeName),
-        "is-root" => Ok(UnaryOperator::NodeIsA(NodeTypeClass::Root)),
-        "is-frame" => Ok(UnaryOperator::NodeIsA(NodeTypeClass::Frame)),
-        "is-val" => Ok(UnaryOperator::NodeIsA(NodeTypeClass::Atom)),
-        "is-struct" => Ok(UnaryOperator::NodeIsA(NodeTypeClass::Struct)),
-        "is-arr" => Ok(UnaryOperator::NodeIsA(NodeTypeClass::Array)),
-        "is-ref" => Ok(UnaryOperator::NodeIsA(NodeTypeClass::Ref)),
+        _ => {
+            let type_class_from_name = name
+                .strip_prefix("is-")
+                .map(node_type_class_by_name)
+                .and_then(Result::ok);
+            if let Some(type_class) = type_class_from_name {
+                Ok(UnaryOperator::NodeIsA(type_class))
+            } else {
+                Err(InvalidSymbol(name.to_owned()))
+            }
+        }
+    }
+}
+
+/// Maps [`NodeTypeClass`]es to their names.
+///
+/// ## Symbol Names
+/// | Symbol name | Associated type class             |
+/// |-------------|-----------------------------------|
+/// | `root`      | [`Root`](NodeTypeClass::Root)     |
+/// | `frame`     | [`Frame`](NodeTypeClass::Frame)   |
+/// | `val`       | [`Atom`](NodeTypeClass::Atom)     |
+/// | `struct`    | [`Struct`](NodeTypeClass::Struct) |
+/// | `arr`       | [`Array`](NodeTypeClass::Array)   |
+/// | `ref`       | [`Ref`](NodeTypeClass::Ref)       |
+pub fn node_type_class_by_name(name: &str) -> Result<NodeTypeClass, InvalidSymbol> {
+    match name {
+        "root" => Ok(NodeTypeClass::Root),
+        "frame" => Ok(NodeTypeClass::Frame),
+        "val" => Ok(NodeTypeClass::Atom),
+        "struct" => Ok(NodeTypeClass::Struct),
+        "arr" => Ok(NodeTypeClass::Array),
+        "ref" => Ok(NodeTypeClass::Ref),
         _ => Err(InvalidSymbol(name.to_owned())),
     }
 }

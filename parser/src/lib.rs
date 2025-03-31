@@ -728,4 +728,63 @@ mod test {
         parse_stylesheet(source, ExpectErrors::exact([expected_error]).f())
             .expect("Stylesheet should have parsed");
     }
+
+    #[test]
+    fn type_assertions_in_selectors() {
+        let source = ":: *:struct *:\"struct\" *:vector *:\"vector\" { }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::from_path(
+                [
+                    RestrictedSelectorSegment {
+                        segment: SelectorSegment::Match(EdgeMatcher::Any),
+                        condition: Some(Expression::UnaryOperator(
+                            UnaryOperator::NodeIsA(NodeTypeClass::Struct),
+                            Expression::Select(LimitedSelector::default().into()).into(),
+                        )),
+                    },
+                    RestrictedSelectorSegment {
+                        segment: SelectorSegment::Match(EdgeMatcher::Any),
+                        condition: Some(Expression::BinaryOperator(
+                            Expression::UnaryOperator(
+                                UnaryOperator::NodeTypeName,
+                                Expression::Select(LimitedSelector::default().into()).into(),
+                            )
+                            .into(),
+                            BinaryOperator::Eq,
+                            Expression::String("struct".to_owned()).into(),
+                        )),
+                    },
+                    RestrictedSelectorSegment {
+                        segment: SelectorSegment::Match(EdgeMatcher::Any),
+                        condition: Some(Expression::BinaryOperator(
+                            Expression::UnaryOperator(
+                                UnaryOperator::NodeTypeName,
+                                Expression::Select(LimitedSelector::default().into()).into(),
+                            )
+                            .into(),
+                            BinaryOperator::Eq,
+                            Expression::String("vector".to_owned()).into(),
+                        )),
+                    },
+                    RestrictedSelectorSegment {
+                        segment: SelectorSegment::Match(EdgeMatcher::Any),
+                        condition: Some(Expression::BinaryOperator(
+                            Expression::UnaryOperator(
+                                UnaryOperator::NodeTypeName,
+                                Expression::Select(LimitedSelector::default().into()).into(),
+                            )
+                            .into(),
+                            BinaryOperator::Eq,
+                            Expression::String("vector".to_owned()).into(),
+                        )),
+                    },
+                ]
+                .into(),
+            ),
+            properties: Vec::new(),
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
 }
