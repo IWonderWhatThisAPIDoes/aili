@@ -146,7 +146,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             self.properties
         {
             // Insert the property map lazily
-            let entity_properties = || mapping.0.entry(entity).or_insert_with(PropertyMap::default);
+            let entity_properties = || mapping.0.entry(entity).or_default();
             match property {
                 PropertyKey::Attribute(name) => {
                     let value = if let PropertyValue::Selection(sel) = &value {
