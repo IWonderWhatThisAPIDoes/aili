@@ -45,10 +45,13 @@ jobs:
       - name: Cache installed packages
         uses: actions/cache/save@v3
         with:
-          path: |
-            node_modules
-            ~/.cache/puppeteer
+          path: node_modules
           key: node_modules
+      - name: Cache Puppeteer cache
+        uses: actions/cache/save@v3
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-cache
 
   test-vis:
     runs-on: ubuntu-latest
@@ -62,10 +65,13 @@ jobs:
       - name: Load Node packages
         uses: actions/cache/restore@v3
         with:
-          path: |
-            node_modules
-            ~/.cache/puppeteer
+          path: node_modules
           key: node_modules
+      - name: Load Puppeteer cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ~/.cache/puppeteer
+          key: puppeteer-cache
       - name: Run tests
         run: npm test -w vis
 
