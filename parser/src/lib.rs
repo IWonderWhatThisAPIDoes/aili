@@ -85,10 +85,11 @@ mod test {
     use crate::{
         grammar::{self, SyntaxError},
         mock_error_handler::ExpectErrors,
+        symbols::InvalidSymbol,
     };
     use aili_model::state::{EdgeLabel, NodeTypeClass};
     use aili_translate::{
-        property::PropertyKey,
+        property::{FragmentKey, PropertyKey},
         stylesheet::{expression::*, selector::*, *},
     };
 
@@ -687,5 +688,44 @@ mod test {
         ) { }";
         let result = parse_stylesheet(source, ExpectErrors::none().f());
         assert_eq!(result, Err(grammar::ParseError::StackOverflow.into()));
+    }
+
+    #[test]
+    fn fragment_attributes() {
+        let source = ":: { start/a: a; end/b: b }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::default(),
+            properties: vec![
+                StyleClause {
+                    key: StyleKey::Property(PropertyKey::FragmentAttribute(
+                        FragmentKey::Start,
+                        "a".to_owned(),
+                    )),
+                    value: Expression::String("a".to_owned()),
+                },
+                StyleClause {
+                    key: StyleKey::Property(PropertyKey::FragmentAttribute(
+                        FragmentKey::End,
+                        "b".to_owned(),
+                    )),
+                    value: Expression::String("b".to_owned()),
+                },
+            ],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn invalid_fragment_key() {
+        let source = ":: { not-a-fragment/value: none }";
+        let expected_error = ParseError {
+            error_data: SyntaxError::InvalidFragment(InvalidSymbol("not-a-fragment".to_owned()))
+                .into(),
+            line_number: 1,
+        };
+        parse_stylesheet(source, ExpectErrors::exact([expected_error]).f())
+            .expect("Stylesheet should have parsed");
     }
 }

@@ -2,7 +2,7 @@
 
 use aili_model::state::{EdgeLabel, NodeTypeClass};
 use aili_translate::{
-    property::PropertyKey,
+    property::{FragmentKey, PropertyKey},
     stylesheet::{
         StyleKey,
         expression::{Expression, UnaryOperator},
@@ -120,5 +120,20 @@ pub fn literal_expression_by_name(name: &str) -> Result<Expression, InvalidSymbo
                 Err(InvalidSymbol(name.to_owned()))
             }
         }
+    }
+}
+
+/// Maps [`FragmentKey`]s to their names.
+///
+/// ## Symbol Names
+/// | Symbol name | Associated fragment           |
+/// |-------------|-------------------------------|
+/// | `start`     | [`Start`](FragmentKey::Start) |
+/// | `end`       | [`End`](FragmentKey::End)     |
+pub fn fragment_key(key: &str) -> Result<FragmentKey, InvalidSymbol> {
+    match key {
+        "start" => Ok(FragmentKey::Start),
+        "end" => Ok(FragmentKey::End),
+        _ => Err(InvalidSymbol(key.to_owned())),
     }
 }

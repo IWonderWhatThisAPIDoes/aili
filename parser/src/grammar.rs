@@ -6,7 +6,7 @@
 use crate::symbols::*;
 use aili_model::state::EdgeLabel;
 use aili_translate::{
-    property::PropertyKey,
+    property::{FragmentKey, PropertyKey},
     stylesheet::{expression::*, selector::*, *},
 };
 use derive_more::{Display, Error, From};
@@ -53,6 +53,10 @@ pub enum SyntaxError {
     /// An invalid literal was used in an expression.
     #[display("token {:?} which is not a literal cannot appear in an expression", _0.0)]
     InvalidUnquoted(InvalidSymbol),
+
+    /// An unrecognized token was used as a fragment key.
+    #[display("unknown fragment key {:?}", _0.0)]
+    InvalidFragment(InvalidSymbol),
 
     /// Missing closing brace at the end of input.
     #[display("last rule is missing a closing delimiter")]
@@ -268,6 +272,7 @@ pomelo! {
     clause ::= lvalue(l) Colon rvalue(r)               { StyleClause { key: l, value: r } }
     lvalue ::= Quoted(s)                               { StyleKey::Property(PropertyKey::Attribute(s.to_owned())) }
     lvalue ::= Unquoted(s)                             { unquoted_style_key(s) }
+    lvalue ::= Unquoted(f) Slash Unquoted|Quoted(s)    { StyleKey::Property(PropertyKey::FragmentAttribute(extra.try_or(fragment_key(f).map_err(SyntaxError::InvalidFragment), FragmentKey::Start), s.to_owned())) }
     rvalue ::= rexpr;
     rvalue ::= Unquoted(s)                             { literal_expression_by_name(s).unwrap_or_else(|InvalidSymbol(s)| Expression::String(s)) }
 
