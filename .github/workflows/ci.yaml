@@ -45,7 +45,7 @@ jobs:
       - name: Cache installed packages
         uses: actions/cache/save@v3
         with:
-          path: node_modules ~/.cache/puppeteer
+          path: ['node_modules', '~/.cache/puppeteer']
           key: node_modules
 
   test-vis:
@@ -60,7 +60,7 @@ jobs:
       - name: Load Node packages
         uses: actions/cache/restore@v3
         with:
-          path: node_modules ~/.cache/puppeteer
+          path: ['node_modules', '~/.cache/puppeteer']
           key: node_modules
       - name: Run tests
         run: npm test -w vis
