@@ -101,7 +101,7 @@ pub fn unary_function_by_name(name: &str) -> Result<UnaryOperator, InvalidSymbol
 
 /// Maps literal [`Expression`]s to their names.
 ///
-/// ## Symbol names
+/// ## Symbol Names
 /// | Symbol name       | Associated literal                  |
 /// |-------------------|-------------------------------------|
 /// | `unset` or `none` | [`Unset`](Expression::Unset)        |
