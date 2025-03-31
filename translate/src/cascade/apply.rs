@@ -640,8 +640,8 @@ mod test {
         let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
                 [
-                    SelectorSegment::anything_any_number_of_times().into(),
-                    SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                    SelectorSegment::anything_any_number_of_times(),
+                    SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
                 ]
                 .into(),
             ),
@@ -678,8 +678,8 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [
-                        SelectorSegment::anything_any_number_of_times().into(),
-                        SelectorSegment::Match(EdgeMatcher::AnyIndex).into(),
+                        SelectorSegment::anything_any_number_of_times(),
+                        SelectorSegment::Match(EdgeMatcher::AnyIndex),
                     ]
                     .into(),
                 ),
@@ -691,11 +691,10 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [
-                        SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                        SelectorSegment::Match(EdgeLabel::Main.into()),
                         SelectorSegment::AnyNumberOfTimes(
-                            [SelectorSegment::Match(EdgeLabel::Next.into()).into()].into(),
-                        )
-                        .into(),
+                            [SelectorSegment::Match(EdgeLabel::Next.into())].into(),
+                        ),
                     ]
                     .into(),
                 ),
@@ -742,7 +741,7 @@ mod test {
         let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 )
                 .with_extra("".to_owned()),
                 properties: vec![StyleClause {
@@ -753,8 +752,8 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [
-                        SelectorSegment::Match(EdgeLabel::Main.into()).into(),
-                        SelectorSegment::Match(EdgeLabel::Next.into()).into(),
+                        SelectorSegment::Match(EdgeLabel::Main.into()),
+                        SelectorSegment::Match(EdgeLabel::Next.into()),
                     ]
                     .into(),
                 )
@@ -791,13 +790,12 @@ mod test {
         // .many(*).if(@("a"#0))::edge { }
         let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
-                [RestrictedSelectorSegment {
-                    segment: SelectorSegment::anything_any_number_of_times(),
-                    condition: Expression::Select(
+                [
+                    SelectorSegment::anything_any_number_of_times(),
+                    SelectorSegment::Condition(Expression::Select(
                         LimitedSelector::from_path([EdgeLabel::Named("a".to_owned(), 0)]).into(),
-                    )
-                    .into(),
-                }]
+                    )),
+                ]
                 .into(),
             )
             .selecting_edge(),
@@ -898,7 +896,7 @@ mod test {
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into()].into(),
+                    [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned()))].into(),
                 ),
                 properties: vec![
                     StyleClause {
@@ -960,7 +958,7 @@ mod test {
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 ),
                 properties: vec![StyleClause {
                     key: Property(Parent),
@@ -1077,19 +1075,18 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [
-                        SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                        SelectorSegment::Match(EdgeLabel::Main.into()),
                         SelectorSegment::AnyNumberOfTimes(
-                            [RestrictedSelectorSegment {
-                                segment: SelectorSegment::Match(EdgeLabel::Next.into()),
-                                condition: Some(Expression::BinaryOperator(
+                            [
+                                SelectorSegment::Match(EdgeLabel::Next.into()),
+                                SelectorSegment::Condition(Expression::BinaryOperator(
                                     Expression::Variable("--depth".to_owned()).into(),
                                     BinaryOperator::Lt,
                                     Expression::Int(3).into(),
                                 )),
-                            }]
+                            ]
                             .into(),
-                        )
-                        .into(),
+                        ),
                     ]
                     .into(),
                 ),
@@ -1135,13 +1132,13 @@ mod test {
         // }
         let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
-                [RestrictedSelectorSegment {
-                    segment: SelectorSegment::anything_any_number_of_times(),
-                    condition: Some(Expression::UnaryOperator(
+                [
+                    SelectorSegment::anything_any_number_of_times(),
+                    SelectorSegment::Condition(Expression::UnaryOperator(
                         UnaryOperator::IsSet,
                         Expression::Variable(VARIABLE_INDEX.to_owned()).into(),
                     )),
-                }]
+                ]
                 .into(),
             ),
             properties: vec![StyleClause {
@@ -1194,7 +1191,7 @@ mod test {
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 )
                 .selecting_edge(),
                 properties: vec![
@@ -1245,7 +1242,7 @@ mod test {
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 )
                 .selecting_edge()
                 .with_extra("".to_owned()),
@@ -1291,9 +1288,9 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [
-                        SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
-                        SelectorSegment::anything_any_number_of_times().into(),
-                        SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
+                        SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
+                        SelectorSegment::anything_any_number_of_times(),
+                        SelectorSegment::Match(EdgeLabel::Deref.into()),
                     ]
                     .into(),
                 ),
@@ -1305,12 +1302,11 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [
-                        SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                        SelectorSegment::Match(EdgeLabel::Main.into()),
                         SelectorSegment::AnyNumberOfTimes(
-                            [SelectorSegment::Match(EdgeLabel::Next.into()).into()].into(),
-                        )
-                        .into(),
-                        SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                            [SelectorSegment::Match(EdgeLabel::Next.into())].into(),
+                        ),
+                        SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
                     ]
                     .into(),
                 ),
@@ -1322,8 +1318,8 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [
-                        SelectorSegment::anything_any_number_of_times().into(),
-                        SelectorSegment::Match(EdgeMatcher::Named("b".to_owned())).into(),
+                        SelectorSegment::anything_any_number_of_times(),
+                        SelectorSegment::Match(EdgeMatcher::Named("b".to_owned())),
                     ]
                     .into(),
                 ),
@@ -1488,13 +1484,13 @@ mod test {
         let stylesheet = CascadeStyle::from(Stylesheet(vec![
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 ),
                 properties: vec![value_assignment.clone()],
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 )
                 .selecting_edge()
                 .with_extra("".to_owned()),
@@ -1508,7 +1504,7 @@ mod test {
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 )
                 .selecting_edge(),
                 properties: vec![
@@ -1665,21 +1661,20 @@ mod test {
             StyleRule {
                 selector: Selector::from_path(
                     [SelectorSegment::Branch(vec![
-                        [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                        [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                         [
-                            SelectorSegment::Match(EdgeLabel::Main.into()).into(),
-                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                            SelectorSegment::Match(EdgeLabel::Main.into()),
+                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
                         ]
                         .into(),
-                        [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into()].into(),
+                        [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned()))].into(),
                         [
-                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
-                            SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
-                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
+                            SelectorSegment::Match(EdgeLabel::Deref.into()),
+                            SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
                         ]
                         .into(),
-                    ])
-                    .into()]
+                    ])]
                     .into(),
                 ),
                 properties: vec![StyleClause {

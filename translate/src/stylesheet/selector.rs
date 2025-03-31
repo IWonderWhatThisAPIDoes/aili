@@ -61,13 +61,18 @@ pub enum SelectorSegment {
     /// Matches at least one of a set of selector paths.
     #[debug(".alt{_0:?}")]
     Branch(Vec<SelectorPath>),
+
+    /// Matches if a condition evaluates to a [truthy](crate::property::PropertyValue::is_truthy)
+    /// value.
+    #[debug(".if({_0:?})")]
+    Condition(Expression),
 }
 
 impl SelectorSegment {
     /// Shorthand for a completely unrestricted selector segment
     /// that matches all edges to any depth.
     pub fn anything_any_number_of_times() -> Self {
-        Self::AnyNumberOfTimes([SelectorSegment::Match(EdgeMatcher::Any).into()].into())
+        Self::AnyNumberOfTimes([SelectorSegment::Match(EdgeMatcher::Any)].into())
     }
 }
 
@@ -75,7 +80,7 @@ impl SelectorSegment {
 /// in order to pass.
 #[derive(PartialEq, Eq, From, Default)]
 #[from(forward)]
-pub struct SelectorPath(pub Vec<RestrictedSelectorSegment>);
+pub struct SelectorPath(pub Vec<SelectorSegment>);
 
 impl std::fmt::Debug for SelectorPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -86,38 +91,6 @@ impl std::fmt::Debug for SelectorPath {
             write!(f, "{segment:?}")?;
         }
         Ok(())
-    }
-}
-
-/// [`SelectorSegment`] that is optionally restricted by a condition.
-/// If the condition does not evaluate to a [truthy](crate::property::PropertyValue::is_truthy)
-/// value, the selector segment does not match anything.
-#[derive(PartialEq, Eq)]
-pub struct RestrictedSelectorSegment {
-    /// The selector segment that performs the initial match.
-    pub segment: SelectorSegment,
-
-    /// The condition that optionally further restricts the selector.
-    /// Must be [truthy](crate::property::PropertyValue::is_truthy) to pass.
-    pub condition: Option<Expression>,
-}
-
-impl std::fmt::Debug for RestrictedSelectorSegment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.segment)?;
-        if let Some(condition) = &self.condition {
-            write!(f, ".if({condition:?})")?;
-        }
-        Ok(())
-    }
-}
-
-impl From<SelectorSegment> for RestrictedSelectorSegment {
-    fn from(segment: SelectorSegment) -> Self {
-        Self {
-            segment,
-            condition: None,
-        }
     }
 }
 

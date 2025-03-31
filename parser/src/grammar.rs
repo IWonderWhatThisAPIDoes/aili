@@ -205,7 +205,6 @@ pomelo! {
     %type selector2  Selector;
     %type condition  Expression;
     %type path       SelectorPath;
-    %type rsegment   RestrictedSelectorSegment;
     %type segment    SelectorSegment;
     %type pathlist   Vec<SelectorPath>;
     %type limsel     LimitedSelector;
@@ -287,12 +286,11 @@ pomelo! {
     condition ::= Colon Unquoted(s)                    { type_match_condition(s, true) }
     condition ::= Colon Quoted(s)                      { type_match_condition(s, false) }
     path ::=                                           { [].into() }
-    path ::= path(mut p) rsegment(s)                   { p.0.push(s); p }
-    rsegment ::= segment(s)                            { s.into() }
-    rsegment ::= segment(s) condition(c)               { RestrictedSelectorSegment { segment: s, condition: Some(c) } }
+    path ::= path(mut p) segment(s)                    { p.0.push(s); p }
     segment ::= matcher(m)                             { SelectorSegment::Match(m) }
     segment ::= Many OpenParen path(p) CloseParen      { SelectorSegment::AnyNumberOfTimes(p) }
     segment ::= Alt OpenParen pathlist(l) CloseParen   { SelectorSegment::Branch(l) }
+    segment ::= condition(c)                           { SelectorSegment::Condition(c) }
     pathlist ::= path(p)                               { vec![p] }
     pathlist ::= pathlist(mut l) Comma path(p)         { l.push(p); l }
 
@@ -350,10 +348,8 @@ pomelo! {
 ///
 /// This is done by prepending a [`SelectorSegment::anything_any_number_of_times`]
 /// to the path.
-fn selector_from_not_root(
-    segments: impl IntoIterator<Item = RestrictedSelectorSegment>,
-) -> Selector {
-    let starting_segment = SelectorSegment::anything_any_number_of_times().into();
+fn selector_from_not_root(segments: impl IntoIterator<Item = SelectorSegment>) -> Selector {
+    let starting_segment = SelectorSegment::anything_any_number_of_times();
     let segments = std::iter::once(starting_segment).chain(segments).collect();
     Selector::from_path(SelectorPath(segments))
 }

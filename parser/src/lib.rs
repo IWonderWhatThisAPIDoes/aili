@@ -344,7 +344,6 @@ mod test {
                         .into_iter()
                         .map(SelectorSegment::Match),
                     )
-                    .map(RestrictedSelectorSegment::from)
                     .collect(),
             )),
             properties: Vec::new(),
@@ -373,7 +372,7 @@ mod test {
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeLabel::Main.into()).into()].into(),
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
                 )
                 .selecting_edge()
                 .with_extra("".to_owned()),
@@ -393,20 +392,17 @@ mod test {
                 [SelectorSegment::AnyNumberOfTimes(
                     [SelectorSegment::Branch(vec![
                         [
-                            SelectorSegment::Match(EdgeLabel::Next.into()).into(),
-                            SelectorSegment::Match(EdgeLabel::Result.into()).into(),
+                            SelectorSegment::Match(EdgeLabel::Next.into()),
+                            SelectorSegment::Match(EdgeLabel::Result.into()),
                         ]
                         .into(),
                         [SelectorSegment::AnyNumberOfTimes(
-                            [SelectorSegment::Match(EdgeMatcher::AnyNamed).into()].into(),
-                        )
-                        .into()]
+                            [SelectorSegment::Match(EdgeMatcher::AnyNamed)].into(),
+                        )]
                         .into(),
-                    ])
-                    .into()]
+                    ])]
                     .into(),
-                )
-                .into()]
+                )]
                 .into(),
             ),
             properties: Vec::new(),
@@ -454,20 +450,20 @@ mod test {
         let source = ":: .many(*.if(--c)).if(--i == 0) { }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
-                [RestrictedSelectorSegment {
-                    segment: SelectorSegment::AnyNumberOfTimes(
-                        [RestrictedSelectorSegment {
-                            segment: SelectorSegment::Match(EdgeMatcher::Any),
-                            condition: Some(Expression::Variable("--c".to_owned())),
-                        }]
+                [
+                    SelectorSegment::AnyNumberOfTimes(
+                        [
+                            SelectorSegment::Match(EdgeMatcher::Any),
+                            SelectorSegment::Condition(Expression::Variable("--c".to_owned())),
+                        ]
                         .into(),
                     ),
-                    condition: Some(Expression::BinaryOperator(
+                    SelectorSegment::Condition(Expression::BinaryOperator(
                         Expression::Variable("--i".to_owned()).into(),
                         BinaryOperator::Eq,
                         Expression::Int(0).into(),
                     )),
-                }]
+                ]
                 .into(),
             ),
             properties: Vec::new(),
@@ -563,13 +559,13 @@ mod test {
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::anything_any_number_of_times().into()].into(),
+                    [SelectorSegment::anything_any_number_of_times()].into(),
                 ),
                 properties: Vec::new(),
             },
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::anything_any_number_of_times().into()].into(),
+                    [SelectorSegment::anything_any_number_of_times()].into(),
                 ),
                 properties: Vec::new(),
             },
@@ -585,7 +581,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![
             StyleRule {
                 selector: Selector::from_path(
-                    [SelectorSegment::Match(EdgeMatcher::AnyNamed).into()].into(),
+                    [SelectorSegment::Match(EdgeMatcher::AnyNamed)].into(),
                 ),
                 properties: Vec::new(),
             },
@@ -731,53 +727,41 @@ mod test {
 
     #[test]
     fn type_assertions_in_selectors() {
-        let source = ":: *:struct *:\"struct\" *:vector *:\"vector\" { }";
+        let source = ":: :struct :\"struct\" :vector :\"vector\" { }";
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::from_path(
                 [
-                    RestrictedSelectorSegment {
-                        segment: SelectorSegment::Match(EdgeMatcher::Any),
-                        condition: Some(Expression::UnaryOperator(
-                            UnaryOperator::NodeIsA(NodeTypeClass::Struct),
+                    SelectorSegment::Condition(Expression::UnaryOperator(
+                        UnaryOperator::NodeIsA(NodeTypeClass::Struct),
+                        Expression::Select(LimitedSelector::default().into()).into(),
+                    )),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::UnaryOperator(
+                            UnaryOperator::NodeTypeName,
                             Expression::Select(LimitedSelector::default().into()).into(),
-                        )),
-                    },
-                    RestrictedSelectorSegment {
-                        segment: SelectorSegment::Match(EdgeMatcher::Any),
-                        condition: Some(Expression::BinaryOperator(
-                            Expression::UnaryOperator(
-                                UnaryOperator::NodeTypeName,
-                                Expression::Select(LimitedSelector::default().into()).into(),
-                            )
-                            .into(),
-                            BinaryOperator::Eq,
-                            Expression::String("struct".to_owned()).into(),
-                        )),
-                    },
-                    RestrictedSelectorSegment {
-                        segment: SelectorSegment::Match(EdgeMatcher::Any),
-                        condition: Some(Expression::BinaryOperator(
-                            Expression::UnaryOperator(
-                                UnaryOperator::NodeTypeName,
-                                Expression::Select(LimitedSelector::default().into()).into(),
-                            )
-                            .into(),
-                            BinaryOperator::Eq,
-                            Expression::String("vector".to_owned()).into(),
-                        )),
-                    },
-                    RestrictedSelectorSegment {
-                        segment: SelectorSegment::Match(EdgeMatcher::Any),
-                        condition: Some(Expression::BinaryOperator(
-                            Expression::UnaryOperator(
-                                UnaryOperator::NodeTypeName,
-                                Expression::Select(LimitedSelector::default().into()).into(),
-                            )
-                            .into(),
-                            BinaryOperator::Eq,
-                            Expression::String("vector".to_owned()).into(),
-                        )),
-                    },
+                        )
+                        .into(),
+                        BinaryOperator::Eq,
+                        Expression::String("struct".to_owned()).into(),
+                    )),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::UnaryOperator(
+                            UnaryOperator::NodeTypeName,
+                            Expression::Select(LimitedSelector::default().into()).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Eq,
+                        Expression::String("vector".to_owned()).into(),
+                    )),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::UnaryOperator(
+                            UnaryOperator::NodeTypeName,
+                            Expression::Select(LimitedSelector::default().into()).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Eq,
+                        Expression::String("vector".to_owned()).into(),
+                    )),
                 ]
                 .into(),
             ),

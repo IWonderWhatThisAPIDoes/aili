@@ -136,12 +136,7 @@ pub enum FlatSelectorSegment {
 /// Flattens a selector path to a part of a state machine.
 fn flatten_selector_path(path: SelectorPath, output: &mut Vec<FlatSelectorSegment>) {
     for segment in path.0 {
-        // Traverse the path first
-        flatten_selector_segment(segment.segment, output);
-        // Restrict with condition
-        if let Some(condition) = segment.condition {
-            output.push(FlatSelectorSegment::Restrict(condition));
-        }
+        flatten_selector_segment(segment, output);
     }
 }
 
@@ -220,6 +215,10 @@ fn flatten_selector_segment(segment: SelectorSegment, output: &mut Vec<FlatSelec
                 output[i] = FlatSelectorSegment::Jump(output.len());
             }
         }
+        SelectorSegment::Condition(condition) => {
+            // Match if the condition passes
+            output.push(FlatSelectorSegment::Restrict(condition));
+        }
     }
 }
 
@@ -250,8 +249,8 @@ mod test {
     fn flatten_linear_selector() {
         let original_selector = Selector {
             path: SelectorPath(vec![
-                SelectorSegment::Match(EdgeMatcher::AnyNamed).into(),
-                SelectorSegment::Match(EdgeLabel::Result.into()).into(),
+                SelectorSegment::Match(EdgeMatcher::AnyNamed),
+                SelectorSegment::Match(EdgeLabel::Result.into()),
             ]),
             selects_edge: false,
             extra: None,
@@ -276,13 +275,12 @@ mod test {
     fn flatten_repeated_selector() {
         let original_selector = Selector {
             path: SelectorPath(vec![
-                SelectorSegment::Match(EdgeLabel::Result.into()).into(),
+                SelectorSegment::Match(EdgeLabel::Result.into()),
                 SelectorSegment::AnyNumberOfTimes(SelectorPath(vec![
-                    SelectorSegment::Match(EdgeMatcher::Any).into(),
-                    SelectorSegment::Match(EdgeMatcher::AnyIndex).into(),
-                ]))
-                .into(),
-                SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
+                    SelectorSegment::Match(EdgeMatcher::Any),
+                    SelectorSegment::Match(EdgeMatcher::AnyIndex),
+                ])),
+                SelectorSegment::Match(EdgeLabel::Deref.into()),
             ]),
             selects_edge: false,
             extra: None,
@@ -313,17 +311,16 @@ mod test {
     fn flatten_branched_selector() {
         let original_selector = Selector {
             path: SelectorPath(vec![
-                SelectorSegment::Match(EdgeLabel::Result.into()).into(),
+                SelectorSegment::Match(EdgeLabel::Result.into()),
                 SelectorSegment::Branch(vec![
-                    SelectorPath(vec![SelectorSegment::Match(EdgeMatcher::Any).into()]),
+                    SelectorPath(vec![SelectorSegment::Match(EdgeMatcher::Any)]),
                     SelectorPath(vec![
-                        SelectorSegment::Match(EdgeMatcher::AnyNamed).into(),
-                        SelectorSegment::Match(EdgeMatcher::Named("hello".to_owned())).into(),
+                        SelectorSegment::Match(EdgeMatcher::AnyNamed),
+                        SelectorSegment::Match(EdgeMatcher::Named("hello".to_owned())),
                     ]),
-                    SelectorPath(vec![SelectorSegment::Match(EdgeMatcher::AnyIndex).into()]),
-                ])
-                .into(),
-                SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
+                    SelectorPath(vec![SelectorSegment::Match(EdgeMatcher::AnyIndex)]),
+                ]),
+                SelectorSegment::Match(EdgeLabel::Deref.into()),
             ]),
             selects_edge: false,
             extra: None,
@@ -360,24 +357,19 @@ mod test {
     fn flatten_branched_and_repeated_selector() {
         let original_selector = Selector {
             path: SelectorPath(vec![
-                SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                SelectorSegment::Match(EdgeLabel::Main.into()),
                 SelectorSegment::AnyNumberOfTimes(SelectorPath(vec![
-                    SelectorSegment::Match(EdgeLabel::Next.into()).into(),
+                    SelectorSegment::Match(EdgeLabel::Next.into()),
                     SelectorSegment::Branch(vec![
+                        SelectorPath(vec![SelectorSegment::AnyNumberOfTimes(SelectorPath(vec![
+                            SelectorSegment::Match(EdgeLabel::Deref.into()),
+                        ]))]),
                         SelectorPath(vec![
-                            SelectorSegment::AnyNumberOfTimes(SelectorPath(vec![
-                                SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
-                            ]))
-                            .into(),
+                            SelectorSegment::Match(EdgeMatcher::AnyIndex),
+                            SelectorSegment::Match(EdgeMatcher::Any),
                         ]),
-                        SelectorPath(vec![
-                            SelectorSegment::Match(EdgeMatcher::AnyIndex).into(),
-                            SelectorSegment::Match(EdgeMatcher::Any).into(),
-                        ]),
-                    ])
-                    .into(),
-                ]))
-                .into(),
+                    ]),
+                ])),
             ]),
             selects_edge: false,
             extra: None,

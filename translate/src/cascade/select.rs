@@ -190,11 +190,10 @@ mod test {
         // main iter(named)
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                SelectorSegment::Match(EdgeLabel::Main.into()),
                 SelectorSegment::AnyNumberOfTimes(
-                    [SelectorSegment::Match(EdgeMatcher::AnyNamed).into()].into(),
-                )
-                .into(),
+                    [SelectorSegment::Match(EdgeMatcher::AnyNamed)].into(),
+                ),
             ]
             .into(),
         ));
@@ -207,11 +206,10 @@ mod test {
         // main iter(next)
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                SelectorSegment::Match(EdgeLabel::Main.into()),
                 SelectorSegment::AnyNumberOfTimes(
-                    [SelectorSegment::Match(EdgeLabel::Next.into()).into()].into(),
-                )
-                .into(),
+                    [SelectorSegment::Match(EdgeLabel::Next.into())].into(),
+                ),
             ]
             .into(),
         ));
@@ -224,8 +222,8 @@ mod test {
         // iter(*) "a"
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::anything_any_number_of_times().into(),
-                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                SelectorSegment::anything_any_number_of_times(),
+                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
             ]
             .into(),
         ));
@@ -238,9 +236,9 @@ mod test {
         // iter(*) "a" "a"
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::anything_any_number_of_times().into(),
-                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
-                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
+                SelectorSegment::anything_any_number_of_times(),
+                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
+                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
             ]
             .into(),
         ));
@@ -253,10 +251,10 @@ mod test {
         // "a" "a" iter(*) deref
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
-                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into(),
-                SelectorSegment::anything_any_number_of_times().into(),
-                SelectorSegment::Match(EdgeLabel::Deref.into()).into(),
+                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
+                SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
+                SelectorSegment::anything_any_number_of_times(),
+                SelectorSegment::Match(EdgeLabel::Deref.into()),
             ]
             .into(),
         ));
@@ -269,9 +267,9 @@ mod test {
         // iter(*) result iter(*)
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::anything_any_number_of_times().into(),
-                SelectorSegment::Match(EdgeLabel::Result.into()).into(),
-                SelectorSegment::anything_any_number_of_times().into(),
+                SelectorSegment::anything_any_number_of_times(),
+                SelectorSegment::Match(EdgeLabel::Result.into()),
+                SelectorSegment::anything_any_number_of_times(),
             ]
             .into(),
         ));
@@ -284,16 +282,14 @@ mod test {
         // main iter(or(next, "a"))
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::Match(EdgeLabel::Main.into()).into(),
+                SelectorSegment::Match(EdgeLabel::Main.into()),
                 SelectorSegment::AnyNumberOfTimes(
                     [SelectorSegment::Branch(vec![
-                        [SelectorSegment::Match(EdgeLabel::Next.into()).into()].into(),
-                        [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())).into()].into(),
-                    ])
-                    .into()]
+                        [SelectorSegment::Match(EdgeLabel::Next.into())].into(),
+                        [SelectorSegment::Match(EdgeMatcher::Named("a".to_owned()))].into(),
+                    ])]
                     .into(),
-                )
-                .into(),
+                ),
             ]
             .into(),
         ));
@@ -305,7 +301,7 @@ mod test {
     fn degenerate_repeated_empty_path() {
         // iter()
         let selector = FlatSelector::from(Selector::from_path(
-            [SelectorSegment::AnyNumberOfTimes([].into()).into()].into(),
+            [SelectorSegment::AnyNumberOfTimes([].into())].into(),
         ));
         let matched = get_selector_matches(&selector.path, &TestGraph::default_graph());
         assert_eq!(matched, [0].into());
@@ -317,13 +313,11 @@ mod test {
         let selector = FlatSelector::from(Selector::from_path(
             [SelectorSegment::AnyNumberOfTimes(
                 [SelectorSegment::Branch(vec![
-                    [SelectorSegment::Match(EdgeMatcher::AnyNamed).into()].into(),
+                    [SelectorSegment::Match(EdgeMatcher::AnyNamed)].into(),
                     [].into(),
-                ])
-                .into()]
+                ])]
                 .into(),
-            )
-            .into()]
+            )]
             .into(),
         ));
         let matched = get_selector_matches(&selector.path, &TestGraph::default_graph());
@@ -334,12 +328,12 @@ mod test {
     fn match_with_lookahead() {
         // iter(*).if(@(deref))
         let selector = FlatSelector::from(Selector::from_path(
-            [RestrictedSelectorSegment {
-                segment: SelectorSegment::anything_any_number_of_times(),
-                condition: Some(Expression::Select(
+            [
+                SelectorSegment::anything_any_number_of_times(),
+                SelectorSegment::Condition(Expression::Select(
                     LimitedSelector::from_path([EdgeLabel::Deref]).into(),
                 )),
-            }]
+            ]
             .into(),
         ));
         let matched = get_selector_matches(&selector.path, &TestGraph::default_graph());
@@ -351,17 +345,14 @@ mod test {
         // main iter(next).if(!@(next))
         let selector = FlatSelector::from(Selector::from_path(
             [
-                SelectorSegment::Match(EdgeLabel::Main.into()).into(),
-                RestrictedSelectorSegment {
-                    segment: SelectorSegment::AnyNumberOfTimes(
-                        [SelectorSegment::Match(EdgeLabel::Next.into()).into()].into(),
-                    ),
-                    condition: Some(Expression::UnaryOperator(
-                        UnaryOperator::Not,
-                        Expression::Select(LimitedSelector::from_path([EdgeLabel::Next]).into())
-                            .into(),
-                    )),
-                },
+                SelectorSegment::Match(EdgeLabel::Main.into()),
+                SelectorSegment::AnyNumberOfTimes(
+                    [SelectorSegment::Match(EdgeLabel::Next.into())].into(),
+                ),
+                SelectorSegment::Condition(Expression::UnaryOperator(
+                    UnaryOperator::Not,
+                    Expression::Select(LimitedSelector::from_path([EdgeLabel::Next]).into()).into(),
+                )),
             ]
             .into(),
         ));
