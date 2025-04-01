@@ -80,7 +80,7 @@
 .terminal {
     padding: 0.5em;
     font-family: Consolas, 'Courier New', Courier, monospace;
-    text-wrap: nowrap;
+    white-space: pre;
 }
 .terminal:focus {
     outline: none;
