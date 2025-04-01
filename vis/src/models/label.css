@@ -22,6 +22,8 @@
     position: relative;
     /* Re-enable interaction after we turned it off for the parent */
     pointer-events: all;
+    /* Prevent the label text from wrapping on its own */
+    text-wrap-mode: nowrap;
 }
 
 /* Label positioned just below parent's top edge */
