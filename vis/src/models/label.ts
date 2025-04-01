@@ -48,6 +48,16 @@ export const CLASS_LABEL_NS_OUTSIDE: string = 'aili-nsoutside';
  * CSS class for positioning a label element at the outer edge of its parent horizontally.
  */
 export const CLASS_LABEL_WE_OUTSIDE: string = 'aili-weoutside';
+/**
+ * CSS class for positioning a label element to intersect the border
+ * of its parent vertically.
+ */
+export const CLASS_LABEL_NS_MIDDLE: string = 'aili-nsmiddle';
+/**
+ * CSS class for positioning a label element to intersect the border
+ * of its parent horizontally.
+ */
+export const CLASS_LABEL_WE_MIDDLE: string = 'aili-wemiddle';
 
 /**
  * {@link ViewModel} that represents an element as a simple
@@ -62,8 +72,10 @@ export const CLASS_LABEL_WE_OUTSIDE: string = 'aili-weoutside';
  * ```
  * 
  * Labels can be positioned at the center of their parent,
- * or at any of the 9 cardinal directions, inside or outside
- * the parent container, for a total of 25 placements.
+ * or at any of the 9 cardinal directions, inside, outside,
+ * or on the edge of the parent container, for a total of 49 placements.
+ * 
+ * Pictured are the 25 placements that do not overlap the edge.
  * 
  * ```text
  * +---+----+   +---+   +----+---+
@@ -129,6 +141,7 @@ export const CLASS_LABEL_WE_OUTSIDE: string = 'aili-weoutside';
  * ```
  * Vertical alignment relative to parent's border. Permitted values are:
  * - `inside`
+ * - `middle`
  * - `outside`
  * 
  * ### horizontal-align
@@ -137,6 +150,7 @@ export const CLASS_LABEL_WE_OUTSIDE: string = 'aili-weoutside';
  * ```
  * Horizontal alignment relative to parent's border. Permitted values are:
  * - `inside`
+ * - `middle`
  * - `outside`
  * 
  * ### padding
@@ -162,17 +176,35 @@ export class LabelViewModel extends FlowViewModel {
             color: bind.css(htmlInner, 'color', bind.color),
             padding: bind.css(htmlMid, 'padding', bind.numeric(bind.positiveOrZero, 'em')),
             'vertical-align'(value) {
-                if (value === 'outside') {
-                    html.classList.add(CLASS_LABEL_NS_OUTSIDE);
-                } else {
-                    html.classList.remove(CLASS_LABEL_NS_OUTSIDE);
+                switch (value) {
+                    case 'outside':
+                        html.classList.add(CLASS_LABEL_NS_OUTSIDE);
+                        html.classList.remove(CLASS_LABEL_NS_MIDDLE);
+                        break;
+                    case 'middle':
+                        html.classList.remove(CLASS_LABEL_NS_OUTSIDE);
+                        html.classList.add(CLASS_LABEL_NS_MIDDLE);
+                        break;
+                    default:
+                        html.classList.remove(CLASS_LABEL_NS_OUTSIDE);
+                        html.classList.remove(CLASS_LABEL_NS_MIDDLE);
+                        break;
                 }
             },
             'horizontal-align'(value) {
-                if (value === 'outside') {
-                    html.classList.add(CLASS_LABEL_WE_OUTSIDE);
-                } else {
-                    html.classList.remove(CLASS_LABEL_WE_OUTSIDE);
+                switch (value) {
+                    case 'outside':
+                        html.classList.add(CLASS_LABEL_WE_OUTSIDE);
+                        html.classList.remove(CLASS_LABEL_WE_MIDDLE);
+                        break;
+                    case 'middle':
+                        html.classList.remove(CLASS_LABEL_WE_OUTSIDE);
+                        html.classList.add(CLASS_LABEL_WE_MIDDLE);
+                        break;
+                    default:
+                        html.classList.remove(CLASS_LABEL_WE_OUTSIDE);
+                        html.classList.remove(CLASS_LABEL_WE_MIDDLE);
+                        break;
                 }
             },
             'vertical-justify'(value) {

@@ -292,4 +292,54 @@ describe(vis.LabelViewModel, () => {
         // Bottom on bottom, with padding
         expect(labelBox.y + labelBox.height).toBeCloseTo(parentBox.y + parentBox.height - PADDING * fontSize, EM_TOLERANCE);
     });
+
+    it('pushes itself into parent\'s top edge if set beforehand', async () => {
+        await setLabelText(); // Set text to ensure nonzero size
+        await t.setupViewport();
+        await insertLabel();
+        await page.evaluate(label => {
+            label.attributes['vertical-justify'].value = 'start';
+            label.attributes['vertical-align'].value = 'middle';
+        }, label);
+        const labelBox = await t.boundingBox();
+        const parentBox = await t.boundingBox(parentSelector);
+        // Center on center
+        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width / 2, EM_TOLERANCE);
+        // Center on top
+        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y, EM_TOLERANCE);
+    });
+
+    it('pushes itself into parent\'s left edge if set afterwards', async () => {
+        await setLabelText(); // Set text to ensure nonzero size
+        await t.setupViewport();
+        await page.evaluate(label => {
+            label.attributes['horizontal-justify'].value = 'start';
+            label.attributes['horizontal-align'].value = 'middle';
+        }, label);
+        await insertLabel();
+        const labelBox = await t.boundingBox();
+        const parentBox = await t.boundingBox(parentSelector);
+        // Center on left
+        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x, EM_TOLERANCE);
+        // Center on center
+        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height / 2, EM_TOLERANCE);
+    });
+
+    it('pushes itself into parent\'s bottom right corner', async () => {
+        await setLabelText(); // Set text to ensure nonzero size
+        await t.setupViewport();
+        await page.evaluate(label => {
+            label.attributes['vertical-justify'].value = 'end';
+            label.attributes['vertical-align'].value = 'middle';
+            label.attributes['horizontal-justify'].value = 'end';
+            label.attributes['horizontal-align'].value = 'middle';
+        }, label);
+        await insertLabel();
+        const labelBox = await t.boundingBox();
+        const parentBox = await t.boundingBox(parentSelector);
+        // Center on right
+        expect(labelBox.x + labelBox.width / 2).toBeCloseTo(parentBox.x + parentBox.width, EM_TOLERANCE);
+        // Center on bottom
+        expect(labelBox.y + labelBox.height / 2).toBeCloseTo(parentBox.y + parentBox.height, EM_TOLERANCE);
+    });
 });

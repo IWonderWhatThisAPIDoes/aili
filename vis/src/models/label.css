@@ -27,7 +27,7 @@
 }
 
 /* Label positioned just below parent's top edge */
-.aili-label-outer.aili-north:not(.aili-nsoutside) {
+.aili-label-outer.aili-north:not(.aili-nsoutside):not(.aili-nsmiddle) {
     top: 0;
 }
 
@@ -37,7 +37,7 @@
 }
 
 /* Label positioned just above parent's bottom edge */
-.aili-label-outer.aili-south:not(.aili-nsoutside) {
+.aili-label-outer.aili-south:not(.aili-nsoutside):not(.aili-nsmiddle) {
     bottom: 0;
 }
 
@@ -47,17 +47,21 @@
 }
 
 /* Label positioned just to the left of parent's right edge */
-.aili-label-outer.aili-east:not(.aili-weoutside) {
+.aili-label-outer.aili-east:not(.aili-weoutside):not(.aili-wemiddle) {
     right: 0;
 }
 
 /* Label positioned just to the right of parent's right edge */
-.aili-label-outer.aili-east.aili-weoutside {
+.aili-label-outer.aili-east.aili-weoutside,
+/* Label positioned to intersect the parent's right edge */
+.aili-label-outer.aili-east.aili-wemiddle {
     left: 100%;
 }
 
 /* Label positioned just to the right of parent's left edge */
-.aili-label-outer.aili-west:not(.aili-weoutside) {
+.aili-label-outer.aili-west:not(.aili-weoutside):not(.aili-wemiddle),
+/* Label positioned to intersect the parent's left edge */
+.aili-label-outer.aili-west.aili-wemiddle {
     left: 0;
 }
 
@@ -72,7 +76,9 @@
     left: 50%;
 }
 
-.aili-label-outer:not(.aili-east):not(.aili-west) .aili-label-mid {
+.aili-label-outer:not(.aili-east):not(.aili-west) .aili-label-mid,
+/* Label positioned to intersect the parent's left or right edge */
+.aili-label-outer.aili-wemiddle .aili-label-mid {
     /* Pull text's right edge to the center of the wrapper.
      * This places the center axis of text on the center axis of parent.
      */
@@ -90,12 +96,25 @@
  *
  * Instead, we use flex model to center-align the label vertically.
  */
-.aili-label-outer:not(.aili-north):not(.aili-south) {
-    /* Copy the parent element's placement vertically */
-    top: 0%;
+.aili-label-outer:not(.aili-north):not(.aili-south),
+.aili-label-outer.aili-nsmiddle {
+    /* Fill the parent element vertically */
     height: 100%;
     /* Use flex model to center-align the label */
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.aili-label-outer:not(.aili-north):not(.aili-south) {
+    /* Copy the parent element's placement vertically */
+    top: 0;
+}
+
+.aili-label-outer.aili-north.aili-nsmiddle {
+    top: -50%;
+}
+
+.aili-label-outer.aili-south.aili-nsmiddle {
+    top: 50%;
 }
