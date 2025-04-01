@@ -478,17 +478,19 @@ ret::edge {
 // Make labels where the vector's parameters point to
 :vector "ptr" ref [].if(--INDEX == --vec-cap - 1)::extra(len-cap) {
   display: label;
-  value: "cap^";
+  value: "cap";
 }
 :vector "ptr" ref [].if(--INDEX == --vec-len - 1)::extra(len-cap) {
   display: label;
-  value: "len^";
+  value: "len";
 }
 :vector "ptr" ref []::extra(len-cap) {
   color: maroon;
   vertical-justify: end;
   vertical-align: outside;
-  horizontal-justify: start;
+  horizontal-justify: end;
+  horizontal-align: middle;
+  hat: north;
 }
 
 `,
@@ -527,20 +529,22 @@ ret::edge {
 
 :: main .many(next).if(!@(next)) "turtle" {
   display: label;
-  value: "^ turtle";
+  value: "turtle";
   color: "#85d";
   parent: @(ref);
   vertical-justify: end;
   vertical-align: outside;
+  hat: north;
 }
 
 :: main .many(next).if(!@(next)) "hare" {
   display: label;
-  value: "hare v";
+  value: "hare";
   color: "#4a0";
   parent: @(ref);
   vertical-justify: start;
   vertical-align: outside;
+  hat: south;
 }
 
 `,
