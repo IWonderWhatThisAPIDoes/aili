@@ -4,55 +4,7 @@
  * @module
  */
 
-import * as sample from './sample-stylesheet';
-
-/**
- * Identifiers of pre-written stylesheets that can be
- * used out of the box.
- */
-export enum BuiltinStylesheet {
-    /**
-     * Raw view of the state graph itself.
-     */
-    STATE_GRAPH,
-    /**
-     * State graph with color-coded and style-coded
-     * elements for ease of reading.
-     */
-    STATE_GRAPH_PRETTY,
-    /**
-     * Stack trace. Stack frames are nodes in a graph.
-     */
-    TRACE_GRAPH,
-    /**
-     * Stack trace. Stack frames are columns.
-     */
-    TRACE_COLUMN,
-    /**
-     * Stylesheet for a simple vector structure.
-     */
-    VECTOR,
-    /**
-     * Stylesheet for a simple linked list structure.
-     */
-    LINKED_LIST,
-    /**
-     * The default setting.
-     */
-    DEFAULT = STATE_GRAPH_PRETTY,
-}
-
-/**
- * Maps keys of built-in stylesheets to their display names.
- */
-export const STYLESHEET_NAME: Record<BuiltinStylesheet, string> = {
-    [BuiltinStylesheet.TRACE_GRAPH]: 'Stack trace (graph)',
-    [BuiltinStylesheet.TRACE_COLUMN]: 'Stack trace (column)',
-    [BuiltinStylesheet.STATE_GRAPH]: 'Raw view',
-    [BuiltinStylesheet.STATE_GRAPH_PRETTY]: 'State graph with highlights',
-    [BuiltinStylesheet.VECTOR]: 'Vector',
-    [BuiltinStylesheet.LINKED_LIST]: 'Linked list',
-}
+import { BuiltinStylesheet, getSampleStylesheet } from './sample-stylesheet';
 
 /**
  * Encapsulates the acceptance of input from the user.
@@ -66,20 +18,15 @@ export class StylesheetInput {
         // Drop non-breaking spaces from input
         return this.panel.innerText.replace(/\xa0/g, ' ');
     }
+    set stylesheetText(stylesheet: string) {
+        // Make spaces non-breaking so they do not get omited
+        this.panel.innerText = stylesheet.replace(/ /g, '\xa0')
+    }
     resetStylesheet(stylesheetId?: BuiltinStylesheet | undefined): void {
         stylesheetId ??= this.currentBaseStylesheet;
         this.currentBaseStylesheet = stylesheetId;
-        this.panel.innerText = BUILTIN_STYLESHEETS[stylesheetId];
+        this.stylesheetText = getSampleStylesheet(stylesheetId);
     }
     private panel: HTMLElement;
     private currentBaseStylesheet: BuiltinStylesheet = BuiltinStylesheet.DEFAULT;
-}
-
-const BUILTIN_STYLESHEETS: Record<BuiltinStylesheet, string> = {
-    [BuiltinStylesheet.STATE_GRAPH_PRETTY]: sample.PRETTY_GRAPH_STYLESHEET,
-    [BuiltinStylesheet.TRACE_GRAPH]: sample.TRACE_STYLESHEET,
-    [BuiltinStylesheet.TRACE_COLUMN]: sample.COLUMN_TRACE_STYLESHEET,
-    [BuiltinStylesheet.STATE_GRAPH]: sample.RAW_STYLESHEET,
-    [BuiltinStylesheet.VECTOR]: sample.VECTOR_STYLESHEET,
-    [BuiltinStylesheet.LINKED_LIST]: sample.LIST_STYLESHEET,
 }

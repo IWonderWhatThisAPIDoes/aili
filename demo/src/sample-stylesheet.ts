@@ -5,282 +5,116 @@
  */
 
 /**
- * Displays the stack trace as a graph.
+ * Identifiers of pre-written stylesheets that can be
+ * used out of the box.
  */
-export const TRACE_STYLESHEET: string =
-`:: {
-\xa0\xa0display: graph;
-\xa0\xa0--root: @;
+export enum BuiltinStylesheet {
+    /**
+     * Raw view of the state graph itself.
+     */
+    STATE_GRAPH,
+    /**
+     * State graph with color-coded and style-coded
+     * elements for ease of reading.
+     */
+    STATE_GRAPH_PRETTY,
+    /**
+     * Stack trace. Stack frames are nodes in a graph.
+     */
+    TRACE_GRAPH,
+    /**
+     * Stack trace. Stack frames are columns.
+     */
+    TRACE_COLUMN,
+    /**
+     * Stylesheet for a simple vector structure.
+     */
+    VECTOR,
+    /**
+     * Stylesheet for a simple linked list structure.
+     */
+    LINKED_LIST,
+    /**
+     * The default setting.
+     */
+    DEFAULT = STATE_GRAPH_PRETTY,
 }
-
-* {
-\xa0\xa0parent: --root;
-}
-
-.alt(%, []) {
-\xa0\xa0parent: --parent;
-\xa0\xa0key: --NAME;
-\xa0\xa0order: --INDEX;
-}
-
-:val {
-\xa0\xa0display: cell;
-\xa0\xa0value: @;
-\xa0\xa0fill: aliceblue;
-}
-
-.alt(:struct, :frame) {
-\xa0\xa0display: kvt;
-\xa0\xa0title: typename(@);
-\xa0\xa0--parent: @;
-}
-
-:arr {
-\xa0\xa0display: row;
-\xa0\xa0--parent: @;
-}
-
-:ref {
-\xa0\xa0display: cell;
-\xa0\xa0size: "0.5";
-\xa0\xa0shape: circle;
-\xa0\xa0fill: maroon;
-}
-
-len {
-\xa0\xa0display: label;
-\xa0\xa0value: "length: " + @;
-\xa0\xa0parent: --parent;
-\xa0\xa0vertical-justify: start;
-\xa0\xa0horizontal-justify: start;
-\xa0\xa0vertical-align: outside;
-}
-
-ref::edge {
-\xa0\xa0stroke-style: dashed;
-\xa0\xa0shape: cubic;
-\xa0\xa0end/decoration: arrow;
-}
-
-next::edge {
-\xa0\xa0stroke-width: 2;
-\xa0\xa0end/decoration: arrow;
-}
-
-`;
-
-export const COLUMN_TRACE_STYLESHEET: string =
-`:: {
-\xa0\xa0display: graph;
-\xa0\xa0--root: @;
-\xa0\xa0--sp: 0;
-\xa0\xa0--trace: @(::extra(stack));
-}
-
-:: ::extra(stack) {
-\xa0\xa0display: row;
-\xa0\xa0gap: 1;
-\xa0\xa0padding: "0.5";
-\xa0\xa0stroke-width: 1;
-\xa0\xa0direction: column;
-\xa0\xa0title: "Stack Trace";
-\xa0\xa0align-items: start;
-}
-
-:: ::extra(stack-label) {
-\xa0\xa0display: label;
-\xa0\xa0parent: --trace;
-\xa0\xa0value: "stack trace";
-\xa0\xa0vertical-justify: start;
-\xa0\xa0vertical-align: outside;
-}
-
-* {
-\xa0\xa0parent: --root;
-}
-
-:: main .many(next) {
-\xa0\xa0--sp: --sp + 1;
-\xa0\xa0order: --sp;
-\xa0\xa0parent: --trace;
-\xa0\xa0key: --sp;
-}
-
-.alt(%, []) {
-\xa0\xa0parent: --parent;
-\xa0\xa0key: --NAME;
-\xa0\xa0order: --INDEX;
-}
-
-:val {
-\xa0\xa0display: cell;
-\xa0\xa0value: @;
-\xa0\xa0fill: aliceblue;
-}
-
-.alt(:struct, :frame) {
-\xa0\xa0display: kvt;
-\xa0\xa0title: typename(@);
-\xa0\xa0--parent: @;
-}
-
-:arr {
-\xa0\xa0display: row;
-\xa0\xa0--parent: @;
-}
-
-:ref {
-\xa0\xa0display: cell;
-\xa0\xa0size: "0.5";
-\xa0\xa0shape: circle;
-\xa0\xa0fill: maroon;
-}
-
-len {
-\xa0\xa0display: label;
-\xa0\xa0value: "length: " + @;
-\xa0\xa0parent: --parent;
-\xa0\xa0vertical-justify: start;
-\xa0\xa0horizontal-justify: start;
-\xa0\xa0vertical-align: outside;
-}
-
-ref::edge {
-\xa0\xa0shape: quadratic;
-\xa0\xa0stroke: maroon;
-\xa0\xa0end/decoration: arrow;
-}
-
-`;
 
 /**
- * Displays the state graph as plainly as possible.
+ * Maps keys of built-in stylesheets to their display names.
  */
-export const RAW_STYLESHEET: string =
-`// Root node will become the root element
+export const STYLESHEET_NAME: Record<BuiltinStylesheet, string> = {
+    [BuiltinStylesheet.TRACE_GRAPH]: 'Stack trace (graph)',
+    [BuiltinStylesheet.TRACE_COLUMN]: 'Stack trace (column)',
+    [BuiltinStylesheet.STATE_GRAPH]: 'Raw view',
+    [BuiltinStylesheet.STATE_GRAPH_PRETTY]: 'State graph with highlights',
+    [BuiltinStylesheet.VECTOR]: 'Vector',
+    [BuiltinStylesheet.LINKED_LIST]: 'Linked list',
+}
+
+/**
+ * Gets a predefined stylesheet by its key.
+ * 
+ * @param key Identifier of the requested stylesheet.
+ */
+export function getSampleStylesheet(key: BuiltinStylesheet): string {
+    return BUILTIN_STYLESHEETS[key];
+}
+
+/**
+ * The text of the built-in stylesheets.
+ */
+const BUILTIN_STYLESHEETS: Record<BuiltinStylesheet, string> = {
+    [BuiltinStylesheet.STATE_GRAPH_PRETTY]:
+`/**
+ * This stylesheet is similar to the raw view,
+ * but it includes color and patterns for ease
+ * of reading.
+ */
+
+// Root node will become the root element
 :: {
-\xa0\xa0// Render the scene as a graph
-\xa0\xa0display: graph;
-\xa0\xa0// Keep reference to root node in a variable
-\xa0\xa0// so it can be easily recalled
-\xa0\xa0--root: @;
+  // Render the scene as a graph
+  display: graph;
+  gap: 80;
+  // Keep reference to root node in a variable
+  // so it can be easily recalled
+  --root: @;
 }
 
 // Render the root node as a node as well
 // The root node is already the physical root
 // of visualization, so we must use an extra
 :: ::extra {
-\xa0\xa0display: cell;
-\xa0\xa0value: "<root>";
+  display: cell;
+  value: "<root>";
+  size: 4;
+  fill: lightgrey;
 }
 
 // All nodes except root should be rendered as cells
 * {
-\xa0\xa0display: cell;
-\xa0\xa0value: @ + ":" + typename(@);
-\xa0\xa0// Hierarchically, the parent element
-\xa0\xa0// is the root graph
-\xa0\xa0parent: --root;
-}
-
-// Make specific cells look nice
-:ref {
-\xa0\xa0value: "&";
-}
-:arr {
-\xa0\xa0value: "[]";
-}
-
-// Show all edges as actual connectors
-// This is by default, so we just need
-// to select them, no display: or parent:
-
-// The root is actually an extra though,
-// so we need to attach the edge there
-:: {
-\xa0\xa0--root-extra: @(::extra);
-}
-:: *::edge {
-\xa0\xa0parent: --root-extra;
-}
-
-// Label all edges according to their meaning
-main::edge {
-\xa0\xa0label: "<main>";
-}
-next::edge {
-\xa0\xa0label: "<next>";
-}
-len::edge {
-\xa0\xa0label: "<len>";
-}
-%::edge {
-\xa0\xa0label: --NAME;
-}
-[]::edge {
-\xa0\xa0label: "[" + --INDEX + "]";
-}
-ref::edge {
-\xa0\xa0label: "<ref>";
-}
-ret::edge {
-\xa0\xa0label: "<ret>";
-}
-
-::edge {
-\xa0\xa0end/decoration: arrow;
-}
-
-`;
-
-/**
- * Displays the state graph with colors and styles to make it
- * easier to navigate.
- */
-export const PRETTY_GRAPH_STYLESHEET: string =
-`// Root node will become the root element
-:: {
-\xa0\xa0// Render the scene as a graph
-\xa0\xa0display: graph;
-\xa0\xa0gap: 80;
-\xa0\xa0// Keep reference to root node in a variable
-\xa0\xa0// so it can be easily recalled
-\xa0\xa0--root: @;
-}
-
-// Render the root node as a node as well
-// The root node is already the physical root
-// of visualization, so we must use an extra
-:: ::extra {
-\xa0\xa0display: cell;
-\xa0\xa0value: "<root>";
-\xa0\xa0size: 4;
-\xa0\xa0fill: lightgrey;
-}
-
-// All nodes except root should be rendered as cells
-* {
-\xa0\xa0display: cell;
-\xa0\xa0value: @ + ":" + typename(@);
-\xa0\xa0size: 1;
-\xa0\xa0fill: aliceblue;
-\xa0\xa0// Hierarchically, the parent element
-\xa0\xa0// is the root graph
-\xa0\xa0parent: --root;
+  display: cell;
+  value: @ + ":" + typename(@);
+  size: 1;
+  fill: aliceblue;
+  // Hierarchically, the parent element
+  // is the root graph
+  parent: --root;
 }
 
 // Make specific cells look nice
 :frame {
-\xa0\xa0size: 3;
-\xa0\xa0fill: gold;
+  size: 3;
+  fill: gold;
 }
 :ref {
-\xa0\xa0value: "&";
-\xa0\xa0fill: lightgrey;
+  value: "&";
+  fill: lightgrey;
 }
 :arr {
-\xa0\xa0value: "[]";
-\xa0\xa0fill: lightgrey;
+  value: "[]";
+  fill: lightgrey;
 }
 
 // Show all edges as actual connectors
@@ -290,162 +124,424 @@ export const PRETTY_GRAPH_STYLESHEET: string =
 // The root is actually an extra though,
 // so we need to attach the edge there
 :: {
-\xa0\xa0--root-extra: @(::extra);
+  --root-extra: @(::extra);
 }
 :: *::edge {
-\xa0\xa0parent: --root-extra;
+  parent: --root-extra;
 }
 
 // Label all edges according to their meaning
 main::edge {
-\xa0\xa0label: "<main>";
+  label: "<main>";
 }
 next::edge {
-\xa0\xa0label: "<next>";
+  label: "<next>";
 }
 len::edge {
-\xa0\xa0label: "<len>";
+  label: "<len>";
 }
 %::edge {
-\xa0\xa0label: --NAME;
+  label: --NAME;
 }
 %.if(--DISCRIMINATOR)::edge {
-\xa0\xa0label: --NAME + "#" + --DISCRIMINATOR;
+  label: --NAME + "#" + --DISCRIMINATOR;
 }
 []::edge {
-\xa0\xa0label: "[" + --INDEX + "]";
+  label: "[" + --INDEX + "]";
 }
 
 // Highlight the stack trace
 .alt(main, next)::edge {
-\xa0\xa0stroke: gold;
-\xa0\xa0stroke-width: 3;
+  stroke: gold;
+  stroke-width: 3;
 }
 
 // Dereferences are dashed because
 // they do not denote ownership
 ref::edge {
-\xa0\xa0stroke-style: dashed;
+  stroke-style: dashed;
 }
 
 ::edge {
-\xa0\xa0end/decoration: arrow;
+  end/decoration: arrow;
 }
 
-`;
+`,
+    [BuiltinStylesheet.TRACE_GRAPH]:
+`/**
+ * This stylesheet displays a program as a graph
+ * where each node is a stack frame or a heap allocation
+ */
 
-export const VECTOR_STYLESHEET: string =
-`// Display the root, so we can see anything in the first place
+:: {
+  display: graph;
+  layout: layered;
+  --root: @;
+}
+
+* {
+  parent: --root;
+}
+
+.alt(%, []) {
+  parent: --pred;
+  key: --NAME;
+  order: --INDEX;
+}
+
+{
+  --pred: @;
+}
+
+:val {
+  display: cell;
+  value: @;
+  fill: aliceblue;
+}
+
+.alt(:struct, :frame) {
+  display: kvt;
+  title: typename(@);
+}
+
+:arr {
+  display: row;
+}
+
+.alt(:ref, :nullptr) {
+  display: cell;
+  size: "0.5";
+  fill: maroon;
+}
+
+:ref {
+    shape: circle;
+}
+
+len {
+  display: label;
+  value: "length: " + @;
+  parent: --parent;
+  vertical-justify: start;
+  horizontal-justify: start;
+  vertical-align: outside;
+}
+
+ref::edge {
+  shape: quadratic;
+  stroke: maroon;
+  end/decoration: arrow;
+  end/anchor: northwest;
+}
+
+next::edge {
+  stroke-width: 2;
+  end/decoration: arrow;
+}
+
+`,
+    [BuiltinStylesheet.TRACE_COLUMN]:
+`/**
+ * This stylesheet displays a program as a graph
+ * where each node is a heap allocation around
+ * the central stack
+ */
+
+:: {
+  display: graph;
+  layout: layered;
+  direction: east;
+  --root: @;
+  --trace: @(::extra(stack));
+  --sp: 0;
+}
+
+:: ::extra(stack) {
+  display: row;
+  gap: 1;
+  padding: "0.5";
+  stroke-width: 1;
+  direction: column;
+  title: "Stack Trace";
+  align-items: start;
+}
+
+:: ::extra(stack-label) {
+  display: label;
+  parent: --trace;
+  value: "stack trace";
+  vertical-justify: start;
+  vertical-align: outside;
+}
+
+* {
+  parent: --root;
+}
+
+:: main .many(next) {
+  --sp: --sp + 1;
+  order: --sp;
+  parent: --trace;
+  key: --sp;
+}
+
+.alt(%, []) {
+  parent: --parent;
+  key: --NAME;
+  order: --INDEX;
+}
+
+:val {
+  display: cell;
+  value: @;
+  fill: aliceblue;
+}
+
+.alt(:struct, :frame) {
+  display: kvt;
+  title: typename(@);
+  --parent: @;
+}
+
+:arr {
+  display: row;
+  --parent: @;
+}
+
+.alt(:ref, :nullptr) {
+  display: cell;
+  size: "0.5";
+  shape: circle;
+  fill: maroon;
+}
+
+len {
+  display: label;
+  value: "length: " + @;
+  parent: --parent;
+  vertical-justify: start;
+  horizontal-justify: start;
+  vertical-align: outside;
+}
+
+ref::edge {
+  shape: quadratic;
+  stroke: maroon;
+  end/decoration: arrow;
+  end/anchor: northwest;
+}
+
+`,
+    [BuiltinStylesheet.STATE_GRAPH]:
+`/**
+ * This stylesheet displays the underlying state graph
+ * as plainly as possible
+ *
+ * It is quite long because programs were not actually
+ * intended to be visualized this way
+ */
+
+// Root node will become the root element
+:: {
+  // Render the scene as a graph
+  display: graph;
+  // Keep reference to root node in a variable
+  // so it can be easily recalled
+  --root: @;
+}
+
+// Render the root node as a node as well
+// The root node is already the physical root
+// of visualization, so we must use an extra
+:: ::extra {
+  display: cell;
+  value: "<root>";
+}
+
+// All nodes except root should be rendered as cells
+* {
+  display: cell;
+  value: @ + ":" + typename(@);
+  // Hierarchically, the parent element
+  // is the root graph
+  parent: --root;
+}
+
+// Make specific cells look nice
+:ref {
+  value: "&";
+}
+:arr {
+  value: "[]";
+}
+
+// Show all edges as actual connectors
+// This is by default, so we just need
+// to select them, no display: or parent:
+
+// The root is actually an extra though,
+// so we need to attach the edge there
+:: {
+  --root-extra: @(::extra);
+}
+:: *::edge {
+  parent: --root-extra;
+}
+
+// Label all edges according to their meaning
+main::edge {
+  label: "<main>";
+}
+next::edge {
+  label: "<next>";
+}
+len::edge {
+  label: "<len>";
+}
+%::edge {
+  label: --NAME;
+}
+[]::edge {
+  label: "[" + --INDEX + "]";
+}
+ref::edge {
+  label: "<ref>";
+}
+ret::edge {
+  label: "<ret>";
+}
+
+::edge {
+  end/decoration: arrow;
+}
+
+`,
+    [BuiltinStylesheet.VECTOR]:
+`/**
+ * THIS STYLESHEET IS SPECIFICALLY INTENDED
+ * TO BE USED WITH THE VECTOR EXAMPLE
+ *
+ * Displays the vector as a row of cells
+ */
+
+// Display the root, so we can see anything in the first place
 :: { display: graph; }
 
 // Write down length and capacity of the vector,
 // we will be using them later
 :vector {
-\xa0\xa0--vec-len: @("len");
-\xa0\xa0--vec-cap: @("cap");
+  --vec-len: @("len");
+  --vec-cap: @("cap");
 }
 
 // Display length and capacity somewhere
 :vector "len" {
-\xa0\xa0display: text;
-\xa0\xa0value: "length:" + @;
-\xa0\xa0color: maroon;
+  display: text;
+  value: "length:" + @;
+  color: maroon;
 }
 :vector "cap" {
-\xa0\xa0display: text;
-\xa0\xa0value: "capacity:" + @;
-\xa0\xa0color: maroon;
+  display: text;
+  value: "capacity:" + @;
+  color: maroon;
 }
 
 // Display the vector's main body as a row
 :vector "ptr" ref {
-\xa0\xa0display: row;
+  display: row;
 }
 
 // Display the vector's items as cells in the row
 :vector "ptr" ref [] {
-\xa0\xa0display: cell;
-\xa0\xa0// Sort by index
-\xa0\xa0order: --INDEX;
-\xa0\xa0// Is the memory cell actually out of range of the vector?
-\xa0\xa0--out-of-range: --INDEX >= --vec-len;
-\xa0\xa0// Draw unused cells differently
-\xa0\xa0// to make the difference glaringly obvious
-\xa0\xa0value: --out-of-range ? "X" : @;
-\xa0\xa0fill: --out-of-range ? "lightgrey" : "aliceblue";
+  display: cell;
+  // Sort by index
+  order: --INDEX;
+  value: @;
+  fill: aliceblue;
+}
+
+// Draw unused cells differently
+// to make the difference glaringly obvious
+:vector "ptr" ref [].if(--INDEX >= --vec-len) {
+    value: "X";
+    fill: lightgrey;
 }
 
 // Add index indicators to taste
 :vector "ptr" ref []::extra(index) {
-\xa0\xa0display: label;
-\xa0\xa0vertical-justify: start;
-\xa0\xa0vertical-align: outside;
-\xa0\xa0value: --INDEX;
+  display: label;
+  vertical-justify: start;
+  vertical-align: outside;
+  value: --INDEX;
 }
 
 // Make labels where the vector's parameters point to
 :vector "ptr" ref [].if(--INDEX == --vec-cap - 1)::extra(len-cap) {
-\xa0\xa0display: label;
-\xa0\xa0value: "cap^";
+  display: label;
+  value: "cap^";
 }
 :vector "ptr" ref [].if(--INDEX == --vec-len - 1)::extra(len-cap) {
-\xa0\xa0display: label;
-\xa0\xa0value: "len^";
+  display: label;
+  value: "len^";
 }
 :vector "ptr" ref []::extra(len-cap) {
-\xa0\xa0color: maroon;
-\xa0\xa0vertical-justify: end;
-\xa0\xa0vertical-align: outside;
-\xa0\xa0horizontal-justify: start;
+  color: maroon;
+  vertical-justify: end;
+  vertical-align: outside;
+  horizontal-justify: start;
 }
- 
-`;
 
-/**
- * Stylesheet for the linked list example.
+`,
+    [BuiltinStylesheet.LINKED_LIST]:
+`/**
+ * THIS STYLESHEET IS SPECIFICALLY INTENDED
+ * TO BE USED WITH THE LINKED LIST EXAMPLE
+ *
+ * Displays the list as a graph
  */
-export const LIST_STYLESHEET: string =
-`:: {
-\xa0\xa0display: graph;
-\xa0\xa0layout: layered;
-\xa0\xa0direction: east;
-\xa0\xa0--root: @;
+
+:: {
+  display: graph;
+  layout: layered;
+  direction: east;
+  --root: @;
 }
 
 :list {
-\xa0\xa0display: cell;
-\xa0\xa0value: head;
+  display: cell;
+  value: head;
 }
 
 :node {
-\xa0\xa0display: cell;
-\xa0\xa0shape: circle;
-\xa0\xa0value: @("value");
-\xa0\xa0parent: --root;
+  display: cell;
+  shape: circle;
+  value: @("value");
+  parent: --root;
 }
 
 .alt(:node "next", :list "head") {
-\xa0\xa0display: connector;
-\xa0\xa0target: @(ref);
-\xa0\xa0end/decoration: arrow;
+  display: connector;
+  target: @(ref);
+  end/decoration: arrow;
 }
 
 :: main .many(next).if(!@(next)) "turtle" {
-\xa0\xa0display: label;
-\xa0\xa0value: "^ turtle";
-\xa0\xa0color: "#85d";
-\xa0\xa0parent: @(ref);
-\xa0\xa0vertical-justify: end;
-\xa0\xa0vertical-align: outside;
+  display: label;
+  value: "^ turtle";
+  color: "#85d";
+  parent: @(ref);
+  vertical-justify: end;
+  vertical-align: outside;
 }
 
 :: main .many(next).if(!@(next)) "hare" {
-\xa0\xa0display: label;
-\xa0\xa0value: "hare v";
-\xa0\xa0color: "#4a0";
-\xa0\xa0parent: @(ref);
-\xa0\xa0vertical-justify: start;
-\xa0\xa0vertical-align: outside;
+  display: label;
+  value: "hare v";
+  color: "#4a0";
+  parent: @(ref);
+  vertical-justify: start;
+  vertical-align: outside;
 }
 
-`;
+`,
+}

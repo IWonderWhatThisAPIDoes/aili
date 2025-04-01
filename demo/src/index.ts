@@ -1,8 +1,9 @@
 import { DisplayLogger } from './logging';
-import { BuiltinStylesheet, STYLESHEET_NAME, StylesheetInput } from './stylesheet';
+import { StylesheetInput } from './stylesheet';
 import { Showcase } from './showcase';
 import { Severity } from 'aili-vis';
 import { createSampleGraph, SAMPLE_GRAPH_NAMES, SampleGraph } from './sample-graph';
+import { BuiltinStylesheet, STYLESHEET_NAME } from './sample-stylesheet';
 
 /**
  * Shorthand for retrieving an element with a given ID.
