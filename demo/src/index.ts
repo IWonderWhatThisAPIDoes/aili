@@ -2,6 +2,7 @@ import { DisplayLogger } from './logging';
 import { BuiltinStylesheet, STYLESHEET_NAME, StylesheetInput } from './stylesheet';
 import { Showcase } from './showcase';
 import { Severity } from 'aili-vis';
+import { createSampleGraph, SAMPLE_GRAPH_NAMES, SampleGraph } from './sample-graph';
 
 /**
  * Shorthand for retrieving an element with a given ID.
@@ -28,6 +29,7 @@ const resetButton = interactiveElement('reset-style');
 const styleSelect = interactiveElement('base-style') as HTMLSelectElement;
 const printTreeButton = interactiveElement('print-vis');
 const printStyleButton = interactiveElement('print-mapping');
+const stateSelect = interactiveElement('state-select') as HTMLSelectElement;
 
 // Fill in options of the stylesheet dropdown
 for (const key in STYLESHEET_NAME) {
@@ -37,6 +39,15 @@ for (const key in STYLESHEET_NAME) {
     styleSelect.options.add(newOption);
 }
 styleSelect.value = BuiltinStylesheet[BuiltinStylesheet.DEFAULT];
+
+// Fill in options of the program dropdown
+for (const key in SAMPLE_GRAPH_NAMES) {
+    const newOption = document.createElement('option');
+    newOption.value = SampleGraph[key];
+    newOption.innerText = SAMPLE_GRAPH_NAMES[key];
+    stateSelect.options.add(newOption);
+}
+stateSelect.value = SampleGraph[SampleGraph.DEFAULT];
 
 // Set up the application
 const logger = new DisplayLogger(logPanel);
@@ -51,7 +62,14 @@ function updateRendering() {
 applyButton.addEventListener('click', updateRendering);
 clearButton.addEventListener('click', () => logger.clear());
 resetButton.addEventListener('click', () => stylesheet.resetStylesheet());
-styleSelect.addEventListener('input', () => stylesheet.resetStylesheet(BuiltinStylesheet[styleSelect.value]));
+styleSelect.addEventListener('input', () => {
+    stylesheet.resetStylesheet(BuiltinStylesheet[styleSelect.value]);
+    updateRendering();
+});
+stateSelect.addEventListener('input', () => {
+    showcase.useStateGraph(createSampleGraph(SampleGraph[stateSelect.value]));
+    updateRendering();
+});
 printTreeButton.addEventListener('click', () => logger.log(Severity.DEBUG, showcase.prettyPrintTree()));
 printStyleButton.addEventListener('click', () => logger.log(Severity.DEBUG, showcase.prettyPrintResolvedStyle()));
 

@@ -6,7 +6,7 @@
 
 import { DEFAULT_MODEL_FACTORY, Logger, Severity, Viewport, VisConnector, VisElement } from 'aili-vis';
 import { applyStylesheet, StateGraph, Stylesheet, VisTreeRenderer } from 'aili-jsapi';
-import * as sample from './sample-graph';
+import { createSampleGraph, SampleGraph } from './sample-graph';
 import { prettyPrintVisTree } from './pretty-vis';
 
 /**
@@ -22,7 +22,7 @@ export class Showcase {
         });
         this.logger = logger;
         this.viewport = viewport;
-        this.stateGraph = sample.vectorApp();
+        this.stateGraph = createSampleGraph(SampleGraph.DEFAULT);
     }
     stylesheetChanged(stylesheetSource: string): void {
         let stylesheet: Stylesheet;
@@ -33,6 +33,9 @@ export class Showcase {
             return;
         }
         applyStylesheet(stylesheet, this.stateGraph, this.renderer);
+    }
+    useStateGraph(graph: StateGraph): void {
+        this.stateGraph = graph;
     }
     prettyPrintTree(): string {
         if (this.viewport.root) {

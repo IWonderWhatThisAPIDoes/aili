@@ -33,6 +33,10 @@ export enum BuiltinStylesheet {
      */
     VECTOR,
     /**
+     * Stylesheet for a simple linked list structure.
+     */
+    LINKED_LIST,
+    /**
      * The default setting.
      */
     DEFAULT = STATE_GRAPH_PRETTY,
@@ -41,12 +45,13 @@ export enum BuiltinStylesheet {
 /**
  * Maps keys of built-in stylesheets to their display names.
  */
-export const STYLESHEET_NAME = {
+export const STYLESHEET_NAME: Record<BuiltinStylesheet, string> = {
     [BuiltinStylesheet.TRACE_GRAPH]: 'Stack trace (graph)',
     [BuiltinStylesheet.TRACE_COLUMN]: 'Stack trace (column)',
     [BuiltinStylesheet.STATE_GRAPH]: 'Raw view',
     [BuiltinStylesheet.STATE_GRAPH_PRETTY]: 'State graph with highlights',
     [BuiltinStylesheet.VECTOR]: 'Vector',
+    [BuiltinStylesheet.LINKED_LIST]: 'Linked list',
 }
 
 /**
@@ -70,10 +75,11 @@ export class StylesheetInput {
     private currentBaseStylesheet: BuiltinStylesheet = BuiltinStylesheet.DEFAULT;
 }
 
-const BUILTIN_STYLESHEETS = {
+const BUILTIN_STYLESHEETS: Record<BuiltinStylesheet, string> = {
     [BuiltinStylesheet.STATE_GRAPH_PRETTY]: sample.PRETTY_GRAPH_STYLESHEET,
     [BuiltinStylesheet.TRACE_GRAPH]: sample.TRACE_STYLESHEET,
     [BuiltinStylesheet.TRACE_COLUMN]: sample.COLUMN_TRACE_STYLESHEET,
     [BuiltinStylesheet.STATE_GRAPH]: sample.RAW_STYLESHEET,
     [BuiltinStylesheet.VECTOR]: sample.VECTOR_STYLESHEET,
+    [BuiltinStylesheet.LINKED_LIST]: sample.LIST_STYLESHEET,
 }

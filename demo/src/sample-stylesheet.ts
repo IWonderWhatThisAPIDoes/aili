@@ -400,3 +400,52 @@ export const VECTOR_STYLESHEET: string =
 }
  
 `;
+
+/**
+ * Stylesheet for the linked list example.
+ */
+export const LIST_STYLESHEET: string =
+`:: {
+\xa0\xa0display: graph;
+\xa0\xa0layout: layered;
+\xa0\xa0direction: east;
+\xa0\xa0--root: @;
+}
+
+:list {
+\xa0\xa0display: cell;
+\xa0\xa0value: head;
+}
+
+:node {
+\xa0\xa0display: cell;
+\xa0\xa0shape: circle;
+\xa0\xa0value: @("value");
+\xa0\xa0parent: --root;
+}
+
+.alt(:node "next", :list "head") {
+\xa0\xa0display: connector;
+\xa0\xa0target: @(ref);
+\xa0\xa0end/decoration: arrow;
+}
+
+:: main .many(next).if(!@(next)) "turtle" {
+\xa0\xa0display: label;
+\xa0\xa0value: "^ turtle";
+\xa0\xa0color: "#85d";
+\xa0\xa0parent: @(ref);
+\xa0\xa0vertical-justify: end;
+\xa0\xa0vertical-align: outside;
+}
+
+:: main .many(next).if(!@(next)) "hare" {
+\xa0\xa0display: label;
+\xa0\xa0value: "hare v";
+\xa0\xa0color: "#4a0";
+\xa0\xa0parent: @(ref);
+\xa0\xa0vertical-justify: start;
+\xa0\xa0vertical-align: outside;
+}
+
+`;
