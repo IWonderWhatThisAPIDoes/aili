@@ -11,8 +11,11 @@ jobs:
   cache-key:
     runs-on: ubuntu-latest
     name: Create cache key suffix
+    outputs:
+      suffix: ${{ steps.generate.outputs.suffix }}
     steps:
-      - name: Generate suffix
+      generate:
+        name: Generate suffix
         run: echo "suffix=$RANDOM" >> $GITHUB_OUTPUT
 
   build-jsapi:
