@@ -14,6 +14,9 @@
 .aili-label-mid {
     /* Relative position so that the wrapper has the same size as this */
     position: relative;
+    /* Use center-aligned flexbox in case we render a hat decoration */
+    display: flex;
+    align-items: center;
 }
 
 /* Actual text of a companion label */
@@ -24,6 +27,18 @@
     pointer-events: all;
     /* Prevent the label text from wrapping on its own */
     text-wrap-mode: nowrap;
+}
+
+/* When the hat is to the side of the label */
+.aili-label-outer:not(.aili-label-hat-ns) > .aili-label-mid {
+    /* Space them apart a little */
+    gap: 0.25em;
+}
+
+/* When the hat is above or below the label */
+.aili-label-outer.aili-label-hat-ns > .aili-label-mid {
+    /* Set flex direction to place the hat accordingly */
+    flex-direction: column;
 }
 
 /* Label positioned just below parent's top edge */
