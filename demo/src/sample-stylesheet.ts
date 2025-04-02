@@ -427,23 +427,28 @@ ret::edge {
 // Display the root, so we can see anything in the first place
 :: { display: graph; }
 
-// Write down length and capacity of the vector,
-// we will be using them later
+// Write down reference to the vector
 :vector {
-  --vec-len: @("len");
-  --vec-cap: @("cap");
+  --vec: @
 }
 
-// Display length and capacity somewhere
-:vector "len" {
-  display: text;
-  value: "length:" + @;
+// Display length and capacity at the items they reference
+:vector .alt("len", "cap") {
+  display: label;
   color: maroon;
+  vertical-justify: end;
+  vertical-align: outside;
+  horizontal-justify: end;
+  horizontal-align: middle;
+  hat: north;
+  // Attach labels to the items at the corresponding positions
+  parent: @((--vec) "ptr" ref [@ - 1]);
+}
+:vector "len" {
+  value: "length: " + @;
 }
 :vector "cap" {
-  display: text;
-  value: "capacity:" + @;
-  color: maroon;
+  value: "capacity: " + @;
 }
 
 // Display the vector's main body as a row
@@ -462,7 +467,7 @@ ret::edge {
 
 // Draw unused cells differently
 // to make the difference glaringly obvious
-:vector "ptr" ref [].if(--INDEX >= --vec-len) {
+:vector "ptr" ref [].if(--INDEX >= @((--vec) "len")) {
     value: "X";
     fill: lightgrey;
 }
@@ -473,24 +478,6 @@ ret::edge {
   vertical-justify: start;
   vertical-align: outside;
   value: --INDEX;
-}
-
-// Make labels where the vector's parameters point to
-:vector "ptr" ref [].if(--INDEX == --vec-cap - 1)::extra(len-cap) {
-  display: label;
-  value: "cap";
-}
-:vector "ptr" ref [].if(--INDEX == --vec-len - 1)::extra(len-cap) {
-  display: label;
-  value: "len";
-}
-:vector "ptr" ref []::extra(len-cap) {
-  color: maroon;
-  vertical-justify: end;
-  vertical-align: outside;
-  horizontal-justify: end;
-  horizontal-align: middle;
-  hat: north;
 }
 
 `,
