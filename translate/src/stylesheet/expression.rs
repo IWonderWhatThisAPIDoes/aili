@@ -1,7 +1,7 @@
 //! Stylesheet expressions that evaluate to property values.
 
 use aili_model::state::{EdgeLabel, NodeTypeClass};
-use derive_more::Debug;
+use derive_more::{Debug, From};
 
 /// Stylesheet expression.
 ///
@@ -276,6 +276,23 @@ pub enum BinaryOperator {
     Or,
 }
 
+/// Edge matcher that can be used with a limited selector.
+#[derive(Clone, PartialEq, Eq, From, Debug)]
+pub enum LimitedEdgeMatcher {
+    /// Matches a statically defined edge label.
+    #[debug("{_0:?}")]
+    Exact(EdgeLabel),
+
+    /// Matches an [`EdgeLabel::Index`] with the index
+    /// specified by an expression which is evaluated
+    /// dynamically.
+    ///
+    /// If the expression does not evaluate to a numeric value,
+    /// it rejects all edges.
+    #[debug("[({_0:?})]")]
+    DynIndex(Expression),
+}
+
 /// Selector that is limited to a single path
 /// and exact matches for edges (matchers other than
 /// [`Exact`](super::selector::EdgeMatcher::Exact) are not allowed).
@@ -284,7 +301,13 @@ pub enum BinaryOperator {
 #[derive(Clone, PartialEq, Eq, Default)]
 pub struct LimitedSelector {
     /// Path that must be matched in order to select something.
-    pub path: Vec<EdgeLabel>,
+    pub path: Vec<LimitedEdgeMatcher>,
+
+    /// Overrides the origin from where the selector should be evaluated.
+    ///
+    /// If the expression does not evaluate to a selection of a node,
+    /// the selector does not match anything.
+    pub origin: Option<Box<Expression>>,
 
     /// Specifies whether the selector selects an extra element
     /// attached to the matched node or edge, instead of the node
@@ -294,11 +317,18 @@ pub struct LimitedSelector {
 
 impl LimitedSelector {
     /// Shorthand for constructing a limited selector that matches a node.
-    pub fn from_path(path: impl IntoIterator<Item = EdgeLabel>) -> Self {
+    pub fn from_path(path: impl IntoIterator<Item = LimitedEdgeMatcher>) -> Self {
         Self {
             path: Vec::from_iter(path),
+            origin: None,
             extra_label: None,
         }
+    }
+
+    /// Overrides the selection origin with an expression value.
+    pub fn with_origin(mut self, origin: Expression) -> Self {
+        self.origin = Some(Box::new(origin));
+        self
     }
 
     /// Adds an extra label to an existing selector.

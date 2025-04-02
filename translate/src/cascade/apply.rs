@@ -757,7 +757,8 @@ mod test {
                 [
                     SelectorSegment::anything_any_number_of_times(),
                     SelectorSegment::Condition(Expression::Select(
-                        LimitedSelector::from_path([EdgeLabel::Named("a".to_owned(), 0)]).into(),
+                        LimitedSelector::from_path([EdgeLabel::Named("a".to_owned(), 0).into()])
+                            .into(),
                     )),
                 ]
                 .into(),
@@ -853,7 +854,7 @@ mod test {
                     StyleClause {
                         key: Property(Target),
                         value: Expression::Select(
-                            LimitedSelector::from_path([EdgeLabel::Main]).into(),
+                            LimitedSelector::from_path([EdgeLabel::Main.into()]).into(),
                         ),
                     },
                 ],
@@ -870,7 +871,7 @@ mod test {
                     StyleClause {
                         key: Property(Display),
                         value: Expression::Select(
-                            LimitedSelector::from_path([EdgeLabel::Index(0)]).into(),
+                            LimitedSelector::from_path([EdgeLabel::Index(0).into()]).into(),
                         ),
                     },
                 ],
@@ -1150,7 +1151,9 @@ mod test {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
                     key: Variable("--root".to_owned()),
-                    value: Expression::Select(LimitedSelector::from_path([EdgeLabel::Main]).into()),
+                    value: Expression::Select(
+                        LimitedSelector::from_path([EdgeLabel::Main.into()]).into(),
+                    ),
                 }],
             },
             StyleRule {
@@ -1166,7 +1169,7 @@ mod test {
                     StyleClause {
                         key: Property(Target),
                         value: Expression::Select(
-                            LimitedSelector::from_path([EdgeLabel::Next]).into(),
+                            LimitedSelector::from_path([EdgeLabel::Next.into()]).into(),
                         ),
                     },
                 ],
@@ -1717,6 +1720,94 @@ mod test {
             PropertyMap::new()
                 .with_fragment_attribute(FragmentKey::Start, "value".to_owned(), "42".to_owned())
                 .with_fragment_attribute(FragmentKey::End, "key".to_owned(), "abc".to_owned()),
+        )]
+        .into();
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(resolved, expected_mapping);
+    }
+
+    #[test]
+    fn dynamic_index_matcher() {
+        // :: {
+        //   --i: 1;
+        // }
+        //
+        // .if(@([--i])) {
+        //   value: abc;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Variable("--i".to_owned()),
+                    value: Expression::Int(1),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [
+                        SelectorSegment::anything_any_number_of_times(),
+                        SelectorSegment::Condition(Expression::Select(
+                            LimitedSelector::from_path([LimitedEdgeMatcher::DynIndex(
+                                Expression::Variable("--i".to_owned()),
+                            )])
+                            .into(),
+                        )),
+                    ]
+                    .into(),
+                ),
+                properties: vec![StyleClause {
+                    key: Property(Attribute("value".to_owned())),
+                    value: Expression::String("abc".to_owned()),
+                }],
+            },
+        ]));
+        let expected_mapping = [(
+            Selectable::node(11),
+            PropertyMap::new().with_attribute("value".to_owned(), "abc".to_owned()),
+        )]
+        .into();
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(resolved, expected_mapping);
+    }
+
+    #[test]
+    fn select_origin_override() {
+        // :: {
+        //   --root: @;
+        // }
+        //
+        // :: main {
+        //   value: @((--root) "a");
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![
+            StyleRule {
+                selector: Selector::default(),
+                properties: vec![StyleClause {
+                    key: Variable("--root".to_owned()),
+                    value: Expression::Select(LimitedSelector::default().into()),
+                }],
+            },
+            StyleRule {
+                selector: Selector::from_path(
+                    [SelectorSegment::Match(EdgeLabel::Main.into())].into(),
+                ),
+                properties: vec![StyleClause {
+                    key: Property(Attribute("value".to_owned())),
+                    value: Expression::Select(
+                        LimitedSelector::from_path([EdgeLabel::Named("a".to_owned(), 0).into()])
+                            .with_origin(Expression::Variable("--root".to_owned()))
+                            .into(),
+                    ),
+                }],
+            },
+        ]));
+        let expected_mapping = [(
+            Selectable::node(1),
+            PropertyMap::new().with_attribute(
+                "value".to_owned(),
+                TestGraph::NUMERIC_NODE_VALUE.to_string(),
+            ),
         )]
         .into();
         let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());

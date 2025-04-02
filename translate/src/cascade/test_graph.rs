@@ -133,13 +133,13 @@ impl TestGraph {
     /// Constructs a selector that matches a numeric-valued node
     /// in the [`default_graph`](TestGraph::default_graph).
     pub fn numeric_node_selector() -> LimitedSelector {
-        LimitedSelector::from_path([EdgeLabel::Named("a".into(), 0)])
+        LimitedSelector::from_path([EdgeLabel::Named("a".into(), 0).into()])
     }
 
     /// Constructs a selector that does not match a node
     /// in the [`default_graph`](TestGraph::default_graph).
     pub fn missing_node_selector() -> LimitedSelector {
-        LimitedSelector::from_path([EdgeLabel::Result])
+        LimitedSelector::from_path([EdgeLabel::Result.into()])
     }
 
     /// Value of the node selected by

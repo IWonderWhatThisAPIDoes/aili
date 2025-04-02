@@ -330,7 +330,7 @@ mod test {
             [
                 SelectorSegment::anything_any_number_of_times(),
                 SelectorSegment::Condition(Expression::Select(
-                    LimitedSelector::from_path([EdgeLabel::Deref]).into(),
+                    LimitedSelector::from_path([EdgeLabel::Deref.into()]).into(),
                 )),
             ]
             .into(),
@@ -350,7 +350,8 @@ mod test {
                 ),
                 SelectorSegment::Condition(Expression::UnaryOperator(
                     UnaryOperator::Not,
-                    Expression::Select(LimitedSelector::from_path([EdgeLabel::Next]).into()).into(),
+                    Expression::Select(LimitedSelector::from_path([EdgeLabel::Next.into()]).into())
+                        .into(),
                 )),
             ]
             .into(),

@@ -194,27 +194,57 @@ impl<T: ProgramStateGraph> Evaluator<'_, T> {
 
     /// Evaluates a select expression in the context.
     fn select(&self, selector: &LimitedSelector) -> Option<Selectable<T::NodeId>> {
-        let mut current_node = self.0.select_origin.clone()?;
+        let mut current_node = if let Some(explicit_origin) = &selector.origin {
+            Self::coerce_to_node_id(&self.evaluate(explicit_origin))?.clone()
+        } else {
+            self.0.select_origin.clone()?
+        };
         for segment in &selector.path {
+            let edge_label = self.resolve_selector_segment(segment)?;
             // Find the edge specified (unambiguously) by the segmens
             // and move to the node at its end
             current_node = self
                 .0
                 .graph?
                 .get(&current_node)
-                .and_then(|node| node.get_successor(segment))?;
+                .and_then(|node| node.get_successor(&edge_label))?;
         }
         let mut selection = Selectable::node(current_node);
         selection.extra_label = selector.extra_label.clone();
         Some(selection)
     }
 
+    /// Translates a [`LimitedEdgeMatcher`] to the [`EdgeLabel`]
+    /// it represents in the context of the evaluator.
+    fn resolve_selector_segment(&self, segment: &LimitedEdgeMatcher) -> Option<EdgeLabel> {
+        match segment {
+            LimitedEdgeMatcher::Exact(label) => Some(label.clone()),
+            LimitedEdgeMatcher::DynIndex(index) => {
+                let value = self.coerce_to_value(self.evaluate(index));
+                match value {
+                    PropertyValue::Value(NodeValue::Bool(b)) => Some(EdgeLabel::Index(b as usize)),
+                    PropertyValue::Value(NodeValue::Uint(u)) => Some(EdgeLabel::Index(u as usize)),
+                    PropertyValue::Value(NodeValue::Int(i)) if i >= 0 => {
+                        Some(EdgeLabel::Index(i as usize))
+                    }
+                    _ => None,
+                }
+            }
+        }
+    }
+
     /// Shorthand for retrieving the node that a property value is referencing, if any
     fn coerce_to_node(&self, value: PropertyValue<T::NodeId>) -> Option<T::NodeRef<'_>> {
+        Self::coerce_to_node_id(&value)
+            .and_then(|node_id| self.0.graph.and_then(|g| g.get(node_id)))
+    }
+
+    /// Shorthand for retrieving the ID of a node that a property value is referencing, if any
+    fn coerce_to_node_id(value: &PropertyValue<T::NodeId>) -> Option<&T::NodeId> {
         match value {
             PropertyValue::Selection(target) => {
                 if target.is_node() {
-                    self.0.graph.and_then(|g| g.get(&target.node_id))
+                    Some(&target.node_id)
                 } else {
                     None
                 }
