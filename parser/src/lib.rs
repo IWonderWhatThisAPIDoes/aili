@@ -280,8 +280,8 @@ mod test {
                 key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
                 value: Expression::Select(
                     LimitedSelector::from_path([
-                        EdgeLabel::Named("a".to_owned(), 0),
-                        EdgeLabel::Index(42),
+                        EdgeLabel::Named("a".to_owned(), 0).into(),
+                        EdgeLabel::Index(42).into(),
                     ])
                     .into(),
                 ),
@@ -766,6 +766,51 @@ mod test {
                 .into(),
             ),
             properties: Vec::new(),
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn dynamic_index_matcher() {
+        let source = ":: { parent: @([--len - 1][--i]) }";
+        let index_expression = Expression::BinaryOperator(
+            Expression::Variable("--len".to_owned()).into(),
+            BinaryOperator::Minus,
+            Expression::Int(1).into(),
+        );
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::default(),
+            properties: vec![StyleClause {
+                key: StyleKey::Property(PropertyKey::Parent),
+                value: Expression::Select(
+                    LimitedSelector::from_path([
+                        LimitedEdgeMatcher::DynIndex(index_expression),
+                        LimitedEdgeMatcher::DynIndex(Expression::Variable("--i".to_owned())),
+                    ])
+                    .into(),
+                ),
+            }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn select_origin_override() {
+        let source = ":: { parent: @((@) main) }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::default(),
+            properties: vec![StyleClause {
+                key: StyleKey::Property(PropertyKey::Parent),
+                value: Expression::Select(
+                    LimitedSelector::from_path([EdgeLabel::Main.into()])
+                        .with_origin(Expression::Select(LimitedSelector::default().into()))
+                        .into(),
+                ),
+            }],
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
             .expect("Stylesheet should have parsed");

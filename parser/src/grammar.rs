@@ -209,8 +209,8 @@ pomelo! {
     %type pathlist   Vec<SelectorPath>;
     %type limsel     LimitedSelector;
     %type limsel1    LimitedSelector;
-    %type limpath    Vec<EdgeLabel>;
-    %type limseg     EdgeLabel;
+    %type limpath    Vec<LimitedEdgeMatcher>;
+    %type limseg     LimitedEdgeMatcher;
     %type matcher    EdgeMatcher;
     %type exact      EdgeLabel;
     %type extra      String;
@@ -298,10 +298,12 @@ pomelo! {
     limsel ::= limsel1;
     limsel ::= limsel1(s) extra(e)                     { s.with_extra(e) }
     limsel1 ::= limpath(p)                             { LimitedSelector::from_path(p) }
+    limsel1 ::= OpenParen expr(o) CloseParen limpath(p) { LimitedSelector::from_path(p).with_origin(o) }
     limpath ::=                                        { Vec::new() }
     limpath ::= limpath(mut p) limseg(s)               { p.push(s); p }
-    limseg ::= exact;
-    limseg ::= Quoted(s)                               { EdgeLabel::Named(s.to_owned(), 0) }
+    limseg ::= exact(e)                                { e.into() }
+    limseg ::= OpenBracket expr(e) CloseBracket       { if let Expression::Int(i) = e { EdgeLabel::Index(i as usize).into() } else { LimitedEdgeMatcher::DynIndex(e) } }
+    limseg ::= Quoted(s)                               { EdgeLabel::Named(s.to_owned(), 0).into() }
 
     // Matchers in selectors (both full and limited)
     matcher ::= Asterisk                               { EdgeMatcher::Any }
@@ -309,7 +311,7 @@ pomelo! {
     matcher ::= Quoted(s)                              { EdgeMatcher::Named(s.to_owned()) }
     matcher ::= Percent                                { EdgeMatcher::AnyNamed }
     matcher ::= exact(e)                               { EdgeMatcher::Exact(e) }
-    exact ::= OpenBracket Int(i) CloseBracket          { EdgeLabel::Index(i as usize) }
+    matcher ::= OpenBracket Int(i) CloseBracket        { EdgeMatcher::Exact(EdgeLabel::Index(i as usize)) }
     exact ::= Quoted(s) Hash Int(i)                    { EdgeLabel::Named(s.to_owned(), i as usize) }
     exact ::= Unquoted(s)                              { extra.try_or(edge_label_from_name(s).map_err(SyntaxError::InvalidEdgeLabel), EdgeLabel::Main) }
     extra ::= Extra                                    { String::new() }
