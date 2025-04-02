@@ -1,13 +1,16 @@
 //! Main implementation of expression evaluation.
 
 use super::context::EvaluationContext;
-use crate::{property::PropertyValue, stylesheet::expression::*};
+use crate::{
+    property::{PropertyValue, Selectable},
+    stylesheet::expression::*,
+};
 use aili_model::state::*;
 
 /// Helper for evaluating expressions statefully.
-pub struct Evaluator<'a, T: EvaluationContext>(pub &'a T);
+pub struct Evaluator<'a, T: ProgramStateGraph>(pub &'a EvaluationContext<'a, T>);
 
-impl<T: EvaluationContext> Evaluator<'_, T> {
+impl<T: ProgramStateGraph> Evaluator<'_, T> {
     /// Evaluates an expression in the context.
     pub fn evaluate(&self, expression: &Expression) -> PropertyValue<T::NodeId> {
         use Expression::*;
@@ -29,10 +32,15 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
                     self.evaluate(if_false)
                 }
             }
-            Variable(name) => self.0.get_variable_value(name.as_str()),
-            Select(selector) => self
+            Variable(name) => self
                 .0
-                .select_entity(selector)
+                .variable_pool
+                .as_ref()
+                .and_then(|pool| pool.get(name.as_str()))
+                .cloned()
+                .unwrap_or_default(),
+            Select(selector) => self
+                .select(selector)
                 .map(Box::new)
                 .map(PropertyValue::Selection)
                 .unwrap_or_default(),
@@ -184,12 +192,29 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
         }
     }
 
+    /// Evaluates a select expression in the context.
+    fn select(&self, selector: &LimitedSelector) -> Option<Selectable<T::NodeId>> {
+        let mut current_node = self.0.select_origin.clone()?;
+        for segment in &selector.path {
+            // Find the edge specified (unambiguously) by the segmens
+            // and move to the node at its end
+            current_node = self
+                .0
+                .graph?
+                .get(&current_node)
+                .and_then(|node| node.get_successor(segment))?;
+        }
+        let mut selection = Selectable::node(current_node);
+        selection.extra_label = selector.extra_label.clone();
+        Some(selection)
+    }
+
     /// Shorthand for retrieving the node that a property value is referencing, if any
     fn coerce_to_node(&self, value: PropertyValue<T::NodeId>) -> Option<T::NodeRef<'_>> {
         match value {
             PropertyValue::Selection(target) => {
                 if target.is_node() {
-                    self.0.get(&target.node_id)
+                    self.0.graph.and_then(|g| g.get(&target.node_id))
                 } else {
                     None
                 }
@@ -205,7 +230,8 @@ impl<T: EvaluationContext> Evaluator<'_, T> {
             PropertyValue::Selection(target) => {
                 if target.is_node() {
                     self.0
-                        .get(&target.node_id)
+                        .graph
+                        .and_then(|g| g.get(&target.node_id))
                         .and_then(|x| x.value())
                         .map(Into::into)
                         .unwrap_or_default()

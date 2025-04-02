@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 use super::{
-    eval::{context::EvaluationOnGraph, evaluate},
+    eval::{context::EvaluationContext, evaluate},
     style::FlatSelectorSegment,
 };
 use crate::stylesheet::selector::EdgeMatcher;
@@ -133,9 +133,8 @@ impl<'a, T: RootedProgramStateGraph> GetSelectorMatches<'a, T> {
                 }
                 FlatSelectorSegment::Restrict(condition) => {
                     // Proceed only if the condition holds
-                    if evaluate(condition, &EvaluationOnGraph::new(self.graph, node.clone()))
-                        .is_truthy()
-                    {
+                    let context = EvaluationContext::from_graph(self.graph, node.clone());
+                    if evaluate(condition, &context).is_truthy() {
                         // continue traversing the state machine linearly
                         open_states.push((state + 1, committed));
                     }

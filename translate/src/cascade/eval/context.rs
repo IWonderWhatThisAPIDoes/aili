@@ -1,42 +1,88 @@
 //! Contexts for expression evaluation.
 
-use crate::{
-    property::{PropertyValue, Selectable},
-    stylesheet::expression::LimitedSelector,
-};
-use aili_model::state::{NodeTypeId, ProgramStateGraph, ProgramStateNode, RootedProgramStateGraph};
+use super::variable_pool::VariablePool;
+use aili_model::state::{NodeTypeId, ProgramStateGraph, ProgramStateNode};
 
 /// Provides stateful context for expression evaluation.
-pub trait EvaluationContext: ProgramStateGraph {
-    /// Implementation of the [`Select`](crate::stylesheet::expression::Expression::Select) expression.
-    fn select_entity(&self, _selector: &LimitedSelector) -> Option<Selectable<Self::NodeId>> {
-        None
+pub struct EvaluationContext<'a, T>
+where
+    T: ProgramStateGraph,
+{
+    /// Graph within which [`Select`](crate::stylesheet::expression::Expression::Select)
+    /// expressions should be evaluated.
+    pub graph: Option<&'a T>,
+
+    /// Node that should be the origin for
+    /// [`Select`](crate::stylesheet::expression::Expression::Select) expressions.
+    pub select_origin: Option<T::NodeId>,
+
+    /// Variable pool in which [`Variable`](crate::stylesheet::expression::Expression::Variable)
+    /// expressions should be evaluated.
+    pub variable_pool: Option<&'a VariablePool<&'a str, T::NodeId>>,
+}
+
+impl<'a, T> EvaluationContext<'a, T>
+where
+    T: ProgramStateGraph,
+{
+    /// Constructs a context that provides no state.
+    pub fn stateless() -> Self {
+        Self::default()
     }
 
-    /// Implementation of the [`Variable`](crate::stylesheet::expression::Expression::Variable) expression.
-    fn get_variable_value(&self, _name: &str) -> PropertyValue<Self::NodeId> {
-        PropertyValue::Unset
+    /// Constructs a context that allows evaluation of
+    /// [`Select`](crate::stylesheet::expression::Expression::Select)
+    /// expressions over a graph.
+    pub fn from_graph(graph: &'a T, select_origin: T::NodeId) -> Self {
+        Self {
+            graph: Some(graph),
+            select_origin: Some(select_origin),
+            variable_pool: None,
+        }
+    }
+
+    /// Adds a variable pool for evaluating
+    /// [`Variable`](crate::stylesheet::expression::Expression::Variable)
+    /// expressions.
+    pub fn with_variables(mut self, variable_pool: &'a VariablePool<&'a str, T::NodeId>) -> Self {
+        self.variable_pool = Some(variable_pool);
+        self
     }
 }
 
-/// [`EvaluationContext`] that does not provide any state.
-/// It has no variables and is not backed by a graph.
-#[derive(Clone, Copy, Default)]
-pub struct StatelessEvaluation;
+impl<T> Default for EvaluationContext<'_, T>
+where
+    T: ProgramStateGraph,
+{
+    fn default() -> Self {
+        Self {
+            graph: None,
+            select_origin: None,
+            variable_pool: None,
+        }
+    }
+}
 
-impl ProgramStateGraph for StatelessEvaluation {
+/// Convenience alias for [`EvaluationContext`] that is inherently stateless.
+pub type StatelessEvaluation = EvaluationContext<'static, Never>;
+
+impl StatelessEvaluation {
+    pub fn new() -> Self {
+        Self::stateless()
+    }
+}
+
+/// A value of this type can never be constructed.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+pub enum Never {}
+
+impl ProgramStateGraph for Never {
     type NodeId = Never;
     type NodeRef<'a> = Never;
     fn get(&self, _: &Self::NodeId) -> Option<Self::NodeRef<'_>> {
         None
     }
 }
-
-impl EvaluationContext for StatelessEvaluation {}
-
-/// A value of this type can never be constructed.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub enum Never {}
 
 impl ProgramStateNode for Never {
     type NodeId = Never;
@@ -61,61 +107,5 @@ impl ProgramStateNode for Never {
 impl NodeTypeId for Never {
     fn type_name(&self) -> &str {
         unreachable!()
-    }
-}
-
-/// [`EvaluationContext`] that provides a graph with an origin node to run selectors on.
-pub struct EvaluationOnGraph<'a, T: ProgramStateGraph> {
-    /// Graph within which [`Select`](crate::stylesheet::expression::Expression::Select)
-    /// expressions should be evaluated.
-    graph: &'a T,
-
-    /// Node that should be the origin for
-    /// [`Select`](crate::stylesheet::expression::Expression::Select) expressions.
-    origin_node: T::NodeId,
-}
-
-impl<'a, T: ProgramStateGraph> EvaluationOnGraph<'a, T> {
-    /// Constructs an evaluation context for a graph.
-    pub fn new(graph: &'a T, origin_node: T::NodeId) -> Self {
-        Self { graph, origin_node }
-    }
-}
-
-impl<T: ProgramStateGraph> ProgramStateGraph for EvaluationOnGraph<'_, T> {
-    type NodeId = T::NodeId;
-    type NodeRef<'a>
-        = T::NodeRef<'a>
-    where
-        Self: 'a;
-    fn get(&self, id: &Self::NodeId) -> Option<Self::NodeRef<'_>> {
-        self.graph.get(id)
-    }
-}
-
-impl<T: ProgramStateGraph> EvaluationContext for EvaluationOnGraph<'_, T> {
-    fn select_entity(&self, selector: &LimitedSelector) -> Option<Selectable<Self::NodeId>> {
-        let mut current_node = self.origin_node.clone();
-        for segment in &selector.path {
-            // Find the edge specified (unambiguously) by the segmens
-            // and move to the node at its end
-            current_node = self
-                .graph
-                .get(&current_node)
-                .and_then(|node| node.get_successor(segment))?;
-        }
-        let mut selection = Selectable::node(current_node);
-        selection.extra_label = selector.extra_label.clone();
-        Some(selection)
-    }
-}
-
-impl<T: RootedProgramStateGraph> EvaluationContext for T {
-    /// Evaluates a [`LimitedSelector`] in the context of the root node
-    /// of a rooted graph. This way, one may simply use a graph
-    /// as an evaluation context instead of
-    /// `EvaluationOnGraph::new(graph, graph.root())`, which has the same effect.
-    fn select_entity(&self, selector: &LimitedSelector) -> Option<Selectable<Self::NodeId>> {
-        EvaluationOnGraph::new(self, self.root()).select_entity(selector)
     }
 }

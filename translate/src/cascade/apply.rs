@@ -1,20 +1,14 @@
 //! Evaluation of an entire stylesheet.
 
 use super::{
-    eval::{
-        context::{EvaluationContext, EvaluationOnGraph},
-        evaluate,
-        variable_pool::VariablePool,
-    },
+    eval::{context::EvaluationContext, evaluate, variable_pool::VariablePool},
     style::{CascadeStyle, FlatSelectorSegment},
 };
 use crate::{
     property::*,
-    stylesheet::{StyleKey, expression::LimitedSelector, selector::EdgeMatcher},
+    stylesheet::{StyleKey, selector::EdgeMatcher},
 };
-use aili_model::state::{
-    EdgeLabel, NodeId, NodeValue, ProgramStateGraph, ProgramStateNode, RootedProgramStateGraph,
-};
+use aili_model::state::{EdgeLabel, NodeId, NodeValue, ProgramStateNode, RootedProgramStateGraph};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 /// Applies a stylesheet to a graph.
@@ -101,32 +95,6 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
 
     /// Variables that are active at the moment
     variable_pool: VariablePool<&'a str, T::NodeId>,
-}
-
-struct GraphPoolEvaluationContext<'a, T: ProgramStateGraph> {
-    graph: &'a T,
-    origin: T::NodeId,
-    variable_pool: &'a VariablePool<&'a str, T::NodeId>,
-}
-
-impl<T: ProgramStateGraph> ProgramStateGraph for GraphPoolEvaluationContext<'_, T> {
-    type NodeRef<'a>
-        = T::NodeRef<'a>
-    where
-        Self: 'a;
-    type NodeId = T::NodeId;
-    fn get(&self, id: &Self::NodeId) -> Option<Self::NodeRef<'_>> {
-        self.graph.get(id)
-    }
-}
-
-impl<T: ProgramStateGraph> EvaluationContext for GraphPoolEvaluationContext<'_, T> {
-    fn select_entity(&self, selector: &LimitedSelector) -> Option<Selectable<Self::NodeId>> {
-        EvaluationOnGraph::new(self.graph, self.origin.clone()).select_entity(selector)
-    }
-    fn get_variable_value(&self, name: &str) -> PropertyValue<Self::NodeId> {
-        self.variable_pool.get(name).cloned().unwrap_or_default()
-    }
 }
 
 impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
@@ -493,12 +461,8 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
     }
 
-    fn evaluation_context(&self, origin: T::NodeId) -> impl EvaluationContext<NodeId = T::NodeId> {
-        GraphPoolEvaluationContext {
-            graph: self.graph,
-            origin,
-            variable_pool: &self.variable_pool,
-        }
+    fn evaluation_context(&self, origin: T::NodeId) -> EvaluationContext<T> {
+        EvaluationContext::from_graph(self.graph, origin).with_variables(&self.variable_pool)
     }
 
     fn write_property(
