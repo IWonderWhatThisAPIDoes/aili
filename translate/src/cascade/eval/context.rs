@@ -19,6 +19,21 @@ where
     /// Variable pool in which [`Variable`](crate::stylesheet::expression::Expression::Variable)
     /// expressions should be evaluated.
     pub variable_pool: Option<&'a VariablePool<&'a str, T::NodeId>>,
+
+    /// Value that
+    /// [`MagicVariableKey::EdgeIndex`](crate::stylesheet::expression::MagicVariableKey::EdgeIndex)
+    /// should resolve to.
+    pub edge_index: Option<usize>,
+
+    /// Value that
+    /// [`MagicVariableKey::EdgeName`](crate::stylesheet::expression::MagicVariableKey::EdgeName)
+    /// should resolve to.
+    pub edge_name: Option<&'a str>,
+
+    /// Value that
+    /// [`MagicVariableKey::EdgeDiscriminator`](crate::stylesheet::expression::MagicVariableKey::EdgeDiscriminator)
+    /// should resolve to.
+    pub edge_discriminator: Option<usize>,
 }
 
 impl<'a, T> EvaluationContext<'a, T>
@@ -38,6 +53,9 @@ where
             graph: Some(graph),
             select_origin: Some(select_origin),
             variable_pool: None,
+            edge_index: None,
+            edge_discriminator: None,
+            edge_name: None,
         }
     }
 
@@ -46,6 +64,30 @@ where
     /// expressions.
     pub fn with_variables(mut self, variable_pool: &'a VariablePool<&'a str, T::NodeId>) -> Self {
         self.variable_pool = Some(variable_pool);
+        self
+    }
+
+    /// Adds an edge index for evaluating the
+    /// [`MagicVariableKey::EdgeIndex`](crate::stylesheet::expression::MagicVariableKey::EdgeIndex)
+    /// magic variable.
+    pub fn with_edge_index(mut self, index: usize) -> Self {
+        self.edge_index = Some(index);
+        self
+    }
+
+    /// Adds an edge name for evaluating the
+    /// [`MagicVariableKey::EdgeName`](crate::stylesheet::expression::MagicVariableKey::EdgeName)
+    /// magic variable.
+    pub fn with_edge_name(mut self, name: &'a str) -> Self {
+        self.edge_name = Some(name);
+        self
+    }
+
+    /// Adds an edge index for evaluating the
+    /// [`MagicVariableKey::EdgeDiscriminator`](crate::stylesheet::expression::MagicVariableKey::EdgeDiscriminator)
+    /// magic variable.
+    pub fn with_edge_discriminator(mut self, discriminator: usize) -> Self {
+        self.edge_discriminator = Some(discriminator);
         self
     }
 }
@@ -59,6 +101,9 @@ where
             graph: None,
             select_origin: None,
             variable_pool: None,
+            edge_index: None,
+            edge_discriminator: None,
+            edge_name: None,
         }
     }
 }

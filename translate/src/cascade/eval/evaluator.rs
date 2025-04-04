@@ -44,6 +44,28 @@ impl<T: ProgramStateGraph> Evaluator<'_, T> {
                 .map(Box::new)
                 .map(PropertyValue::Selection)
                 .unwrap_or_default(),
+            MagicVariable(MagicVariableKey::EdgeIndex) => self
+                .0
+                .edge_index
+                .map(u64::try_from)
+                .and_then(Result::ok)
+                .map(NodeValue::Uint)
+                .map(PropertyValue::Value)
+                .unwrap_or_default(),
+            MagicVariable(MagicVariableKey::EdgeName) => self
+                .0
+                .edge_name
+                .map(str::to_owned)
+                .map(PropertyValue::String)
+                .unwrap_or_default(),
+            MagicVariable(MagicVariableKey::EdgeDiscriminator) => self
+                .0
+                .edge_discriminator
+                .map(u64::try_from)
+                .and_then(Result::ok)
+                .map(NodeValue::Uint)
+                .map(PropertyValue::Value)
+                .unwrap_or_default(),
         }
     }
 

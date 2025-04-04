@@ -20,6 +20,9 @@ pub enum Expression {
     #[debug("{_0}")]
     Variable(String),
 
+    /// Built-in magic variable-like value.
+    MagicVariable(MagicVariableKey),
+
     /// The `unset` (null) literal.
     #[debug("unset")]
     Unset,
@@ -54,6 +57,32 @@ pub enum Expression {
     /// Otherwise resolves to its third argument.
     #[debug("({_0:?} ? {_1:?} : {_2:?})")]
     Conditional(Box<Expression>, Box<Expression>, Box<Expression>),
+}
+
+/// Identifiers of variables that can be invoked within expressions.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum VariableKey {
+    /// Common user variable, identified by its name.
+    User(String),
+
+    /// Built-in interpreter variable, identified by
+    Magic(MagicVariableKey),
+}
+
+/// Identifiers of built-in interpreter magic variables.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MagicVariableKey {
+    /// If an [`EdgeLabel::Index`] edge has just been traversed,
+    /// this variable contains the index associated with the edge.
+    EdgeIndex,
+
+    /// If an [`EdgeLabel::Named`] edge has just been traversed,
+    /// this variable contains the name associated with the edge.
+    EdgeName,
+
+    /// If an [`EdgeLabel::Named`] edge has just been traversed,
+    /// this variable contains the discriminator associated with the edge.
+    EdgeDiscriminator,
 }
 
 /// Identifier of the operator in a [`UnaryOperator`](Expression::UnaryOperator) expression.

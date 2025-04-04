@@ -8,7 +8,7 @@ use crate::{
     property::*,
     stylesheet::{StyleKey, selector::EdgeMatcher},
 };
-use aili_model::state::{EdgeLabel, NodeId, NodeValue, ProgramStateNode, RootedProgramStateGraph};
+use aili_model::state::{EdgeLabel, NodeId, ProgramStateNode, RootedProgramStateGraph};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 /// Applies a stylesheet to a graph.
@@ -20,21 +20,6 @@ pub fn apply_stylesheet<T: RootedProgramStateGraph>(
     helper.run();
     helper.result()
 }
-
-/// Name of the magic variable that stores the index
-/// of the [`EdgeLabel::Index`] edge that leads to
-/// the current node, if any.
-pub const VARIABLE_INDEX: &str = "--INDEX";
-
-/// Name of the magic variable that stores the name
-/// of the [`EdgeLabel::Named`] edge that leads to
-/// the current node, if any
-pub const VARIABLE_NAME: &str = "--NAME";
-
-/// Name of the magic variable that stores the discriminator
-/// of the [`EdgeLabel::Named`] edge that leads to
-/// the current node, if any
-pub const VARIABLE_DISCRIMINATOR: &str = "--DISCRIMINATOR";
 
 /// Identifier of a property variable on an entity.
 #[derive(PartialEq, Eq, Debug, Hash)]
@@ -200,7 +185,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         let ResolveNodeResult {
             output_states,
             mut matched_rules,
-        } = self.resolve_node(node.clone(), starting_states);
+        } = self.resolve_node(node.clone(), starting_states, previous_edge);
 
         // Resolve rules in correct order
         matched_rules.sort_by_cached_key(|&(rule_index, matched_node)| {
@@ -235,6 +220,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 rule_index,
                 auto_context,
                 &mut new_auto_context,
+                previous_edge,
             );
         }
 
@@ -253,6 +239,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         &mut self,
         node: T::NodeId,
         starting_states: impl IntoIterator<Item = SequencePointRef>,
+        previous_edge: Option<&EdgeLabel>,
     ) -> ResolveNodeResult<'a> {
         // States of the selector state machine that have been visited
         // while evaluating this node
@@ -306,7 +293,8 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 }
                 FlatSelectorSegment::Restrict(condition) => {
                     // Proceed only if the condition holds
-                    if evaluate(condition, &self.evaluation_context(node.clone())).is_truthy() {
+                    let context = self.evaluation_context(node.clone(), previous_edge);
+                    if evaluate(condition, &context).is_truthy() {
                         // continue traversing the state machine linearly
                         open_states.push((state.advance(), committed));
                     }
@@ -342,7 +330,6 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         for (edge_label, successor_node) in node.successors() {
             // Push a state so we can pop it later
             self.variable_pool.push();
-            self.create_edge_identifier_variables(edge_label);
             // Start traversing from the next node, from all the states where this node ended
             // and the edge matches the blocking matcher
             let starting_states = output_states
@@ -369,6 +356,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         rule_index: usize,
         input_auto_context: &AutoAssignmentContext<T::NodeId>,
         output_auto_context: &mut AutoAssignmentContext<T::NodeId>,
+        previous_edge: Option<&EdgeLabel>,
     ) {
         // Edges that are selected are automatically displayed as conenctors
         if target.is_edge() {
@@ -406,7 +394,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         for property in properties {
             let value = evaluate(
                 &property.value,
-                &self.evaluation_context(select_origin.clone()),
+                &self.evaluation_context(select_origin.clone(), previous_edge),
             );
             match &property.key {
                 StyleKey::Property(key) => {
@@ -461,8 +449,23 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
     }
 
-    fn evaluation_context(&self, origin: T::NodeId) -> EvaluationContext<T> {
-        EvaluationContext::from_graph(self.graph, origin).with_variables(&self.variable_pool)
+    fn evaluation_context<'b>(
+        &'b self,
+        origin: T::NodeId,
+        previous_edge: Option<&'b EdgeLabel>,
+    ) -> EvaluationContext<'b, T> {
+        let mut context =
+            EvaluationContext::from_graph(self.graph, origin).with_variables(&self.variable_pool);
+        match previous_edge {
+            Some(EdgeLabel::Index(index)) => context = context.with_edge_index(*index),
+            Some(EdgeLabel::Named(name, discriminator)) => {
+                context = context
+                    .with_edge_name(name.as_str())
+                    .with_edge_discriminator(*discriminator)
+            }
+            _ => {}
+        }
+        context
     }
 
     fn write_property(
@@ -475,40 +478,6 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             Entry::Vacant(entry) => {
                 entry.insert(value);
                 true
-            }
-        }
-    }
-
-    fn create_edge_identifier_variables(&mut self, edge_label: &EdgeLabel) {
-        match edge_label {
-            EdgeLabel::Index(i) => {
-                self.variable_pool.insert(
-                    VARIABLE_INDEX,
-                    PropertyValue::Value(NodeValue::Uint(*i as u64)),
-                );
-                self.variable_pool
-                    .insert(VARIABLE_NAME, PropertyValue::Unset);
-                self.variable_pool
-                    .insert(VARIABLE_DISCRIMINATOR, PropertyValue::Unset);
-            }
-            EdgeLabel::Named(name, i) => {
-                self.variable_pool
-                    .insert(VARIABLE_INDEX, PropertyValue::Unset);
-                self.variable_pool
-                    .insert(VARIABLE_NAME, PropertyValue::String(name.clone()));
-                self.variable_pool.insert(
-                    VARIABLE_DISCRIMINATOR,
-                    PropertyValue::Value(NodeValue::Uint(*i as u64)),
-                );
-            }
-            _ => {
-                // Clear all the variables that may have been set in previous steps
-                self.variable_pool
-                    .insert(VARIABLE_INDEX, PropertyValue::Unset);
-                self.variable_pool
-                    .insert(VARIABLE_NAME, PropertyValue::Unset);
-                self.variable_pool
-                    .insert(VARIABLE_DISCRIMINATOR, PropertyValue::Unset);
             }
         }
     }
@@ -1091,7 +1060,7 @@ mod test {
     }
 
     #[test]
-    fn magic_edge_label_variables() {
+    fn index_edge_magic_variables() {
         // .many(*).if(isset(--INDEX)) {
         //   value: --INDEX;
         // }
@@ -1101,14 +1070,14 @@ mod test {
                     SelectorSegment::anything_any_number_of_times(),
                     SelectorSegment::Condition(Expression::UnaryOperator(
                         UnaryOperator::IsSet,
-                        Expression::Variable(VARIABLE_INDEX.to_owned()).into(),
+                        Expression::MagicVariable(MagicVariableKey::EdgeIndex).into(),
                     )),
                 ]
                 .into(),
             ),
             properties: vec![StyleClause {
                 key: Property(Attribute("value".to_owned())),
-                value: Expression::Variable(VARIABLE_INDEX.to_owned()),
+                value: Expression::MagicVariable(MagicVariableKey::EdgeIndex),
             }],
         }]));
         let expected_mapping = [
@@ -1123,6 +1092,61 @@ mod test {
             (
                 Selectable::node(13),
                 PropertyMap::new().with_attribute("value".to_owned(), "0".to_owned()),
+            ),
+        ]
+        .into();
+        let resolved = apply_stylesheet(&stylesheet, &TestGraph::default_graph());
+        assert_eq!(resolved, expected_mapping);
+    }
+
+    #[test]
+    fn named_edge_magic_variables() {
+        // .many(*).if((isset(--NAME) && --NAME) != "a" || --DISCRIMINATOR) {
+        //   value: --NAME + --DISCRIMINATOR;
+        // }
+        let stylesheet = CascadeStyle::from(Stylesheet(vec![StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::anything_any_number_of_times(),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::BinaryOperator(
+                            Expression::UnaryOperator(
+                                UnaryOperator::IsSet,
+                                Expression::MagicVariable(MagicVariableKey::EdgeName).into(),
+                            )
+                            .into(),
+                            BinaryOperator::And,
+                            Expression::BinaryOperator(
+                                Expression::MagicVariable(MagicVariableKey::EdgeName).into(),
+                                BinaryOperator::Ne,
+                                Expression::String("a".to_owned()).into(),
+                            )
+                            .into(),
+                        )
+                        .into(),
+                        BinaryOperator::Or,
+                        Expression::MagicVariable(MagicVariableKey::EdgeDiscriminator).into(),
+                    )),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: Property(Attribute("value".to_owned())),
+                value: Expression::BinaryOperator(
+                    Expression::MagicVariable(MagicVariableKey::EdgeName).into(),
+                    BinaryOperator::Plus,
+                    Expression::MagicVariable(MagicVariableKey::EdgeDiscriminator).into(),
+                ),
+            }],
+        }]));
+        let expected_mapping = [
+            (
+                Selectable::node(7),
+                PropertyMap::new().with_attribute("value".to_owned(), "b0".to_owned()),
+            ),
+            (
+                Selectable::node(12),
+                PropertyMap::new().with_attribute("value".to_owned(), "a1".to_owned()),
             ),
         ]
         .into();

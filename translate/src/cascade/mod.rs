@@ -7,5 +7,5 @@ mod select;
 mod style;
 mod test_graph;
 
-pub use apply::*;
+pub use apply::apply_stylesheet;
 pub use style::CascadeStyle;
