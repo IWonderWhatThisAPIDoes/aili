@@ -5,7 +5,7 @@ use aili_translate::{
     property::{FragmentKey, PropertyKey},
     stylesheet::{
         StyleKey,
-        expression::{Expression, UnaryOperator},
+        expression::{Expression, MagicVariableKey, UnaryOperator},
     },
 };
 use derive_more::{Display, Error};
@@ -135,13 +135,7 @@ pub fn literal_expression_by_name(name: &str) -> Result<Expression, InvalidSymbo
         "none" => Ok(Expression::Unset),
         "true" => Ok(Expression::Bool(true)),
         "false" => Ok(Expression::Bool(false)),
-        _ => {
-            if is_variable_name(name) {
-                Ok(Expression::Variable(name.to_owned()))
-            } else {
-                Err(InvalidSymbol(name.to_owned()))
-            }
-        }
+        _ => Err(InvalidSymbol(name.to_owned())),
     }
 }
 
@@ -158,4 +152,42 @@ pub fn fragment_key(key: &str) -> Result<FragmentKey, InvalidSymbol> {
         "end" => Ok(FragmentKey::End),
         _ => Err(InvalidSymbol(key.to_owned())),
     }
+}
+
+/// Maps [`MagicVariableKey`]s to their names.
+///
+/// ## Symbol Names
+/// | Symbol name       | Associated magic variable                                  |
+/// |-------------------|------------------------------------------------------------|
+/// | `--INDEX`         | [`EdgeIndex`](MagicVariableKey::EdgeIndex)                 |
+/// | `--NAME`          | [`EdgeName`](MagicVariableKey::EdgeName)                   |
+/// | `--DISCRIMINATOR` | [`EdgeDiscriminator`](MagicVariableKey::EdgeDiscriminator) |
+pub fn magic_variable_by_name(name: &str) -> Result<MagicVariableKey, InvalidSymbol> {
+    match name {
+        "--INDEX" => Ok(MagicVariableKey::EdgeIndex),
+        "--NAME" => Ok(MagicVariableKey::EdgeName),
+        "--DISCRIMINATOR" => Ok(MagicVariableKey::EdgeDiscriminator),
+        _ => Err(InvalidSymbol(name.to_owned())),
+    }
+}
+
+/// Resolves an unquoted literal expression.
+///
+/// ## Resolution Symbol Maps
+/// The expression is resolved using the following symbol maps, in this order:
+/// | Symbol map                     | Resulting expression                         |
+/// |--------------------------------|----------------------------------------------|
+/// | [`literal_expression_by_name`] | Directly the returned expression             |
+/// | [`magic_variable_by_name`]     | [`Variable`](Expression::Variable)           |
+/// | [`is_variable_name`]           | [`MagicVariable`](Expression::MagicVariable) |
+pub fn resolve_unquoted_expression(name: &str) -> Result<Expression, InvalidSymbol> {
+    literal_expression_by_name(name)
+        .or_else(|_| magic_variable_by_name(name).map(Expression::MagicVariable))
+        .or_else(|InvalidSymbol(name)| {
+            if is_variable_name(&name) {
+                Ok(Expression::Variable(name))
+            } else {
+                Err(InvalidSymbol(name))
+            }
+        })
 }

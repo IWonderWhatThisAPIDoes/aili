@@ -273,7 +273,7 @@ pomelo! {
     lvalue ::= Unquoted(s)                             { unquoted_style_key(s) }
     lvalue ::= Unquoted(f) Slash Unquoted|Quoted(s)    { StyleKey::Property(PropertyKey::FragmentAttribute(extra.try_or(fragment_key(f).map_err(SyntaxError::InvalidFragment), FragmentKey::Start), s.to_owned())) }
     rvalue ::= rexpr;
-    rvalue ::= Unquoted(s)                             { literal_expression_by_name(s).unwrap_or_else(|InvalidSymbol(s)| Expression::String(s)) }
+    rvalue ::= Unquoted(s)                             { resolve_unquoted_expression(s).unwrap_or_else(|InvalidSymbol(s)| Expression::String(s)) }
 
     // Selectors
     selector ::= selector1;
@@ -302,7 +302,7 @@ pomelo! {
     limpath ::=                                        { Vec::new() }
     limpath ::= limpath(mut p) limseg(s)               { p.push(s); p }
     limseg ::= exact(e)                                { e.into() }
-    limseg ::= OpenBracket expr(e) CloseBracket       { if let Expression::Int(i) = e { EdgeLabel::Index(i as usize).into() } else { LimitedEdgeMatcher::DynIndex(e) } }
+    limseg ::= OpenBracket expr(e) CloseBracket        { if let Expression::Int(i) = e { EdgeLabel::Index(i as usize).into() } else { LimitedEdgeMatcher::DynIndex(e) } }
     limseg ::= Quoted(s)                               { EdgeLabel::Named(s.to_owned(), 0).into() }
 
     // Matchers in selectors (both full and limited)
@@ -319,7 +319,7 @@ pomelo! {
 
     // Expressions
     expr ::= rexpr;
-    expr ::= Unquoted(s)                               { extra.try_or(literal_expression_by_name(s).map_err(SyntaxError::InvalidUnquoted), Expression::Unset) }
+    expr ::= Unquoted(s)                               { extra.try_or(resolve_unquoted_expression(s).map_err(SyntaxError::InvalidUnquoted), Expression::Unset) }
     rexpr ::= OpenParen expr CloseParen;
     rexpr ::= Quoted(s)                                { Expression::String(s.to_owned()) }
     rexpr ::= Int(i)                                   { Expression::Int(i) }
