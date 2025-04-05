@@ -2,6 +2,7 @@ mod connect;
 mod grammar;
 mod lexer;
 mod mock_error_handler;
+mod report;
 pub mod symbols;
 
 use aili_translate::stylesheet::Stylesheet;
@@ -9,6 +10,7 @@ use derive_more::{Display, Error, From};
 use grammar::{ErrorManager, Parser};
 use lexer::Token;
 use logos::Logos;
+use report::FilteredErrorHandler;
 
 /// Error type that indicates irrecoverable parse errors.
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From, Default)]
@@ -54,13 +56,13 @@ pub fn parse_stylesheet(
     let lexer = Token::lexer(source);
     // Wrap error handler and lexer in a RefCell so we can access it
     // from both parser and the main loop
-    let shared = std::cell::RefCell::new((lexer, error_handler));
+    let shared = std::cell::RefCell::new((lexer, FilteredErrorHandler::new(error_handler)));
     let report_error = |error_data| {
         let (lexer, error_handler) = &mut *shared.borrow_mut();
-        error_handler(ParseError {
+        error_handler.handle_error(ParseError {
             error_data,
             line_number: lexer.extras.line_index + 1,
-        })
+        });
     };
     // Wrap this in a callback because otherwise the borrow
     // would not be dropped in time and error reporting would fail
@@ -70,7 +72,10 @@ pub fn parse_stylesheet(
     let mut parser = Parser::new(parser_extra);
     while let Some(token) = next_token_from_lexer() {
         match token {
-            Ok(token) => parser.parse(token.into())?,
+            Ok(token) => {
+                parser.parse(token.into())?;
+                shared.borrow_mut().1.token_parsed();
+            }
             Err(err) => report_error(err.into()),
         }
     }
@@ -84,6 +89,7 @@ mod test {
     use super::{ParseError, parse_stylesheet};
     use crate::{
         grammar::{self, SyntaxError},
+        lexer::LexerError,
         mock_error_handler::ExpectErrors,
         symbols::InvalidSymbol,
     };
@@ -815,5 +821,32 @@ mod test {
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
             .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn error_cooldown() {
+        let source = r#" /* first line ends here */
+        /      /* invalid */
+        :: abc /* 2 valid tokens */
+        /      /* invalid (not reported, still in cooldown) */
+        :: { } /* 3 valid tokens (next error will be reported) */
+        "         unterminated string (lexer error, will be reported)
+        ::     /* 1 valid token */
+        123abc /* invalid number (lexer error, not reported) */
+        :: abc /* 2 valid tokens */
+        $      /* weird character (lexer error, not reported, still in cooldown) */
+        "#;
+        let expected_errors = [
+            ParseError {
+                error_data: SyntaxError::UnexpectedToken.into(),
+                line_number: 2,
+            },
+            ParseError {
+                error_data: LexerError::UnterminatedQuoted.into(),
+                line_number: 6,
+            },
+        ];
+        parse_stylesheet(source, ExpectErrors::exact(expected_errors).f())
+            .expect("Stylesheet should have parsed");
     }
 }
