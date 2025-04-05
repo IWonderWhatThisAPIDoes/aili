@@ -33,6 +33,11 @@ pub enum LexerError {
 pub struct SourceLocationInformation {
     /// Zero-based index of the line being read.
     pub line_index: usize,
+    /// One-based offset of the last linefeed
+    /// from the start of the input, in bytes.
+    ///
+    /// Value of zero means no linefeed has been encountered.
+    pub line_offset: usize,
 }
 
 /// Tokens emited by the lexer.
@@ -50,8 +55,12 @@ pub enum Token<'s> {
     // =========================================
     #[regex(r"\n|/\*[^*]*\*+([^/][^*]*\*+)*/", |lex| {
         // Logos does not count lines on its own, so we have to do it manually
-        // Find all newlines in the matched slice, if any, and increment the line counter
-        lex.extras.line_index += lex.slice().chars().enumerate().filter(|(_, c)| *c == '\n').count();
+        for (offset, _) in lex.slice().bytes().enumerate().filter(|(_, c)| *c == b'\n') {
+            // Find all newlines in the matched slice, if any, and increment the line counter
+            lex.extras.line_index += 1;
+            // Move the last linefeed offset
+            lex.extras.line_offset = offset + lex.span().start + 1;
+        }
         // Tell Logos not to emit a token
         logos::Filter::Skip
     })]
@@ -402,11 +411,26 @@ mod test {
     fn source_locations() {
         let mut lexer = Token::lexer("a \nb // x\nc /* \n y \n */ d \n e");
         let expected_source_locations = [
-            SourceLocationInformation { line_index: 0 },
-            SourceLocationInformation { line_index: 1 },
-            SourceLocationInformation { line_index: 2 },
-            SourceLocationInformation { line_index: 4 },
-            SourceLocationInformation { line_index: 5 },
+            SourceLocationInformation {
+                line_index: 0,
+                line_offset: 0,
+            },
+            SourceLocationInformation {
+                line_index: 1,
+                line_offset: 3,
+            },
+            SourceLocationInformation {
+                line_index: 2,
+                line_offset: 10,
+            },
+            SourceLocationInformation {
+                line_index: 4,
+                line_offset: 20,
+            },
+            SourceLocationInformation {
+                line_index: 5,
+                line_offset: 27,
+            },
         ];
         for expected in expected_source_locations {
             lexer
