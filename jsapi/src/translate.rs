@@ -1,15 +1,23 @@
 //! Stylesheet resolution and updating of the visualization tree.
 
-use crate::{state::StateGraph, stylesheet::Stylesheet, vis::VisTree};
+use crate::{
+    log::{Logger, Severity},
+    state::StateGraph,
+    stylesheet::Stylesheet,
+    vis::VisTree,
+};
 use aili_model::state::RootedProgramStateGraph as _;
-use aili_translate::{forward::Renderer, property::Selectable};
+use aili_translate::{
+    forward::{Renderer, RendererWarning},
+    property::Selectable,
+};
 use wasm_bindgen::prelude::*;
 
 /// Program state renderer that renders into a given [`VisTree`].
 ///
 /// Use with [˙apply_stylesheet˙].
 #[wasm_bindgen]
-pub struct VisTreeRenderer(Renderer<usize, VisTree>);
+pub struct VisTreeRenderer(Renderer<'static, usize, VisTree>);
 
 #[wasm_bindgen]
 impl VisTreeRenderer {
@@ -17,6 +25,16 @@ impl VisTreeRenderer {
     #[wasm_bindgen(constructor)]
     pub fn new(tree: VisTree) -> Self {
         Self(Renderer::new(tree))
+    }
+
+    /// Sets the logger to which log messages from the renderer should be sent.
+    #[wasm_bindgen(setter, js_name = "logger")]
+    pub fn set_logger(&mut self, logger: Option<Logger>) {
+        self.0.set_warning_handler(logger.map(|logger| {
+            let handler = move |w| logger.log(Severity::Warning, &format!("{w}"));
+            let boxed: Box<dyn FnMut(RendererWarning<usize>)> = Box::new(handler);
+            boxed
+        }));
     }
 
     /// Returns a human-readable representation of the current
