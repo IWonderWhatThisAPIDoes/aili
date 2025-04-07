@@ -1,3 +1,4 @@
+mod log;
 mod state;
 mod state_description;
 mod stylesheet;
