@@ -23,6 +23,11 @@ export class Showcase {
         this.logger = logger;
         this.viewport = viewport;
         this.stateGraph = createSampleGraph(SampleGraph.DEFAULT);
+        this.renderer.logger = {
+            log(severity, message) {
+                logger.log(severity as number, message);
+            }
+        };
     }
     stylesheetChanged(stylesheetSource: string): void {
         let stylesheet: Stylesheet;
