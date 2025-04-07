@@ -6,11 +6,22 @@ mod test_vis;
 
 use crate::property::*;
 use aili_model::{state::NodeId, vis::*};
+use derive_more::Display;
 use std::collections::HashMap;
+
+/// Describes an occurrence in the renderer
+/// that should not arise when using it as intended
+/// and is likely indicative of an error in the input.
+#[derive(Debug, Display)]
+pub enum RendererWarning<T: NodeId> {
+    /// The resolved stylesheet has caused a cycle in the visualization tree.
+    #[display("detected loop in vis tree near {_0:?}")]
+    VisStructureViolation(Selectable<T>),
+}
 
 /// Updates the structure of a [`VisTree`] to reflect
 /// changes in stylesheet resolution.
-pub struct Renderer<T: NodeId, V: VisTree> {
+pub struct Renderer<'w, T: NodeId, V: VisTree> {
     /// The target visualization tree.
     vis_tree: V,
 
@@ -21,16 +32,37 @@ pub struct Renderer<T: NodeId, V: VisTree> {
     /// Associated visual elements and current properties
     /// of all visualized entities.
     current_mappping: HashMap<Selectable<T>, EntityRendering<T, V>>,
+
+    /// Handler that processes warnings emited by the renderer.
+    warning_handler: Option<Box<dyn FnMut(RendererWarning<T>) + 'w>>,
 }
 
-impl<T: NodeId, V: VisTree> Renderer<T, V> {
+impl<'w, T: NodeId, V: VisTree> Renderer<'w, T, V> {
     /// Constructs a new renderer that renders into a tree.
     pub fn new(vis_tree: V) -> Self {
         Self {
             vis_tree,
             current_root: None,
             current_mappping: HashMap::new(),
+            warning_handler: None,
         }
+    }
+
+    /// Adds a warning handler to the renderer.
+    pub fn set_warning_handler(
+        &mut self,
+        warning_handler: Option<Box<dyn FnMut(RendererWarning<T>) + 'w>>,
+    ) {
+        self.warning_handler = warning_handler;
+    }
+
+    /// Adds a warning handler to the renderer.
+    pub fn with_warning_handler(
+        mut self,
+        warning_handler: Box<dyn FnMut(RendererWarning<T>) + 'w>,
+    ) -> Self {
+        self.set_warning_handler(Some(warning_handler));
+        self
     }
 
     /// Consumes self and returns the [`VisTree`] that was passed
@@ -77,7 +109,7 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
     /// Updates the parent-child and pin-target relationships of all active visual entities.
     fn update_inter_entity_relations(&mut self) {
         let mut retry_element_insertions = Vec::new();
-        for mapping in self.current_mappping.values() {
+        for (selectable, mapping) in &self.current_mappping {
             match &mapping.vis_handle {
                 EitherVisHandle::Element(handle) => {
                     let mut element = self
@@ -98,12 +130,14 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
                         Err(ParentAssignmentError::StructureViolation) => {
                             // This does not always mean that the user has supplied
                             // an invalid stylesheet. It may happen when we intend
-                            // to swap a parent and its child. That cannot happen
+                            // to swap a parent and its child.
+                            //
+                            // In such cases, that cannot happen
                             // unless we disconnect one first and reconnect it later.
                             element
                                 .insert_into(None)
                                 .expect("Detachment should never fail");
-                            retry_element_insertions.push((handle, parent_handle));
+                            retry_element_insertions.push((handle, parent_handle, selectable));
                         }
                     }
                 }
@@ -137,15 +171,25 @@ impl<T: NodeId, V: VisTree> Renderer<T, V> {
         }
         // We have inserted everything except a few elements that we have detached
         // from their parents. This is where we retry failed assignments
-        for (child_handle, parent_handle) in retry_element_insertions {
-            // If the insertion fails again, we know for sure it is because
-            // the user forced a loop with their stylesheet
-            // todo: log the error
-            let _ = self
+        for (child_handle, parent_handle, selectable) in retry_element_insertions {
+            let result = self
                 .vis_tree
                 .get_element(child_handle)
                 .expect("The handle should remain valid")
                 .insert_into(parent_handle);
+            // If the insertion fails again, we know for sure it is because
+            // the user forced a loop with their stylesheet
+            match result {
+                Ok(_) => {}
+                Err(ParentAssignmentError::InvalidHandle(_)) => {
+                    panic!("The handle should remain valid")
+                }
+                Err(ParentAssignmentError::StructureViolation) => {
+                    if let Some(warning_handler) = &mut self.warning_handler {
+                        warning_handler(RendererWarning::VisStructureViolation(selectable.clone()));
+                    }
+                }
+            }
         }
     }
 
@@ -924,5 +968,28 @@ mod test {
                 end: TestVisPin { target_index: None, attributes: [].into() },
             }],
         );
+    }
+
+    #[test]
+    fn create_loop_in_vis_tree() {
+        let mut warning_was_emited = false;
+        let mut renderer =
+            Renderer::new(TestVisTree::default()).with_warning_handler(Box::new(|warning| {
+                match warning {
+                    RendererWarning::VisStructureViolation(_) => warning_was_emited = true,
+                }
+            }));
+        renderer.update(mapping![
+            0 => {
+                display: Some(DisplayMode::ElementTag("cell".to_owned())),
+                parent: Some(Selectable::node(1)),
+            },
+            1 => {
+                display: Some(DisplayMode::ElementTag("cell".to_owned())),
+                parent: Some(Selectable::node(0)),
+            },
+        ]);
+        drop(renderer);
+        assert!(warning_was_emited);
     }
 }

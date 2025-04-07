@@ -3,7 +3,7 @@
 use super::Renderer;
 use aili_model::{state::NodeId, vis::VisTree};
 
-impl<T, V> std::fmt::Debug for Renderer<T, V>
+impl<T, V> std::fmt::Debug for Renderer<'_, T, V>
 where
     T: NodeId + Ord,
     V: VisTree,
@@ -17,7 +17,7 @@ where
     }
 }
 
-impl<T, V> Renderer<T, V>
+impl<T, V> Renderer<'_, T, V>
 where
     T: NodeId,
     V: VisTree,
@@ -33,7 +33,7 @@ where
     }
 }
 
-impl<T, V> Renderer<T, V>
+impl<T, V> Renderer<'_, T, V>
 where
     T: NodeId + Ord,
     V: VisTree,
