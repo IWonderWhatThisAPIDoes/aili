@@ -105,7 +105,13 @@ where
             for (i, (key, value)) in properties.iter().enumerate() {
                 if i == 0 {
                     // First row gets the entity identifier as well
-                    write!(f, "{entity:>width_1$} ")?;
+                    if properties.len() == 1 {
+                        // If it's also the last, write a separator in there
+                        // so it's visually separated
+                        write!(f, "{entity:_>width_1$}_")?;
+                    } else {
+                        write!(f, "{entity:>width_1$} ")?;
+                    }
                 } else if i == properties.len() - 1 {
                     // Last row (unless it is also the first)
                     // gets a separator for ease of reading
