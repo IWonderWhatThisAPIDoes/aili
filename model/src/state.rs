@@ -356,10 +356,48 @@ pub trait ProgramStateGraph {
 
     /// Get a reference to a state node by its ID.
     fn get(&self, id: &Self::NodeId) -> Option<Self::NodeRef<'_>>;
+
+    /// Get the ID of a state node by its path from a reference node.
+    fn get_id_at<'b>(
+        &self,
+        origin_id: &Self::NodeId,
+        path: impl IntoIterator<Item = &'b EdgeLabel>,
+    ) -> Option<Self::NodeId> {
+        let mut id = origin_id.clone();
+        for edge_label in path {
+            id = self.get(&id)?.get_successor(edge_label)?;
+        }
+        Some(id)
+    }
+
+    /// Get a reference to a state node by its path from a reference node.
+    fn get_at<'b>(
+        &self,
+        origin_id: &Self::NodeId,
+        path: impl IntoIterator<Item = &'b EdgeLabel>,
+    ) -> Option<Self::NodeRef<'_>> {
+        self.get(&self.get_id_at(origin_id, path)?)
+    }
 }
 
 /// [`ProgramStateGraph`] that additionally allows accessing the root node.
 pub trait RootedProgramStateGraph: ProgramStateGraph {
     /// Get the ID of the root node.
     fn root(&self) -> Self::NodeId;
+
+    /// Get the ID of a state node by its full path from the root.
+    fn get_id_at_root<'b>(
+        &self,
+        path: impl IntoIterator<Item = &'b EdgeLabel>,
+    ) -> Option<Self::NodeId> {
+        self.get_id_at(&self.root(), path)
+    }
+
+    /// Get a reference to a state node by its full path from the root.
+    fn get_at_root<'b>(
+        &self,
+        path: impl IntoIterator<Item = &'b EdgeLabel>,
+    ) -> Option<Self::NodeRef<'_>> {
+        self.get_at(&self.root(), path)
+    }
 }
