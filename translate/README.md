@@ -19,7 +19,7 @@ manually, although it would most likely be done using
 use aili_model::{state::RootedProgramStateGraph, vis::VisTree};
 use aili_translate::{
     cascade::{apply_stylesheet, CascadeStyle},
-    forward::Renderer
+    forward::Renderer,
     property::Selectable,
     stylesheet::Stylesheet,
 };
@@ -28,7 +28,7 @@ fn translate(
     state: impl RootedProgramStateGraph,
     vis: impl VisTree,
     stylesheet: Stylesheet,
-) -> {
+) {
     // Compile the stylesheet so that Translate can use it
     let compiled_stylesheet = CascadeStyle::from(stylesheet);
 

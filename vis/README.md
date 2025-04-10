@@ -26,7 +26,7 @@ const child = new VisElement(TAG_CELL);
 child.parent = viewport.root;
 ```
 
-See the source code of [examples](./examples) included in the repository
+See the source code of examples included in the repository
 for more complete examples of usage.
 
 To define a new view model, implement the `ViewModel` interface.

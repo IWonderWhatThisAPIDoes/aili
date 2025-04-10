@@ -28,7 +28,7 @@ is not a tree, and that in some regards, the stylesheet needs to be more flexibl
 than CSS.
 
 A stylesheet is a series of rules of the form
-```
+```text
 <selector> { <clause> ... }
 ```
 where `selector` describes a pattern that determines whether the rule
@@ -43,7 +43,7 @@ TODO
 ### Clauses
 
 A clause has the following form.
-```
+```text
 <lvalue> : <expression> ;
 ```
 
@@ -65,7 +65,7 @@ by an element with tag name matching the assigned string.
 If a value of `none` or `unset` is assigned, the entity will not be rendered.
 This is the default value.
 
-```
+```text
 :: {
     display: graph;  // Will be displayed as an element with tag name "graph"
 }
@@ -103,7 +103,7 @@ If `display` is `connector`, `parent` and `target` specify the respective
 endpoints of the connector that represents the entity.
 Otherwise, `parent` specifies the parent element and `target` is ignored.
 
-```
+```text
 :: {
     // Store the root node in a variable
     --root: @;
@@ -134,7 +134,7 @@ in some cases, by the selectors and clauses of other rules
 (see [Variable Visibility](#variable-visibility) for a detailed explanation
 of where variables may be recalled).
 
-```
+```text
 :: {
     --a: red;    // Set a variable
     color: --a;  // ...and recall it later
@@ -152,7 +152,7 @@ If the `lvalue` is any identifier except one of the above, or any quoted string 
 the right-hand side is coerced to a string and assigned to the matching attribute
 of the Vis element. If a value of `none` or `unset` is used, the attribute is removed.
 
-```
+```text
 :: {
     stroke: black;  // Value of "black" will be assigned to the "stroke" attribute
     fill: none;     // The "fill" attribute will be removed
