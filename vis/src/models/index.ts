@@ -57,7 +57,7 @@ export const TAG_TEXT: string = 'text';
 /**
  * The default {@link ViewModel}s under their canonical names.
  */
-export const DEFAULT_MODELS: Map<string, ViewModelConstructor> = new Map([
+export const DEFAULT_MODELS: ReadonlyMap<string, ViewModelConstructor> = new Map([
     [TAG_CELL, CellViewModel],
     [TAG_CHECKBOX, CheckboxViewModel],
     [TAG_GRAPH, GraphViewModel],
