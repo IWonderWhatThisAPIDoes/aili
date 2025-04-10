@@ -1,5 +1,6 @@
 [package]
 name = "aili_jsapi"
+description = "Interface between Aili modules written in Rust and Javascript"
 version = "0.1.0"
 edition = "2024"
 authors = ["IWonderWhatThisAPIDoes"]
