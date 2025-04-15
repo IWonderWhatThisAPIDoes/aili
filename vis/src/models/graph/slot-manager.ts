@@ -152,14 +152,14 @@ export class GraphSlotManager {
         // Recalculate the layout
         await this.layout.recalculateLayout();
         // Update bounding box dimensions
-        this.container.style.width = String(this.layout.width);
-        this.container.style.height = String(this.layout.height);
+        this.container.style.width = String(this.layout.width) + 'px';
+        this.container.style.height = String(this.layout.height) + 'px';
         // Update element positions
         for (const nodeId in this.slots) {
             const { html } = this.slots[nodeId];
             const node = this.layout.getNodeById(nodeId);
-            html.style.left = String(node.left);
-            html.style.top = String(node.top);
+            html.style.left = String(node.left) + 'px';
+            html.style.top = String(node.top) + 'px';
         }
         // Connectors will need to be recalculated too
         this.context.jsplumb.repaintEverything();
