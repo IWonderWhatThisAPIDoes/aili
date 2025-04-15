@@ -103,3 +103,12 @@
 .log-line.severity-3 {
     color: #807474;
 }
+
+/*
+ * The viewport container
+ */
+#viewport {
+    /* The viewport has a scrollable overflow of its own,
+       so we drop it here to avoid doubling the scrollbar in some browsers */
+    overflow: unset;
+}
