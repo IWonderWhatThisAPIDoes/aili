@@ -1,0 +1,15 @@
+[package]
+name = "aili_gdbstate"
+description = "Constructs an Aili State graph from a GDB session"
+version = "0.1.0"
+edition = "2024"
+authors = ["IWonderWhatThisAPIDoes"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/IWonderWhatThisAPIDoes/aili"
+
+[dependencies]
+aili_model = { path = "../model" }
+derive_more = { version = "2.0.1", features = ["debug", "display", "error", "from", "deref", "deref_mut"] }
+regex = "1.11.1"
+logos = "0.15.0"
+pomelo = "0.2.0"
