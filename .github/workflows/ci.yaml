@@ -136,8 +136,21 @@ jobs:
         uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - name: Run tests
-        run: cargo test --workspace
+      - name: Run tests, except GDBState
+        run: cargo test --workspace --exclude aili_gdbstate
+      - name: Run GDBState library tests
+        run: cargo test -p aili_gdbstate --lib
+  
+  gdbstate-test:
+    runs-on: ubuntu-latest
+    name: Tests (GDBState, integration tests)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run GDBState integration tests
+        run: cargo test -p aili_gdbstate --test integration_test
 
   clippy:
     runs-on: ubuntu-latest
