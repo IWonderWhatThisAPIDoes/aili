@@ -66,6 +66,44 @@ jobs:
           path: ~/.cache/puppeteer
           key: puppeteer-cache-${{ needs.cache-key.outputs.suffix }}
 
+  test-hooligan:
+    runs-on: ubuntu-latest
+    name: Tests (hooligan)
+    needs:
+      - npm-install
+      - cache-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+      - name: Run tests
+        run: npm test -w hooligan
+
+  doc-hooligan:
+    runs-on: ubuntu-latest
+    name: Docs (hooligan)
+    needs:
+      - npm-install
+      - cache-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+      - name: Check documentation
+        run: npm run doc -w hooligan
+
   test-vis:
     runs-on: ubuntu-latest
     name: Tests (vis)
