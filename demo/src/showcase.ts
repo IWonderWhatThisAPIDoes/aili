@@ -4,7 +4,8 @@
  * @module
  */
 
-import { DEFAULT_MODEL_FACTORY, Logger, Severity, Viewport, VisConnector, VisElement } from 'aili-vis';
+import { Logger, Severity } from 'aili-hooligan';
+import { DEFAULT_MODEL_FACTORY, Viewport, VisConnector, VisElement } from 'aili-vis';
 import { applyStylesheet, StateGraph, Stylesheet, VisTreeRenderer } from 'aili-jsapi';
 import { createSampleGraph, SampleGraph } from './sample-graph';
 import { prettyPrintVisTree } from './pretty-vis';

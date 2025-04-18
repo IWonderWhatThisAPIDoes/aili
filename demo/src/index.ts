@@ -1,7 +1,7 @@
+import { Severity } from 'aili-hooligan';
 import { DisplayLogger } from './logging';
 import { StylesheetInput } from './stylesheet';
 import { Showcase } from './showcase';
-import { Severity } from 'aili-vis';
 import { createSampleGraph, SAMPLE_GRAPH_NAMES, SampleGraph } from './sample-graph';
 import { BuiltinStylesheet, STYLESHEET_NAME } from './sample-stylesheet';
 

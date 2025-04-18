@@ -15,6 +15,7 @@
         "start": "vite serve"
     },
     "dependencies": {
+        "aili-hooligan": "file:../hooligan",
         "aili-vis": "file:../vis",
         "aili-jsapi": "file:../jsapi/pkg"
     },
