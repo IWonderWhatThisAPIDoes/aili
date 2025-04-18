@@ -7,7 +7,8 @@ Prototype semantic visual debugger.
 | Module                          | Description                                                     |
 |---------------------------------|-----------------------------------------------------------------|
 | [:yellow_square: Demo](./demo)  | Demo application that showcases Vis and Translate modules.      |
-| [:crab: GDBState](./gdbstate)   | Implementation of the Program State model for C that uses the [GNU Project Debugger](https://www.sourceware.org/gdb) |
+| [:crab: GDBState](./gdbstate)   | Implementation of the Program State model for C that uses the [GNU Project Debugger](https://www.sourceware.org/gdb). |
+| [:yellow_square: Hooligan](./hooligan) | Hooking and logging utilities.                           |
 | [:yellow_square::crab: JSAPI](./jsapi) | Bindings between modules written in Rust and Javascript. |
 | [:crab: Model](./model)         | Definitions of Program State and Visualization models.          |
 | [:crab: Parser](./parser)       | Parser for stylesheets of the Translate module.                 |

@@ -4,8 +4,8 @@
  * @module
  */
 
+import { Hook, Hookable } from 'aili-hooligan';
 import { AttributeMap, ReadonlyAttributeMap } from './attributes';
-import { Hook, Hookable } from './hook';
 
 /**
  * Read-only view over {@link VisElement} that does not permin modifications.

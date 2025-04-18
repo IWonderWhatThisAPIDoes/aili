@@ -4,7 +4,7 @@
  * @module
  */
 
-import { ObserverHandle } from '../hook';
+import { ObserverHandle } from 'aili-hooligan';
 import { ViewLayoutMode, ViewModel } from '../model';
 import { NULL_SLOT, ElementViewSlot, ViewSlotPopulator } from '../slots';
 import { ReadonlyVisElement } from '../tree';

@@ -31,6 +31,7 @@
         "examples:b-tree": "vite build examples/b-tree -c vite.config.js"
     },
     "dependencies": {
+        "aili-hooligan": "file:../hooligan",
         "@jsplumb/browser-ui": "^6.2.10",
         "@viz-js/viz": "^3.11.0"
     },

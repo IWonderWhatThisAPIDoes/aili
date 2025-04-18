@@ -5,11 +5,11 @@
  * @module
  */
 
+import { Hookable } from 'aili-hooligan';
 import { create as createRng } from 'random-seed';
 import { describe, expect, it, jest } from '@jest/globals';
 import { executeInstructionFallible, InstructionGenerator } from './instruction';
 import { TestFrame } from './testframe';
-import { Hookable } from '../../../src/hook';
 
 const rand = createRng('42');
 

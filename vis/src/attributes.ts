@@ -4,7 +4,7 @@
  * @module
  */
 
-import { Hook, Hookable, ObserverHandle } from './hook';
+import { Hook, Hookable, ObserverHandle } from 'aili-hooligan';
 
 /**
  * Read-only view over {@link AttributeMap} that does not permit

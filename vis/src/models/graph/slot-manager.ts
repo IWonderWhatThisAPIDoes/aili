@@ -5,8 +5,8 @@
  * @module
  */
 
+import { ObserverHandle } from 'aili-hooligan';
 import { setAttributeBindings } from '../../attributes';
-import { ObserverHandle } from '../../hook';
 import { ReadonlyVisConnector, ReadonlyVisElement } from '../../tree';
 import { ViewportContext } from '../../viewport-dom';
 import { GraphLayout, LayoutEdge, LayoutNode } from './layout';

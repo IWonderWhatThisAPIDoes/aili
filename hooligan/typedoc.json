@@ -1,0 +1,8 @@
+{
+    "entryPoints": [
+        "./src/*.ts"
+    ],
+    "out": "./doc",
+    "excludeReferences": true,
+    "treatWarningsAsErrors": true
+}

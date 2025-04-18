@@ -4,9 +4,9 @@
  * @module
  */
 
+import { ObserverHandle } from 'aili-hooligan';
 import { ConnectorView, ConnectorViewContainer } from './connector-view';
 import { ElementView, ElementViewContainer, ViewEmbedding } from './element-view';
-import { ObserverHandle } from './hook';
 import { ElementViewSlot } from './slots';
 import { ReadonlyVisConnector, ReadonlyVisElement, ReadonlyVisPin } from './tree';
 import { ViewContainer } from './view-container';

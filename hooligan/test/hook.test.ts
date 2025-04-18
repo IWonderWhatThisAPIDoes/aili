@@ -1,4 +1,4 @@
-import { Hook } from '../../src/hook';
+import { Hook } from '../src/hook';
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 describe(Hook, () => {

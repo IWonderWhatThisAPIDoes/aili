@@ -1,4 +1,4 @@
-import { HookableLogger, Severity } from '../../src/logger';
+import { HookableLogger, Severity } from '../src/logger';
 import { expect, describe, it, beforeEach, jest } from '@jest/globals';
 
 const LOG_SEVERITY = Severity.DEBUG;
