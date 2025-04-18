@@ -175,9 +175,9 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests, except GDBState
-        run: cargo test --workspace --exclude aili_gdbstate
+        run: cargo test --workspace --exclude aili-gdbstate
       - name: Run GDBState library tests
-        run: cargo test -p aili_gdbstate --lib
+        run: cargo test -p aili-gdbstate --lib
   
   gdbstate-test:
     runs-on: ubuntu-latest
@@ -192,7 +192,7 @@ jobs:
       - name: Install GDB
         run: sudo apt-get install gdb --yes
       - name: Run GDBState integration tests
-        run: cargo test -p aili_gdbstate --test integration_test
+        run: cargo test -p aili-gdbstate --test integration_test
 
   clippy:
     runs-on: ubuntu-latest

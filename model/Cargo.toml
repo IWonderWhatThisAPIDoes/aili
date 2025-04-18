@@ -1,5 +1,5 @@
 [package]
-name = "aili_model"
+name = "aili-model"
 description = "Specifications of the abstract models that separate the main modules of Aili"
 version = "0.1.0"
 edition = "2024"

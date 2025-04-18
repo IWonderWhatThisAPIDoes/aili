@@ -1,5 +1,5 @@
 [package]
-name = "aili_translate"
+name = "aili-translate"
 description = "Maps Aili State model to Visualization model, statefully, using a stylesheet that describes the mapping"
 version = "0.1.0"
 edition = "2024"
@@ -8,5 +8,5 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/IWonderWhatThisAPIDoes/aili"
 
 [dependencies]
-aili_model = { path = "../model" }
+aili-model = { path = "../model" }
 derive_more = { version = "2.0.1", features = ["debug", "display", "from"] }

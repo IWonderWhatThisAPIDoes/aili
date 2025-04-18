@@ -1,5 +1,5 @@
 [package]
-name = "aili_jsapi"
+name = "aili-jsapi"
 description = "Interface between Aili modules written in Rust and Javascript"
 version = "0.1.0"
 edition = "2024"
@@ -11,13 +11,13 @@ repository = "https://github.com/IWonderWhatThisAPIDoes/aili"
 crate-type = ["cdylib"]
 
 [features]
-gdbstate = ["dep:aili_gdbstate", "dep:wasm-bindgen-futures"]
+gdbstate = ["dep:aili-gdbstate", "dep:wasm-bindgen-futures"]
 
 [dependencies]
 wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = { version = "0.4.50", optional = true }
 js-sys = "0.3.77"
-aili_model = { path = "../model" }
-aili_translate = { path = "../translate" }
-aili_parser = { path = "../parser" }
-aili_gdbstate = { path = "../gdbstate", optional = true }
+aili-model = { path = "../model" }
+aili-translate = { path = "../translate" }
+aili-parser = { path = "../parser" }
+aili-gdbstate = { path = "../gdbstate", optional = true }

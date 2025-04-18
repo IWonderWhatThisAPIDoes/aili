@@ -12,10 +12,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "aili_gdbstate"
+name = "aili-gdbstate"
 version = "0.1.0"
 dependencies = [
- "aili_model",
+ "aili-model",
  "derive_more",
  "logos",
  "pomelo",
@@ -23,41 +23,41 @@ dependencies = [
 ]
 
 [[package]]
-name = "aili_jsapi"
+name = "aili-jsapi"
 version = "0.1.0"
 dependencies = [
- "aili_gdbstate",
- "aili_model",
- "aili_parser",
- "aili_translate",
+ "aili-gdbstate",
+ "aili-model",
+ "aili-parser",
+ "aili-translate",
  "js-sys",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]
 
 [[package]]
-name = "aili_model"
+name = "aili-model"
 version = "0.1.0"
 dependencies = [
  "derive_more",
 ]
 
 [[package]]
-name = "aili_parser"
+name = "aili-parser"
 version = "0.1.0"
 dependencies = [
- "aili_model",
- "aili_translate",
+ "aili-model",
+ "aili-translate",
  "derive_more",
  "logos",
  "pomelo",
 ]
 
 [[package]]
-name = "aili_translate"
+name = "aili-translate"
 version = "0.1.0"
 dependencies = [
- "aili_model",
+ "aili-model",
  "derive_more",
 ]
 
