@@ -1,6 +1,7 @@
 {
     "entryPoints": [
-        "./src/**/*.ts"
+        "./src/*.ts",
+        "./src/*/**/*.ts"
     ],
     "out": "./doc",
     "excludeInternal": true,
