@@ -20,18 +20,6 @@ fn minimal_sample_program() {
 }
 
 #[test]
-fn global_variable() {
-    let mut gdb = gdb_from_source("int global = 42; int main(void) {}");
-    let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
-    let global = state_graph
-        .get_at_root(&[EdgeLabel::Named("global".to_owned(), 0)])
-        .unwrap();
-    assert_eq!(global.node_type_class(), NodeTypeClass::Atom);
-    assert_eq!(global.node_type_id(), Some("int"));
-    assert_eq!(global.value(), Some(NodeValue::Int(42)));
-}
-
-#[test]
 fn basic_function_argument() {
     let mut gdb = gdb_from_source("int main(int argc) {}");
     let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();

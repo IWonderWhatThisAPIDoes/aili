@@ -26,7 +26,6 @@ impl GdbStateGraph {
     /// asynchronously.
     pub async fn new(gdb: &mut impl GdbMiSession) -> Result<Self> {
         let mut graph = Self::empty();
-        graph.populate_global_variables(gdb).await?;
         graph.update_stack_trace(gdb).await?;
         Ok(graph)
     }
@@ -290,6 +289,7 @@ impl GdbStateGraph {
         Ok(())
     }
 
+    #[expect(unused)]
     async fn populate_global_variables(&mut self, gdb: &mut impl GdbMiSession) -> Result<()> {
         // Get all global variables across all files
         let query_result = gdb.symbol_info_variables().await?;
