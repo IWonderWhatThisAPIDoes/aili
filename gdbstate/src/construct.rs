@@ -422,7 +422,7 @@ impl GdbStateGraph {
                     if node.value.is_some_and(|x| x != 0u64.into()) {
                         // Pointers should be handled differently
                         // because they break the tree structure of the state graph
-                        todo!()
+                        // TODO: Dereference the pointer
                     }
                 }
             }
@@ -465,6 +465,9 @@ impl GdbStateGraph {
         } else if let Ok(i) = s.parse() {
             // Parse it as signed decimal
             Some(NodeValue::Int(i))
+        } else if let Some(h) = s.strip_prefix("0x") {
+            // Parse it as hexadecimal
+            u64::from_str_radix(h, 16).ok().map(NodeValue::Uint)
         } else if let Some(caps) = CHAR_VALUE_REGEX.captures(s) {
             // Parse it as character
             caps[1].parse().ok().map(NodeValue::Int)

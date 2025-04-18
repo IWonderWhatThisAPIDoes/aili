@@ -282,3 +282,15 @@ fn update_after_popping_stack() {
     // The upper frame should be gone
     assert!(main.get_successor(&EdgeLabel::Next).is_none());
 }
+
+#[test]
+fn pointer_argument() {
+    let mut gdb = gdb_from_source("int main (int argc, const char* const * argv) {}");
+    let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    let argv = state_graph
+        .get_at_root(&[EdgeLabel::Main, EdgeLabel::Named("argv".to_owned(), 0)])
+        .unwrap();
+    assert_eq!(argv.node_type_class(), NodeTypeClass::Ref);
+    assert_eq!(argv.node_type_id(), None);
+    assert!(argv.value().is_some_and(|v| v != NodeValue::Uint(0)));
+}
