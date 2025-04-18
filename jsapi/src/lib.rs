@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+mod gdbmi;
+mod gdbstate;
 mod log;
 mod state;
 mod state_description;
