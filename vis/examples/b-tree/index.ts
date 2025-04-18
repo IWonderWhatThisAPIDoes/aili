@@ -14,7 +14,7 @@ import {
     Viewport,
     VisConnector,
     VisElement
-} from '../src';
+} from '../../src';
 
 /**
  * Converts node indices from zero-based breadth-first left-to-right order

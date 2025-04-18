@@ -14,7 +14,7 @@ import {
     TAG_TEXT,
     Viewport,
     VisElement
-} from '../src';
+} from '../../src';
 
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz';
 const HEX_DIGITS = '0123456789abcdef';

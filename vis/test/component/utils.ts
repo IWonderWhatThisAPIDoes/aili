@@ -101,7 +101,7 @@ export class Testbed {
      */
     async beforeEach(): Promise<void> {
         // Load the page
-        await page.goto('file://' + path.resolve(__dirname, 'out/testbed.html'));
+        await page.goto('file://' + path.resolve(__dirname, 'testbed/out/index.html'));
         // Find the app container
         this.appContainer = await page.$('#app') as ElementHandle<HTMLElement>;
         // Create the root element

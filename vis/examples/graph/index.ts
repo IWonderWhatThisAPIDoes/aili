@@ -11,7 +11,7 @@ import {
     Viewport,
     VisConnector,
     VisElement
-} from '../src';
+} from '../../src';
 
 addEventListener('load', () => {
     // Create visualization elements

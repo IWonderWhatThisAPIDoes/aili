@@ -68,7 +68,7 @@ npm run doc
 
 ## Examples
 
-The following command builds all examples and saves them to `examples/out`.
+The following command builds all examples and saves them to `examples/*/out`.
 ```sh
 npm run examples
 ```
