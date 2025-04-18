@@ -1,7 +1,6 @@
 //! Stylesheet resolution and updating of the visualization tree.
 
 use crate::{
-    gdbstate::GdbStateGraph,
     log::{Logger, Severity},
     state::StateGraph,
     stylesheet::Stylesheet,
@@ -63,7 +62,8 @@ macro_rules! declare_renderer {
 }
 
 declare_renderer!(VisTreeRenderer(StateGraph));
-declare_renderer!(GdbVisTreeRenderer(GdbStateGraph));
+#[cfg(feature = "gdbstate")]
+declare_renderer!(GdbVisTreeRenderer(crate::gdbstate::GdbStateGraph));
 
 /// Resolves a [`Stylesheet`] over a [`StateGraph`] and renders
 /// the result into a [`VisTreeRenderer`].

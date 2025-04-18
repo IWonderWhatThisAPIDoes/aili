@@ -1,5 +1,7 @@
 //! State graph implementation that uses a GDB session.
 
+#![cfg(feature = "gdbstate")]
+
 use aili_gdbstate::{
     gdbmi::stream::StringGdbMiStream,
     state::{GdbStateGraph as GdbStateGraphImpl, GdbStateNode, GdbStateNodeId},

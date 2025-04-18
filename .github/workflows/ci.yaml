@@ -30,7 +30,7 @@ jobs:
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
       - name: Build
-        run: wasm-pack build jsapi --target bundler
+        run: wasm-pack build jsapi --target bundler --features gdbstate
       - name: Save build outputs
         uses: actions/cache/save@v3
         with:

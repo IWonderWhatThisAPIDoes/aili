@@ -1,6 +1,8 @@
 //! Expose parser for
 //! [GDB/MI output syntax](https://sourceware.org/gdb/current/onlinedocs/gdb.html/GDB_002fMI-Output-Syntax.html).
 
+#![cfg(feature = "gdbstate")]
+
 use aili_gdbstate::gdbmi::{grammar::parse_gdbmi_record as parse_gdbmi_record_impl, raw_output::*};
 use js_sys::{Array, JsString, Object, Reflect};
 use wasm_bindgen::prelude::*;
