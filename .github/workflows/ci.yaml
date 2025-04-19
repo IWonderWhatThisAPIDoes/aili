@@ -257,3 +257,47 @@ jobs:
           key: jsapi-package-${{ needs.cache-key.outputs.suffix }}
       - name: Build Demo
         run: npm run build -w demo
+
+  doc-debugger:
+    runs-on: ubuntu-latest
+    name: Docs (debugger)
+    needs:
+      - npm-install
+      - cache-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+      - name: Check documentation
+        run: npm run doc -w debugger
+
+  build-debugger:
+    runs-on: ubuntu-latest
+    name: Build Debugger
+    needs:
+      - build-jsapi
+      - npm-install
+      - cache-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+      - name: Load Node packages
+        uses: actions/cache/restore@v3
+        with:
+          path: node_modules
+          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+      - name: Load JSAPI
+        uses: actions/cache/restore@v3
+        with:
+          path: jsapi/pkg
+          key: jsapi-package-${{ needs.cache-key.outputs.suffix }}
+      - name: Build Debugger
+        run: npm run build -w debugger
