@@ -1,0 +1,47 @@
+{
+    "name": "aili-debugger",
+    "version": "0.1.0",
+    "description": "Demo Electron application showcasing the full Aili pipeline",
+    "author": "IWonderWhatThisAPIDoes",
+    "license": "(MIT OR Apache-2.0)",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/IWonderWhatThisAPIDoes/aili",
+        "directory": "debugger"
+    },
+    "main": "out/main/index.js",
+    "scripts": {
+        "build": "npm run build:compile && npm run build:package",
+        "build:compile": "electron-vite build",
+        "build:package": "npm run build:package:linux && npm run build:package:win",
+        "build:package:linux": "electron-forge package --platform linux",
+        "build:package:win": "electron-forge package --platform win32",
+        "start": "electron-vite dev",
+        "doc": "typedoc"
+    },
+    "dependencies": {
+        "aili-hooligan": "file:../hooligan",
+        "aili-vis": "file:../vis",
+        "aili-jsapi": "file:../jsapi/pkg",
+        "vue": "^3.5.13"
+    },
+    "devDependencies": {
+        "electron": "^35.1.5",
+        "electron-vite": "^3.1.0",
+        "@electron-forge/cli": "^7.8.0",
+        "@electron-toolkit/utils": "^4.0.0",
+        "@vitejs/plugin-vue": "^5.2.3",
+        "vite-plugin-wasm": "^3.4.1",
+        "vite-plugin-banner": "^0.8.0",
+        "typedoc": "^0.28.2"
+    },
+    "config": {
+        "forge": {
+            "outDir": "dist",
+            "packagerConfig": {
+                "icon": "./assets/favicon/favicon",
+                "ignore": []
+            }
+        }
+    }
+}

@@ -6,6 +6,7 @@ Prototype semantic visual debugger.
 
 | Module                          | Description                                                     |
 |---------------------------------|-----------------------------------------------------------------|
+| [:yellow_square: Debugger](./debugger) | Demo application that showcases the whole debugger pipeline. |
 | [:yellow_square: Demo](./demo)  | Demo application that showcases Vis and Translate modules.      |
 | [:crab: GDBState](./gdbstate)   | Implementation of the Program State model for C that uses the [GNU Project Debugger](https://www.sourceware.org/gdb). |
 | [:yellow_square: Hooligan](./hooligan) | Hooking and logging utilities.                           |

@@ -2,6 +2,7 @@
     "workspaces": [
         "hooligan",
         "vis",
-        "demo"
+        "demo",
+        "debugger"
     ]
 }
