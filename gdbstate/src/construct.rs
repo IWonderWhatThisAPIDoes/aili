@@ -361,7 +361,7 @@ impl GdbStateGraph {
                         let child_node_id = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
-                            embedding,
+                            VariableNodeEmbedding::Nested,
                         ))
                         .await?;
                         // Insert child into parent
@@ -381,7 +381,7 @@ impl GdbStateGraph {
                         let child_node_id = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
-                            embedding,
+                            VariableNodeEmbedding::Nested,
                         ))
                         .await?;
                         // Parse the variable's index
