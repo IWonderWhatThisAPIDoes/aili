@@ -40,7 +40,13 @@
             "outDir": "dist",
             "packagerConfig": {
                 "icon": "./assets/favicon/favicon",
-                "ignore": []
+                "ignore": [
+                    "electron.vite.config.mjs",
+                    "README.md",
+                    "node_modules",
+                    "src",
+                    "doc"
+                ]
             }
         }
     }
