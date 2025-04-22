@@ -301,3 +301,9 @@ jobs:
           key: jsapi-package-${{ needs.cache-key.outputs.suffix }}
       - name: Build Debugger
         run: npm run build -w debugger
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debugger
+          path: debugger/dist/
+          overwrite: true
