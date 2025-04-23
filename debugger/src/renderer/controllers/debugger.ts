@@ -5,7 +5,7 @@
  */
 
 import { Hook, Hookable, Logger, Severity, TopicLogger } from 'aili-hooligan';
-import { GdbMiAsyncExecClass, GdbMiAsyncNotifyClass, GdbMiRecordHeader, GdbMiRecordType, parseGdbMiRecordHeader } from '../utils/gdbmi-parser';
+import { GdbMiAsyncExecClass, GdbMiAsyncNotifyClass, GdbMiRecordHeader, GdbMiRecordType, parseGdbMiRecord, parseGdbMiRecordHeader } from '../utils/gdbmi-parser';
 import { PromiseContainer } from '../utils/promise-container';
 import '../../ipc';
 
@@ -95,6 +95,25 @@ export enum DebuggerInputSource {
 }
 
 /**
+ * Describes the location in the source code where
+ * the debuggee is currently executing.
+ */
+export interface SourceLocation {
+    /**
+     * Name of the source file that the current instruction is mapped to.
+     */
+    fileName?: string,
+    /**
+     * Number of the line in the source code that the current instruction is mapped to.
+     */
+    lineNumber?: number,
+    /**
+     * Name of the function being executed.
+     */
+    functionName?: string,
+}
+
+/**
  * Controls an external debugger instance.
  */
 export class Debugger {
@@ -156,6 +175,7 @@ export class Debugger {
      */
     detach(): void {
         this._pid = undefined;
+        this._sourceLocation = undefined;
         this.updateStatus(DebuggerStatus.INACTIVE);
     }
     /**
@@ -224,11 +244,17 @@ export class Debugger {
         return this._pid;
     }
     /**
+     * The location in the source code where the debuggee has stopped.
+     */
+    get sourceLocation(): SourceLocation | undefined {
+        return this._sourceLocation;
+    }
+    /**
      * Triggers when {@link status} changes.
      * 
      * @event
      */
-    get onStatusChanged(): Hookable<[DebuggerStatus, number | undefined]> {
+    get onStatusChanged(): Hookable<[DebuggerStatus, number | undefined, SourceLocation | undefined]> {
         return this._onStatusChanged;
     }
     /**
@@ -283,7 +309,7 @@ export class Debugger {
     }
     private updateStatus(status: DebuggerStatus) {
         this._status = status;
-        this._onStatusChanged.trigger(this._status, this._pid);
+        this._onStatusChanged.trigger(this._status, this._pid, this._sourceLocation);
     }
     private processExited(pid: number, exitCode: number | undefined): void {
         if (pid == this._pid) {
@@ -318,10 +344,16 @@ export class Debugger {
                     if (parseResult.class === GdbMiAsyncExecClass.RUNNING) {
                         this.updateStatus(DebuggerStatus.EXECUTING);
                     } else if (parseResult.class === GdbMiAsyncExecClass.STOPPED) {
-                        this.ioPromises.resolve(STOP_PROMISE_TOKEN, [line, parseResult]);
+                        const frameInfo = parseGdbMiRecord(line)?.results?.frame;
+                        this._sourceLocation = {
+                            functionName: frameInfo?.func,
+                            lineNumber: Number.parseInt(frameInfo?.line),
+                            fileName: frameInfo?.file,
+                        };
                         if (this._status === DebuggerStatus.EXECUTING) {
                             this.updateStatus(DebuggerStatus.PAUSED);
                         }
+                        this.ioPromises.resolve(STOP_PROMISE_TOKEN, [line, parseResult]);
                     } else {
                         this.metaLogger?.log(Severity.WARNING, `Did not recognize class of an async exec record: ${parseResult.class}`);
                     }
@@ -336,6 +368,7 @@ export class Debugger {
                         if (this._status !== DebuggerStatus.PAUSED && this._status !== DebuggerStatus.EXECUTING && this._status !== DebuggerStatus.LAUNCHING) {
                             this.metaLogger?.log(Severity.WARNING, 'Received thread group exit notification outside of a debug session');
                         }
+                        this._sourceLocation = undefined;
                         this.updateStatus(DebuggerStatus.IDLE);
                     }
                 }
@@ -344,7 +377,8 @@ export class Debugger {
     }
     private _status = DebuggerStatus.INACTIVE;
     private _pid: number | undefined = undefined;
-    private _onStatusChanged: Hook<[DebuggerStatus, number | undefined]>;
+    private _sourceLocation: SourceLocation | undefined = undefined;
+    private _onStatusChanged: Hook<[DebuggerStatus, number | undefined, SourceLocation | undefined]>;
     private ioPromises: PromiseContainer<[string, GdbMiRecordHeader]>;
     private nextToken: number = 0;
     private fromDebuggerLogger: Logger | undefined;

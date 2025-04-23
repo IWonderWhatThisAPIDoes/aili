@@ -5,6 +5,23 @@
  * starting, stopping, and single-stepping.
 -->
 
+<script lang="ts">
+    import { SourceLocation } from '../controllers/debugger';
+
+    function sourceLocationText(sourceLocation: SourceLocation): string {
+        let output = '';
+        if (sourceLocation.functionName) {
+            output += sourceLocation.functionName + ', ';
+        }
+        if (sourceLocation.fileName && sourceLocation.lineNumber) {
+            output += `${sourceLocation.fileName}:${sourceLocation.lineNumber}`;
+        } else {
+            output += '???';
+        }
+        return output;
+    }
+</script>
+
 <script setup lang="ts">
     import { computed, ref } from 'vue';
     import { DebugSessionStatus } from '../controllers/session';
@@ -14,7 +31,11 @@
 
     const pathToDebuggee = ref(session.pathToDebuggee);
     const status = ref(session.status);
-    session.onStatusChanged.hook(s => status.value = s);
+    const sourceLocation = ref(session.sourceLocation);
+    session.onStatusChanged.hook(s => {
+        sourceLocation.value = session.sourceLocation;
+        status.value = s;
+    });
 
     const startStopButtonText = computed(prev => {
         switch (status.value) {
@@ -52,6 +73,9 @@
             Path to debuggee:
             <input v-model="pathToDebuggee" :disabled="status !== DebugSessionStatus.INACTIVE">
         </label>
+        <span v-if="sourceLocation !== undefined">
+            {{ sourceLocationText(sourceLocation) }}
+        </span>
         <button :disabled="status === DebugSessionStatus.BUSY || pathToDebuggee === ''" @click="startStop">
             {{ startStopButtonText }}
         </button>
@@ -65,5 +89,6 @@
     .session-control {
         display: flex;
         gap: 0.5em;
+        align-items: baseline;
     }
 </style>

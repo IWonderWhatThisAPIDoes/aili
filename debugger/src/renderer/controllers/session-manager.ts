@@ -5,7 +5,7 @@
  */
 
 import { GdbMiSession, GdbStateGraph } from "aili-jsapi";
-import { Debugger, DebuggerInputSource, isStatusRunning } from "./debugger";
+import { Debugger, DebuggerInputSource, isStatusRunning, SourceLocation } from "./debugger";
 import { DebuggerSession, DebugSessionStatus } from "./session";
 import { Hook, Hookable, Logger } from "aili-hooligan";
 
@@ -118,6 +118,12 @@ export class DebugSessionManager {
      */
     get status(): DebugSessionStatus {
         return this._status;
+    }
+    /**
+     * The location in the source code where the debuggee has stopped.
+     */
+    get sourceLocation(): SourceLocation | undefined {
+        return this.debug.sourceLocation;
     }
     /**
      * Triggers when the state graph that represents the session updates.
