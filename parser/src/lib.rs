@@ -14,9 +14,8 @@ use lexer::Token;
 use logos::Logos;
 use report::FilteredErrorHandler;
 
-/// Error type that indicates irrecoverable parse errors.
-#[derive(Clone, PartialEq, Eq, Debug, Display, Error, From, Default)]
-pub struct ParseFailure(grammar::ParseError);
+pub use grammar::{ParseFailure, SyntaxError};
+pub use lexer::LexerError;
 
 /// Error type that indicates recoverable lexer or parser input errors.
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error)]
@@ -24,26 +23,19 @@ pub struct ParseFailure(grammar::ParseError);
 pub struct ParseError {
     /// Information about the error.
     #[error(source)]
-    error_data: ParseErrorInfo,
+    pub error_data: ParseErrorInfo,
     /// One-based number of the line where the error occurred.
-    line_number: usize,
-}
-
-impl ParseError {
-    /// One-based index of the line where the error occurred.
-    pub fn line_number(&self) -> usize {
-        self.line_number
-    }
+    pub line_number: usize,
 }
 
 /// Internal data for recoverable lexer or parser errors.
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From)]
-enum ParseErrorInfo {
+pub enum ParseErrorInfo {
     /// Error originating from the lexer.
-    LexerError(lexer::LexerError),
+    LexerError(LexerError),
 
     /// Error originating from the parser.
-    SyntaxError(grammar::SyntaxError),
+    SyntaxError(SyntaxError),
 }
 
 /// Parses a [`Stylesheet`].
@@ -691,7 +683,7 @@ mod test {
             0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 : 0 
         ) { }";
         let result = parse_stylesheet(source, ExpectErrors::none().f());
-        assert_eq!(result, Err(grammar::ParseError::StackOverflow.into()));
+        assert_eq!(result, Err(grammar::ParseFailure::StackOverflow));
     }
 
     #[test]

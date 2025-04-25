@@ -17,7 +17,7 @@ use pomelo::pomelo;
 /// Recoverable errors are recovered and the parser returns
 /// a [`Stylesheet`] that is the valid portion of the input.
 #[derive(Clone, PartialEq, Eq, Debug, Display, Error, From, Default)]
-pub enum ParseError {
+pub enum ParseFailure {
     /// Parser failed without providing any additional information.
     #[default]
     #[display("irrecoverable parser failure")]
@@ -170,8 +170,8 @@ pomelo! {
     }
 
     // Syntactic analysis errors
-    %error ParseError;
-    %stack_overflow { ParseError::StackOverflow }
+    %error ParseFailure;
+    %stack_overflow { ParseFailure::StackOverflow }
     %syntax_error {
         let error = if token.is_some_and(|t| t != Token::End) {
             SyntaxError::UnexpectedToken
