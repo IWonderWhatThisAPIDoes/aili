@@ -781,7 +781,7 @@ mod test {
     }
 
     #[test]
-    fn dynamic_index_matcher() {
+    fn dynamic_index_matcher_in_expression() {
         let source = ":: { parent: @([--len - 1][--i]) }";
         let index_expression = Expression::BinaryOperator(
             Expression::Variable("--len".to_owned()).into(),
@@ -800,6 +800,40 @@ mod test {
                     .into(),
                 ),
             }],
+        }]);
+        let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
+            .expect("Stylesheet should have parsed");
+        assert_eq!(expected_stylesheet, parsed_stylesheet);
+    }
+
+    #[test]
+    fn dynamic_index_matcher_in_selector() {
+        let source = ":: [--len - 1] [--i] { }";
+        let expected_stylesheet = Stylesheet(vec![StyleRule {
+            selector: Selector::from_path(
+                [
+                    // Dynamic index matcher unrolls
+                    SelectorSegment::Match(EdgeMatcher::AnyIndex),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::MagicVariable(MagicVariableKey::EdgeIndex).into(),
+                        BinaryOperator::Eq,
+                        Expression::BinaryOperator(
+                            Expression::Variable("--len".to_owned()).into(),
+                            BinaryOperator::Minus,
+                            Expression::Int(1).into(),
+                        )
+                        .into(),
+                    )),
+                    SelectorSegment::Match(EdgeMatcher::AnyIndex),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::MagicVariable(MagicVariableKey::EdgeIndex).into(),
+                        BinaryOperator::Eq,
+                        Expression::Variable("--i".to_owned()).into(),
+                    )),
+                ]
+                .into(),
+            ),
+            properties: Vec::new(),
         }]);
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
             .expect("Stylesheet should have parsed");
