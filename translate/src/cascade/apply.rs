@@ -2,14 +2,12 @@
 
 use super::{
     eval::{context::EvaluationContext, evaluate, variable_pool::VariablePool},
-    style::{CascadeStyle, FlatSelectorSegment},
+    mapping_builder::PropertyMappingBuilder,
+    selector_resolver::{SelectionCaret, SelectorResolver},
+    style::CascadeStyle,
 };
-use crate::{
-    property::*,
-    stylesheet::{StyleKey, selector::EdgeMatcher},
-};
-use aili_model::state::{EdgeLabel, NodeId, ProgramStateNode, RootedProgramStateGraph};
-use std::collections::{HashMap, HashSet, hash_map::Entry};
+use crate::{property::*, stylesheet::StyleKey};
+use aili_model::state::{EdgeLabel, ProgramStateNode, RootedProgramStateGraph};
 
 /// Applies a stylesheet to a graph.
 pub fn apply_stylesheet<T: RootedProgramStateGraph>(
@@ -21,42 +19,6 @@ pub fn apply_stylesheet<T: RootedProgramStateGraph>(
     helper.result()
 }
 
-/// Identifier of a property variable on an entity.
-#[derive(PartialEq, Eq, Debug, Hash)]
-struct EntityPropertyKey<T: NodeId>(Selectable<T>, PropertyKey);
-
-/// Value assigned to a property variable based on a rule
-#[derive(Debug)]
-struct RulePropertyValue<T: NodeId> {
-    /// Value assigned to the property.
-    value: PropertyValue<T>,
-    /// Index of the rule that assigned the value.
-    /// Relevant for calculating precedence.
-    rule_index: usize,
-    /// Whether the value was assigned explicitly
-    /// or as the side effect of another assignment.
-    passive: bool,
-}
-
-impl<T: NodeId> RulePropertyValue<T> {
-    /// Overwrites the existing value with a new one, but only
-    /// if the new value has greater or equal precedence.
-    ///
-    /// ## Return Value
-    /// True if the new value was written, false otherwise.
-    fn assign_new_value(&mut self, candidate_value: Self) -> bool {
-        // Passive assignments take lower priority always,
-        // otherwise the precedence is decided based on evaluation order
-        let precedence = |value: &Self| (!value.passive, value.rule_index);
-        if precedence(&candidate_value) >= precedence(self) {
-            *self = candidate_value;
-            true
-        } else {
-            false
-        }
-    }
-}
-
 /// Helper for stylesheet applications.
 struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     /// The graph being traversed.
@@ -65,18 +27,11 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     /// The stylesheet being evaluated.
     stylesheet: &'a CascadeStyle,
 
-    /// Pairs of nodes and selector sequence points
-    /// that have already been matched.
-    ///
-    /// Each node can only be matched by each sequence point
-    /// once. If it is matched again, the match fails.
-    ///
-    /// A sequence point is a [`MatchNode`](super::style::FlatSelectorSegment::MatchNode)
-    /// transition in the state machine.
-    matched_sequence_points: HashSet<(T::NodeId, SequencePointRef)>,
+    /// Resolver that tracks the stylesheet's selectors.
+    resolver: SelectorResolver<'a, T::NodeId>,
 
-    /// Values assigned to each property on each node.
-    properties: HashMap<EntityPropertyKey<T::NodeId>, RulePropertyValue<T::NodeId>>,
+    /// Builder that constructs the resulting mapping.
+    mapping: PropertyMappingBuilder<T::NodeId>,
 
     /// Variables that are active at the moment
     variable_pool: VariablePool<&'a str, T::NodeId>,
@@ -87,122 +42,62 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         Self {
             graph,
             stylesheet,
-            matched_sequence_points: HashSet::new(),
-            properties: HashMap::new(),
+            resolver: SelectorResolver::new(stylesheet),
+            mapping: PropertyMappingBuilder::new(),
             variable_pool: VariablePool::new(),
         }
     }
 
-    fn result(mut self) -> EntityPropertyMapping<T::NodeId> {
-        let mut mapping = EntityPropertyMapping::new();
-        for (EntityPropertyKey(entity, property), RulePropertyValue { value, .. }) in
-            std::mem::take(&mut self.properties)
-        {
-            // Insert the property map lazily
-            let entity_properties = || mapping.0.entry(entity).or_default();
-            match property {
-                PropertyKey::Attribute(name) => {
-                    let value = self.to_true_value(value);
-                    // If value if Unset, the attribute should not be saved at all
-                    if value != PropertyValue::Unset {
-                        entity_properties()
-                            .attributes
-                            .insert(name, value.to_string());
-                    }
-                }
-                PropertyKey::FragmentAttribute(fragment, name) => {
-                    let value = self.to_true_value(value);
-                    // If value is Unset, the attribute should not be saved at all
-                    if value != PropertyValue::Unset {
-                        entity_properties()
-                            .fragment_attributes
-                            .entry(fragment)
-                            .or_default()
-                            .insert(name, value.to_string());
-                    }
-                }
-                PropertyKey::Display => {
-                    let display_mode = match &value {
-                        PropertyValue::Unset => None,
-                        PropertyValue::Selection(sel) => {
-                            if sel.is_node() {
-                                self.graph
-                                    .get(&sel.node_id)
-                                    .and_then(|node| node.value())
-                                    .map(PropertyValue::<T::NodeId>::from)
-                                    .as_ref()
-                                    .map(PropertyValue::to_string)
-                                    .map(DisplayMode::from_name)
-                            } else {
-                                None
-                            }
-                        }
-                        _ => Some(DisplayMode::from_name(value.to_string())),
-                    };
-                    if display_mode.is_some() {
-                        entity_properties().display = display_mode;
-                    }
-                }
-                PropertyKey::Parent => {
-                    if let PropertyValue::Selection(sel) = value {
-                        entity_properties().parent = Some(*sel);
-                    }
-                }
-                PropertyKey::Target => {
-                    if let PropertyValue::Selection(sel) = value {
-                        entity_properties().target = Some(*sel);
-                    }
-                }
-                PropertyKey::Detach => {}
-            }
-        }
-        mapping
+    fn result(self) -> EntityPropertyMapping<T::NodeId> {
+        self.mapping.build(self.graph)
     }
 
     fn run(&mut self) {
-        let starting_states = (0..self.stylesheet.0.len()).map(|rule_index| SequencePointRef {
-            rule_index,
-            state_index: 0,
-        });
-        self.run_from(
-            self.graph.root(),
-            starting_states,
-            None,
-            None,
-            &AutoAssignmentContext::default(),
-        );
+        self.run_from(self.graph.root(), None, None);
     }
 
     /// Traverses depth-first from a specified node and evaluates the selector.
     fn run_from(
         &mut self,
         node: T::NodeId,
-        starting_states: impl IntoIterator<Item = SequencePointRef>,
         previous_node: Option<T::NodeId>,
         previous_edge: Option<&EdgeLabel>,
-        auto_context: &AutoAssignmentContext<T::NodeId>,
     ) {
-        let ResolveNodeResult {
-            output_states,
-            mut matched_rules,
-        } = self.resolve_node(node.clone(), starting_states, previous_edge);
+        let matched_rules = self.resolve_node(node.clone(), previous_edge);
 
+        self.mapping.push();
+
+        self.resolve_matched_rules(&node, previous_node, previous_edge, matched_rules);
+
+        // This is our termination condition:
+        // We stop once there is nothing else to explore
+        if self.resolver.has_edges_to_resolve() {
+            // Traverse down the tree through all edges
+            self.traverse_outgoing_edges(node);
+        }
+
+        self.mapping.pop();
+    }
+
+    fn resolve_matched_rules(
+        &mut self,
+        node: &T::NodeId,
+        previous_node: Option<T::NodeId>,
+        previous_edge: Option<&EdgeLabel>,
+        mut matched_rules: Vec<(usize, SelectionCaret)>,
+    ) {
         // Resolve rules in correct order
-        matched_rules.sort_by_cached_key(|&(rule_index, matched_node)| {
+        matched_rules.sort_by_cached_key(|&(rule_index, caret)| {
             let has_extra = self.stylesheet.0[rule_index].machine.extra.is_some();
             // Primary ordering: incoming edge before node
             // Secondary ordering: nodes and edges before extras
             // Tertiary ordering: declaration order in the stylesheet
-            (matched_node, has_extra, rule_index)
+            (caret == SelectionCaret::Node, has_extra, rule_index)
         });
 
-        // The auto-assignment context we are going to pass along
-        // to the next layer
-        let mut new_auto_context = auto_context.clone();
-
         // Resolve all entities that matched
-        for (rule_index, selected_node) in matched_rules {
-            let mut selected = if selected_node {
+        for (rule_index, caret) in matched_rules {
+            let mut selected = if caret == SelectionCaret::Node {
                 Selectable::node(node.clone())
             } else if let Some(selected) = previous_node.clone().and_then(|node| {
                 previous_edge
@@ -214,177 +109,52 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
                 continue;
             };
             selected.extra_label = self.stylesheet.0[rule_index].machine.extra.clone();
-            self.selected_entity(
-                selected,
-                &node,
-                rule_index,
-                auto_context,
-                &mut new_auto_context,
-                previous_edge,
-            );
+            self.selected_entity(&selected, node, rule_index, previous_edge);
         }
-
-        // This is our termination condition:
-        // We stop once there is nothing else to explore
-        if output_states.is_empty() {
-            return;
-        }
-
-        // Traverse down the tree through all edges
-        self.traverse_outgoing_edges(node, &output_states, &new_auto_context);
     }
 
     /// Runs segments of the state machine at a given node.
     fn resolve_node(
         &mut self,
         node: T::NodeId,
-        starting_states: impl IntoIterator<Item = SequencePointRef>,
         previous_edge: Option<&EdgeLabel>,
-    ) -> ResolveNodeResult<'a> {
-        // States of the selector state machine that have been visited
-        // while evaluating this node
-        let mut visited_states = HashSet::new();
-        // States that are yet to be visited and whether the node has already
-        // been committed when we reach them
-        let mut open_states = Vec::from_iter(starting_states.into_iter().map(|s| (s, false)));
-        // States that are blocked by an edge matcher
-        // and must be resolved by traversing further down the graph
-        let mut output_states = Vec::new();
-        // Rules whose selector selected this element or a related entity
-        let mut matched_rules = Vec::new();
-
-        // Make a transitive closure of selector states reachable at this node
-        while let Some((state, committed)) = open_states.pop() {
-            let selector = &self.stylesheet.0[state.rule_index].machine;
-            if state.state_index >= selector.path.len() {
-                // We made it to the end of the selector
-                // That means it has matched the node
-                matched_rules.push((state.rule_index, committed));
-                continue;
-            }
-            // Proceed, unless we have been here already
-            // This prevents infinite loops caused by poorly written selectors
-            if !visited_states.insert(state) {
-                continue;
-            }
-            match &selector.path[state.state_index] {
-                FlatSelectorSegment::MatchEdge(matcher) => {
-                    // Traversing an edge is only permitted if the node has already been committed
-                    // This ensures the resolver halts by only allowing each edge to be traversed once
-                    if committed {
-                        // This is where we must halt and send the selector
-                        // along the edge later on, after we are done with
-                        // all partial matches on this node
-                        output_states.push((matcher, state));
-                    }
-                    // TODO: Emit a warning if we fail this check?
-                    // This can never happen when using flattened regular selectors
-                    // but it is possible to manually construct a flat selector
-                    // that does not uphold this invariant
-                }
-                FlatSelectorSegment::MatchNode => {
-                    // Proceed only if the selector has never partially matched
-                    // this node in this way
-                    if self.matched_sequence_points.insert((node.clone(), state)) {
-                        // Continue traversing the state machine linearly
-                        // and commit to the node
-                        open_states.push((state.advance(), true));
-                    }
-                }
-                FlatSelectorSegment::Restrict(condition) => {
-                    // Proceed only if the condition holds
-                    let context = self.evaluation_context(node.clone(), previous_edge);
-                    if evaluate(condition, &context).is_truthy() {
-                        // continue traversing the state machine linearly
-                        open_states.push((state.advance(), committed));
-                    }
-                }
-                FlatSelectorSegment::Branch(next_state) => {
-                    // Continue both linearly and from the indicated state
-                    open_states.push((state.jump(*next_state), committed));
-                    open_states.push((state.advance(), committed));
-                }
-                FlatSelectorSegment::Jump(next_state) => {
-                    // Continue only from the indicated state
-                    open_states.push((state.jump(*next_state), committed));
-                }
-            }
-        }
-
-        ResolveNodeResult {
-            output_states,
-            matched_rules,
-        }
+    ) -> Vec<(usize, SelectionCaret)> {
+        let context =
+            Self::evaluation_context(self.graph, &self.variable_pool, node.clone(), previous_edge);
+        self.resolver.resolve_node(node, &context)
     }
 
     /// Traverses depth-first through all outgoing edges of a node.
-    fn traverse_outgoing_edges(
-        &mut self,
-        starting_node: T::NodeId,
-        output_states: &Vec<(&EdgeMatcher, SequencePointRef)>,
-        auto_context: &AutoAssignmentContext<T::NodeId>,
-    ) {
+    fn traverse_outgoing_edges(&mut self, starting_node: T::NodeId) {
         let Some(node) = self.graph.get(&starting_node) else {
             return;
         };
         for (edge_label, successor_node) in node.successors() {
             // Push a state so we can pop it later
             self.variable_pool.push();
-            // Start traversing from the next node, from all the states where this node ended
-            // and the edge matches the blocking matcher
-            let starting_states = output_states
-                .iter()
-                .copied()
-                .filter(|(matcher, _)| matcher.matches(edge_label))
-                .map(|(_, state)| state.advance());
+            self.resolver.push_edge(edge_label);
+            // Resolve the following edge and node
             self.run_from(
                 successor_node,
-                starting_states,
                 Some(starting_node.clone()),
                 Some(edge_label),
-                auto_context,
             );
             // Discard all variables that were created here
+            self.resolver.pop_edge();
             self.variable_pool.pop();
         }
     }
 
     fn selected_entity(
         &mut self,
-        target: Selectable<T::NodeId>,
+        target: &Selectable<T::NodeId>,
         select_origin: &T::NodeId,
         rule_index: usize,
-        input_auto_context: &AutoAssignmentContext<T::NodeId>,
-        output_auto_context: &mut AutoAssignmentContext<T::NodeId>,
         previous_edge: Option<&EdgeLabel>,
     ) {
-        // Edges that are selected are automatically displayed as conenctors
-        if target.is_edge() {
-            // Display as connector
-            let display_key = EntityPropertyKey(target.clone(), PropertyKey::Display);
-            let display_value = RulePropertyValue {
-                value: PropertyValue::String(DisplayMode::CONNECTOR_NAME.to_owned()),
-                rule_index,
-                passive: true,
-            };
-            self.write_property(display_key, display_value);
-            // Parent is source
-            let parent_key = EntityPropertyKey(target.clone(), PropertyKey::Parent);
-            let parent_value = RulePropertyValue {
-                value: PropertyValue::Selection(Selectable::node(target.node_id.clone()).into()),
-                rule_index,
-                passive: true,
-            };
-            self.write_property(parent_key, parent_value);
-            // Target is target
-            let target_key = EntityPropertyKey(target.clone(), PropertyKey::Target);
-            let target_value = RulePropertyValue {
-                value: PropertyValue::Selection(Selectable::node(select_origin.clone()).into()),
-                rule_index,
-                passive: true,
-            };
-            self.write_property(target_key, target_value);
-        }
+        // Adjust the mapping to the new entity
+        self.mapping
+            .selected_entity(target, select_origin, rule_index);
         // Extra entities get their own variable scope
         // so they cannot affect anything outside
         if target.is_extra() {
@@ -392,52 +162,16 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
         let properties = &self.stylesheet.0[rule_index].properties;
         for property in properties {
-            let value = evaluate(
-                &property.value,
-                &self.evaluation_context(select_origin.clone(), previous_edge),
+            let context = Self::evaluation_context(
+                self.graph,
+                &self.variable_pool,
+                select_origin.clone(),
+                previous_edge,
             );
+            let value = evaluate(&property.value, &context);
             match &property.key {
                 StyleKey::Property(key) => {
-                    let full_key = EntityPropertyKey(target.clone(), key.clone());
-                    let full_value = RulePropertyValue {
-                        value,
-                        rule_index,
-                        passive: false,
-                    };
-                    let updated_property = self.write_property(full_key, full_value);
-                    // If we just chaned the display mode of an entity,
-                    // we should auto-assign common values to other properties
-                    if updated_property && *key == PropertyKey::Display {
-                        if target.is_node() {
-                            // If the display property of a node is explicitly
-                            // assigned, that node becomes the parent of its successors
-                            // by default
-                            output_auto_context.parent = Some(target.clone());
-                            // Likewise, it is adopted by its predecessor, if any
-                            if let Some(parent) = &input_auto_context.parent {
-                                let parent_key =
-                                    EntityPropertyKey(target.clone(), PropertyKey::Parent);
-                                let parent_value = RulePropertyValue {
-                                    value: PropertyValue::Selection(parent.clone().into()),
-                                    rule_index,
-                                    passive: true,
-                                };
-                                self.write_property(parent_key, parent_value);
-                            }
-                        }
-                        if target.is_extra() {
-                            // Extra will be adopted by its owner
-                            let parent_key = EntityPropertyKey(target.clone(), PropertyKey::Parent);
-                            let parent_value = RulePropertyValue {
-                                value: PropertyValue::Selection(
-                                    target.clone().without_extra().into(),
-                                ),
-                                rule_index,
-                                passive: true,
-                            };
-                            self.write_property(parent_key, parent_value);
-                        }
-                    }
+                    self.mapping.assign(target, key, value, rule_index);
                 }
                 StyleKey::Variable(name) => {
                     self.variable_pool.insert(name, value);
@@ -450,12 +184,13 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
     }
 
     fn evaluation_context<'b>(
-        &'b self,
+        graph: &'b T,
+        variable_pool: &'b VariablePool<&'b str, T::NodeId>,
         origin: T::NodeId,
         previous_edge: Option<&'b EdgeLabel>,
     ) -> EvaluationContext<'b, T> {
         let mut context =
-            EvaluationContext::from_graph(self.graph, origin).with_variables(&self.variable_pool);
+            EvaluationContext::from_graph(graph, origin).with_variables(variable_pool);
         match previous_edge {
             Some(EdgeLabel::Index(index)) => context = context.with_edge_index(*index),
             Some(EdgeLabel::Named(name, discriminator)) => {
@@ -466,94 +201,6 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             _ => {}
         }
         context
-    }
-
-    fn write_property(
-        &mut self,
-        key: EntityPropertyKey<T::NodeId>,
-        value: RulePropertyValue<T::NodeId>,
-    ) -> bool {
-        match self.properties.entry(key) {
-            Entry::Occupied(mut existing) => existing.get_mut().assign_new_value(value),
-            Entry::Vacant(entry) => {
-                entry.insert(value);
-                true
-            }
-        }
-    }
-
-    fn to_true_value(&self, value: PropertyValue<T::NodeId>) -> PropertyValue<T::NodeId> {
-        if let PropertyValue::Selection(sel) = &value {
-            if sel.is_node() {
-                self.graph
-                    .get(&sel.node_id)
-                    .and_then(|node| node.value())
-                    .map(Into::into)
-                    .unwrap_or_default()
-            } else {
-                PropertyValue::Unset
-            }
-        } else {
-            value
-        }
-    }
-}
-
-/// Reference to a selector sequence point.
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-struct SequencePointRef {
-    /// Index of the rule whose selector is being referenced
-    /// within the stylesheet.
-    rule_index: usize,
-    /// Index of the state within the selector.
-    state_index: usize,
-}
-
-impl SequencePointRef {
-    fn advance(self) -> Self {
-        self.jump(self.state_index + 1)
-    }
-
-    fn jump(self, next_state: usize) -> Self {
-        Self {
-            rule_index: self.rule_index,
-            state_index: next_state,
-        }
-    }
-}
-
-/// Result of [`ApplyStylesheet::resolve_node`].
-struct ResolveNodeResult<'a> {
-    /// States in which the selectors await
-    output_states: Vec<(&'a EdgeMatcher, SequencePointRef)>,
-    /// Rules that have selected the node,
-    /// with a flag indicating whether it was the node that was selected
-    /// (true), or the edge leading to it (false)
-    matched_rules: Vec<(usize, bool)>,
-}
-
-/// Information that must be carried around
-/// in order to auto-assign [`PropertyKey::Parent`]
-/// and [`PropertyKey::Target`] properties.
-#[derive(Clone)]
-struct AutoAssignmentContext<T: NodeId> {
-    parent: Option<Selectable<T>>,
-}
-
-impl<T: NodeId> Default for AutoAssignmentContext<T> {
-    fn default() -> Self {
-        Self { parent: None }
-    }
-}
-
-impl DisplayMode {
-    const CONNECTOR_NAME: &'static str = "connector";
-
-    fn from_name(name: String) -> Self {
-        match name.as_str() {
-            Self::CONNECTOR_NAME => Self::Connector,
-            _ => Self::ElementTag(name),
-        }
     }
 }
 

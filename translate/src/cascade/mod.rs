@@ -3,7 +3,9 @@
 
 mod apply;
 pub mod eval;
+mod mapping_builder;
 mod select;
+mod selector_resolver;
 mod style;
 mod test_graph;
 
