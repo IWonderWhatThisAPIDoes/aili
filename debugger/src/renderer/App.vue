@@ -129,7 +129,7 @@
             </Panel>
             <Panel class="panel" title="Log" v-show="showLog">
                 <ScrollBox>
-                    <LogConsole ref="log-console" />
+                    <LogConsole ref="log-console" showTopic />
                 </ScrollBox>
             </Panel>
         </div>

@@ -17,6 +17,8 @@
     import Console from './Console.vue';
     import LogLine from './LogLine.vue';
 
+    const { showTopic } = defineProps<{ showTopic?: boolean }>();
+
     const logs = ref<LogEntry[]>([]);
 
     const scrollToBottomOfContainingScrollBox = inject(INJECT_SCROLL_TO_BOTTOM, undefined);
@@ -44,6 +46,10 @@
 
 <template>
     <Console>
-        <LogLine v-for="log of logs" :topic="log[0]" :severity="log[1]" :message="log[2]" />
+        <LogLine v-for="log of logs"
+            :topic="log[0]"
+            :severity="log[1]"
+            :message="log[2]"
+            :showTopic="showTopic"/>
     </Console>
 </template>

@@ -2,14 +2,9 @@
  * Single log line displayed by log views.
 -->
 
-<script setup lang="ts">
+<script lang="ts">
     import { Severity } from 'aili-hooligan';
-
-    defineProps<{
-        severity: Severity,
-        message: string,
-        topic?: readonly string[],
-    }>();
+    import { colorFromString } from '../utils/auto-colors';
 
     const SEVERITY_CLASS: Readonly<Record<Severity, string>> = {
         [Severity.ERROR]: 'error',
@@ -27,9 +22,23 @@
     }
 </script>
 
+<script setup lang="ts">
+    defineProps<{
+        severity: Severity,
+        message: string,
+        topic?: readonly string[],
+        showTopic?: boolean,
+    }>();
+</script>
+
 <template>
     <div :class="['log-line', severityClass(severity), ...topicClasses(topic)]">
-        {{ message }}
+        <span v-if="showTopic"
+            v-for="topic in topic"
+            :class="['log-line-topic', `topic-${topic}`]"
+            :style="{ color: colorFromString(topic) }">
+            {{ topic }}
+        </span>{{ message }}
     </div>
 </template>
 
@@ -60,5 +69,13 @@
     .log-line.severity-debug::before {
         content: 'DEBUG';
         color: grey;
+    }
+
+    .log-line-topic {
+        font-size: smaller;
+        border: 1px solid;
+        margin-right: 0.5em;
+        pointer-events: none;
+        user-select: none;
     }
 </style>
