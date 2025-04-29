@@ -145,4 +145,9 @@
     .log-line.topic-to-debugger.topic-from-state::after {
         content: 'state';
     }
+
+    .log-line.topic-to-debugger::before, .log-line.topic-from-debugger::before {
+        /* Drop these labels to make more space */
+        content: none;
+    }
 </style>
