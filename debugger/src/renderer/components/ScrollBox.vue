@@ -34,7 +34,6 @@
     .scroll-box {
         display: flex;
         overflow: auto;
-        box-sizing: border-box;
     }
 
     .scroll-box > * {
