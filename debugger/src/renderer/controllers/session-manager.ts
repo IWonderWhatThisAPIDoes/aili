@@ -4,10 +4,10 @@
  * @module
  */
 
-import { GdbMiSession, GdbStateGraph } from "aili-jsapi";
-import { Debugger, DebuggerInputSource, isStatusRunning, SourceLocation } from "./debugger";
-import { DebuggerSession, DebugSessionStatus } from "./session";
-import { Hook, Hookable, Logger } from "aili-hooligan";
+import { GdbMiSession, GdbStateGraph } from 'aili-jsapi';
+import { Debugger, DebuggerInputSource, isStatusRunning, SourceLocation } from './debugger';
+import { DebuggerSession, DebugSessionStatus } from './session';
+import { Hook, Hookable, Logger } from 'aili-hooligan';
 
 /**
  * Wraps a debugger session, including rendering.
