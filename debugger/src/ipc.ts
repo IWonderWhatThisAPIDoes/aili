@@ -40,6 +40,10 @@ export const GDB_ERROR: string = 'debugger-error';
  * Name of the IPC channel for {@link IpcEventApi.addDebuggerOutputHandler}.
  */
 export const GDB_OUTPUT: string = 'debugger-output';
+/**
+ * Name of the IPC channel for {@link IpcEventApi.getFileContents}.
+ */
+export const READ_FILE: string = 'read-file';
 
 /**
  * API for communication from renderer to main process.
@@ -85,6 +89,12 @@ export interface IpcActionApi {
      *         or it does not accept input.
      */
     sendInputToDebugger(pid: number, input: string): Promise<void>;
+    /**
+     * Retrieves the contents of a file.
+     * 
+     * @param fileName Name of the file to read.
+     */
+    getFileContents(fileName: string): Promise<string>;
 }
 
 /**

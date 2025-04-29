@@ -104,6 +104,10 @@ export interface SourceLocation {
      */
     fileName?: string,
     /**
+     * Full path to the source file that the current instruction is mapped to.
+     */
+    filePath?: string,
+    /**
      * Number of the line in the source code that the current instruction is mapped to.
      */
     lineNumber?: number,
@@ -349,6 +353,7 @@ export class Debugger {
                             functionName: frameInfo?.func,
                             lineNumber: Number.parseInt(frameInfo?.line),
                             fileName: frameInfo?.file,
+                            filePath: frameInfo?.fullname,
                         };
                         if (this._status === DebuggerStatus.EXECUTING) {
                             this.updateStatus(DebuggerStatus.PAUSED);

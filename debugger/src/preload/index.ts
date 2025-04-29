@@ -31,6 +31,10 @@ const api: ipc.IpcActionApi & ipc.IpcEventApi = {
         // TODO: Sanitize
         return ipcRenderer.invoke(ipc.GDB_INPUT, pid, input);
     },
+    getFileContents(fileName: string) {
+        // TODO: Sanitize
+        return ipcRenderer.invoke(ipc.READ_FILE, fileName);
+    },
     addDebuggerExitHandler(handler: (pid: number, exitCode: number | undefined) => void) {
         ipcRenderer.on(ipc.GDB_EXIT, (_, pid, exitCode) => handler(pid, exitCode));
     },

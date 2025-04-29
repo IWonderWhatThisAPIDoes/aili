@@ -10,6 +10,7 @@
 import * as ipc from '../ipc';
 import { DebuggerManager } from './debugger-manager';
 import { ipcMain, WebContents } from 'electron';
+import fs from 'fs';
 
 /**
  * Sets up {@link ipc.IpcEventApi | IpcEventApi} for a single renderer process.
@@ -39,6 +40,7 @@ export function setupIpcApi(debuggerManager: DebuggerManager) {
         setPathToDebugger: path => debuggerManager.pathToDebugger = path,
         getPathToDebugger: async () => debuggerManager.pathToDebugger,
         sendInputToDebugger: (pid, input) => debuggerManager.sendInput(pid, input),
+        getFileContents,
     };
 
     ipcMain.handle(ipc.START_DEBUGGER, implementation.createDebuggerInstance);
@@ -46,4 +48,23 @@ export function setupIpcApi(debuggerManager: DebuggerManager) {
     ipcMain.handle(ipc.GET_GDB_PATH, implementation.getPathToDebugger);
     ipcMain.on(ipc.SET_GDB_PATH, (_, path) => implementation.setPathToDebugger(path));
     ipcMain.handle(ipc.GDB_INPUT, (_, pid, input) => implementation.sendInputToDebugger(pid, input));
+    ipcMain.handle(ipc.READ_FILE, (_, fileName) => implementation.getFileContents(fileName));
+}
+
+/**
+ * Retrieves the full contents of a file.
+ * 
+ * @param fileName Name of the file to read.
+ * @returns Contents of the file.
+ */
+function getFileContents(fileName: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        fs.readFile(fileName, { encoding: 'utf-8' }, (err, data) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(data);
+            }
+        });
+    })
 }
