@@ -159,9 +159,12 @@ impl ResultTuple {
             level: self.take("level")?.decimal()?,
             addr: self.take("addr")?.hex()?,
             func: self.take("func")?.string()?,
-            file: self.take("file")?.string()?,
-            fullname: self.take("fullname")?.string()?,
-            line: self.take("line")?.decimal()?,
+            file: self.take_optional("file").map(Value::string).transpose()?,
+            fullname: self
+                .take_optional("fullname")
+                .map(Value::string)
+                .transpose()?,
+            line: self.take_optional("line").map(Value::decimal).transpose()?,
             from: self.take_optional("from").map(Value::string).transpose()?,
             arch: self.take("arch")?.string()?,
         })

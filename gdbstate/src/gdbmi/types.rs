@@ -48,13 +48,13 @@ pub struct StackFrame {
     pub func: String,
 
     /// Short name of the source file where the function lives.
-    pub file: String,
+    pub file: Option<String>,
 
     /// Full path to the source file where the function lives.
-    pub fullname: String,
+    pub fullname: Option<String>,
 
     /// Number of the line that the program is currently executing.
-    pub line: u64,
+    pub line: Option<u64>,
 
     /// Name of the shared library where the function lives, if any.
     pub from: Option<String>,
