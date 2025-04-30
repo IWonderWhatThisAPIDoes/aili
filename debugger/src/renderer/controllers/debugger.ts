@@ -349,7 +349,7 @@ export class Debugger {
                         this.updateStatus(DebuggerStatus.EXECUTING);
                     } else if (parseResult.class === GdbMiAsyncExecClass.STOPPED) {
                         const frameInfo = parseGdbMiRecord(line)?.results?.frame;
-                        this._sourceLocation = {
+                        this._sourceLocation = frameInfo === undefined ? undefined : {
                             functionName: frameInfo?.func,
                             lineNumber: Number.parseInt(frameInfo?.line),
                             fileName: frameInfo?.file,
