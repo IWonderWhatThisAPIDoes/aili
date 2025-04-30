@@ -41,7 +41,7 @@ export const GDB_ERROR: string = 'debugger-error';
  */
 export const GDB_OUTPUT: string = 'debugger-output';
 /**
- * Name of the IPC channel for {@link IpcEventApi.getFileContents}.
+ * Name of the IPC channel for {@link IpcActionApi.getFileContents}.
  */
 export const READ_FILE: string = 'read-file';
 
