@@ -28,7 +28,7 @@
 </script>
 
 <script setup lang="ts">
-    import { ref } from 'vue';
+    import { nextTick, ref, useTemplateRef } from 'vue';
     import { Debugger, DebuggerStatus } from '../controllers/debugger';
     import { SourceViewer } from '../controllers/source-viewer';
     import Console from './Console.vue';
@@ -38,6 +38,13 @@
     const source = ref<readonly string[]>([]);
     const lineNumber = ref<number | undefined>(undefined);
     const status = ref(SourceViewStatus.UNINITIALIZED);
+    const scrollBox = useTemplateRef('scrollbox');
+
+    function scrollToCurrentLine(): void {
+        if (lineNumber.value && scrollBox.value) {
+            scrollBox.value.scrollToY((lineNumber.value - 1) / (source.value.length - 1));
+        }
+    }
 
     // Listen for when the debugger's state changes
     debug.onStatusChanged.hook(async (debugStatus, _, sourceLocation) => {
@@ -59,6 +66,7 @@
             source.value = await sourceViewer.loadFile(sourceLocation.filePath);
             lineNumber.value = sourceLocation.lineNumber;
             status.value = SourceViewStatus.VIEWING;
+            nextTick(scrollToCurrentLine);
         } catch (e) {
             // The source file could not be read, so clear the data
             source.value = [];
@@ -69,7 +77,7 @@
 </script>
 
 <template>
-    <ScrollBox>
+    <ScrollBox ref="scrollbox">
         <Console class="source-view">
             <template v-if="status === SourceViewStatus.VIEWING">
                 <!-- Column with line numbers -->
