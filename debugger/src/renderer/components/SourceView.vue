@@ -145,19 +145,22 @@
         color: black;
         background-color: yellowgreen;
         position: relative;
+        /* Bring it one level forward, so that we may insert the tip behid it */
         z-index: 1;
     }
 
     .source-line-number.current-line::after {
+        /* This will become the arrow tip */
         content: '';
         position: absolute;
-        width: 0.707lh;
-        height: 0.707lh;
         background-color: yellowgreen;
-        top: 0.1465lh;
-        right: -0.3535lh;
         transform: rotate(45deg);
+        /* Place it behind the parent element */
         z-index: -1;
+        width: 0.707lh; /* ~ sqrt(1/2) */
+        height: 0.707lh;
+        top: 0.1465lh; /* (1lh - height) / 2*/
+        right: -0.3535lh; /* (height - 1lh */
     }
 
     .source-view-hint {
