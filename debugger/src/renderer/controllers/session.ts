@@ -35,12 +35,17 @@ export enum DebugSessionStatus {
  * @param debuggerStatus Status of the debugger.
  * @returns Corresponding status of a debug session on the same debugger.
  */
-export function sessionStatusFromDebuggerStatus(debuggerStatus: DebuggerStatus): DebugSessionStatus {
+export function sessionStatusFromDebuggerStatus(
+    debuggerStatus: DebuggerStatus,
+    previousStatus: DebugSessionStatus = DebugSessionStatus.INACTIVE,
+): DebugSessionStatus {
     switch (debuggerStatus) {
         case DebuggerStatus.EXECUTING:
         case DebuggerStatus.LAUNCHING:
-        case DebuggerStatus.STOPPING:
             return DebugSessionStatus.BUSY;
+        case DebuggerStatus.STOPPING:
+        case DebuggerStatus.FAILED_TO_STOP:
+            return previousStatus;
         case DebuggerStatus.PAUSED:
             return DebugSessionStatus.READY;
         default:
@@ -143,7 +148,7 @@ export class DebuggerSession {
      * @param newStatus New status reported by the debugger.
      */
     private debuggerStatusChanged(newStatus: DebuggerStatus): void {
-        const sessionStatus = sessionStatusFromDebuggerStatus(newStatus);
+        const sessionStatus = sessionStatusFromDebuggerStatus(newStatus, this._status);
         if (sessionStatus !== this._status) {
             if (sessionStatus === DebugSessionStatus.INACTIVE) {
                 this.logger?.log(Severity.INFO, 'Debug session has ended');

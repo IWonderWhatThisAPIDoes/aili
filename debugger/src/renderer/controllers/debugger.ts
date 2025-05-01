@@ -323,6 +323,7 @@ export class Debugger {
                 this.metaLogger?.log(Severity.INFO, 'Debugger has exited with code ' + exitCode);
             }
             this._pid = undefined;
+            this._sourceLocation = undefined;
             this.ioPromises.rejectAllPending(new Error('Debugger has exited'));
             this.updateStatus(DebuggerStatus.INACTIVE);
         }
