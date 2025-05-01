@@ -189,8 +189,10 @@ fn double_quoted_escapes(literal: &str) -> Result<String, ParseError> {
                 }
                 output.push(code_point as u8 as char);
             }
-            Some('0' | '1') => {
-                let mut code_point = c.to_digit(8).unwrap();
+            Some(c) if c.is_digit(2) => {
+                // This is an octal literal, but only low octal literals
+                // (starting with 0 or 1) are valid characters
+                let mut code_point = c.to_digit(2).unwrap();
                 for _ in 0..=1 {
                     if let Some(c) = input.peek().and_then(|c| c.to_digit(8)) {
                         // Eat the character if it is good
@@ -201,7 +203,7 @@ fn double_quoted_escapes(literal: &str) -> Result<String, ParseError> {
                 }
                 output.push(code_point as u8 as char);
             }
-            Some(c) if c.is_digit(8) => {
+            Some(c) if c.is_digit(4) => {
                 // This would normally be an error, but GDB does not escape
                 // the backslash on high octal literals (>= 0x82)
                 //
