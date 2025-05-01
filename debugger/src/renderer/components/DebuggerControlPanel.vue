@@ -85,10 +85,10 @@
         <ScrollBox class="debugger-log">
             <LogConsole ref="log-console" />
         </ScrollBox>
-        <div class="debugger-control-row debugger-input">
+        <label class="debugger-control-row debugger-input">
             GDB>
             <input v-model="inputToDebugger" @keyup.enter.self="sendInputToDebugger" :disabled="!isAcceptingInput">
-        </div>
+        </label>
     </div>
 </template>
 
