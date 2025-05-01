@@ -192,7 +192,7 @@ impl<T: GdbMiStream> GdbMiSession for T {
         expression: &str,
     ) -> Result<VariableObjectData> {
         Ok(self
-            .send_command_fmt(format_args!("-var-create - {frame} {expression}"))
+            .send_command_fmt(format_args!("-var-create - {frame} {expression:?}"))
             .await?
             .must_be_done_or_running()?
             .var_object()?)
@@ -240,7 +240,7 @@ impl<T: GdbMiStream> GdbMiSession for T {
 
     async fn data_evaluate_expression(&mut self, expression: &str) -> Result<String> {
         Ok(self
-            .send_command_fmt(format_args!("-data-evaluate-expression {expression}"))
+            .send_command_fmt(format_args!("-data-evaluate-expression {expression:?}"))
             .await?
             .must_be_done_or_running()?
             .take("value")?
