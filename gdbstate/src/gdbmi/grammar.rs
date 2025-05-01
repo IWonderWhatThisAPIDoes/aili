@@ -189,7 +189,7 @@ fn double_quoted_escapes(literal: &str) -> Result<String, ParseError> {
                 }
                 output.push(code_point as u8 as char);
             }
-            Some(c) if c.is_digit(8) => {
+            Some('0' | '1') => {
                 let mut code_point = c.to_digit(8).unwrap();
                 for _ in 0..=1 {
                     if let Some(c) = input.peek().and_then(|c| c.to_digit(8)) {
@@ -199,10 +199,16 @@ fn double_quoted_escapes(literal: &str) -> Result<String, ParseError> {
                         code_point = code_point * 8 + c;
                     }
                 }
-                if code_point > 0x7f {
-                    return Err(ParseError);
-                }
                 output.push(code_point as u8 as char);
+            }
+            Some(c) if c.is_digit(8) => {
+                // This would normally be an error, but GDB does not escape
+                // the backslash on high octal literals (>= 0x82)
+                //
+                // The compromise solution is to interpret it as an escaped literal
+                // and leave it unchanged
+                output.push('\\');
+                output.push(c);
             }
             _ => return Err(ParseError),
         }
@@ -398,6 +404,22 @@ mod test {
             results: ResultTuple(vec![ResultEntry {
                 key: "reason".to_owned(),
                 value: Value::Const("breakpoint".to_owned()),
+            }]),
+        }
+        .into();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn char_result_record() {
+        let result = parse_gdbmi_record("^done,value=\"-16 '\\360'\"\n")
+            .expect("Input should have parsed successfully");
+        let expected = ResultRecord {
+            token: None,
+            result_class: ResultClass::Done,
+            results: ResultTuple(vec![ResultEntry {
+                key: "value".to_owned(),
+                value: Value::Const(r"-16 '\360'".to_owned()),
             }]),
         }
         .into();
