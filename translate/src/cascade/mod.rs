@@ -3,7 +3,5 @@
 
 mod apply;
 mod mapping_builder;
-mod select;
-mod test_graph;
 
 pub use apply::apply_stylesheet;

@@ -1,7 +1,5 @@
 //! Stub program state graphs for testing.
 
-#![cfg(test)]
-
 use aili_model::state::*;
 use std::collections::HashMap;
 
@@ -9,57 +7,6 @@ use std::collections::HashMap;
 pub struct TestGraph(Vec<TestNode>);
 
 impl TestGraph {
-    /// Shorthand for a minimalistic pre-constructed graph.
-    pub fn simple_graph() -> Self {
-        /*
-         *    main       "c"       "Hello World"
-         *    +---->(1)-------->(3)-------------->(5)
-         *   /        \         ^
-         * (0)         \ "b"   / [0]
-         *   \   "a"    v     /
-         *    +-------->(2)--+
-         *                \           "Hello World"
-         *             [1] +------>(4)------------>(6)
-         */
-        Self(vec![
-            /* 0 */
-            TestNode(
-                [
-                    (EdgeLabel::Main, 1),
-                    (EdgeLabel::Named("a".to_string(), 0), 2),
-                ]
-                .into(),
-                None,
-            ),
-            /* 1 */
-            TestNode(
-                [
-                    (EdgeLabel::Named("b".to_string(), 0), 2),
-                    (EdgeLabel::Named("c".to_string(), 0), 3),
-                ]
-                .into(),
-                None,
-            ),
-            /* 2 */
-            TestNode(
-                [(EdgeLabel::Index(0), 3), (EdgeLabel::Index(1), 4)].into(),
-                None,
-            ),
-            /* 3 */
-            TestNode(
-                [(EdgeLabel::Named("Hello World".to_string(), 0), 5)].into(),
-                None,
-            ),
-            /* 4 */
-            TestNode(
-                [(EdgeLabel::Named("Hello World".to_string(), 0), 6)].into(),
-                None,
-            ),
-            /* 5 */ TestNode([].into(), None),
-            /* 6 */ TestNode([].into(), None),
-        ])
-    }
-
     /// Shorthand for a pre-constructed graph for running tests.
     pub fn default_graph() -> Self {
         /*          main          next           next         next

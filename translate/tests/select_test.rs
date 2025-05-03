@@ -1,17 +1,15 @@
-//! Matching against selectors.
+//! Tests for matching with [`SelectorResolver`].
 
-#![cfg(test)]
+mod test_graph;
 
-use crate::cascade::test_graph::TestGraph;
-use aili_model::state::EdgeLabel;
-use aili_model::state::{ProgramStateNode, RootedProgramStateGraph};
-use aili_style::stylesheet::{expression::*, selector::*};
+use aili_model::state::{EdgeLabel, ProgramStateNode, RootedProgramStateGraph};
 use aili_style::{
     cascade::{CascadeSelector, CascadeStyle, SelectorResolver},
     eval::context::EvaluationContext,
-    stylesheet::{StyleRule, Stylesheet, selector::EdgeMatcher},
+    stylesheet::{StyleRule, Stylesheet, expression::*, selector::*},
 };
 use std::collections::HashSet;
+use test_graph::TestGraph;
 
 /// Constructs a compiled stylesheet from one selector
 fn construct_style(selector: Selector) -> CascadeStyle {
@@ -112,8 +110,8 @@ fn select_main_and_any_number_of_named() {
         ]
         .into(),
     ));
-    let matched = get_selector_matches(style.selector_machine(), &TestGraph::simple_graph());
-    assert_eq!(matched, [1, 2, 3, 5].into());
+    let matched = get_selector_matches(style.selector_machine(), &TestGraph::default_graph());
+    assert_eq!(matched, [1, 10, 11, 12].into());
 }
 
 #[test]
