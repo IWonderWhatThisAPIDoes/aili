@@ -1,7 +1,7 @@
 //! Simple interface to [`aili_style::stylesheet`].
 
 use aili_parser::{ParseError, parse_stylesheet};
-use aili_style::{cascade::style::CascadeStyle, stylesheet};
+use aili_style::{cascade::CascadeStyle, stylesheet};
 use aili_translate::property::PropertyKey;
 use js_sys::Function;
 use wasm_bindgen::prelude::*;

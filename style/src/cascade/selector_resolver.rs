@@ -1,17 +1,14 @@
 //! Helper for [`CascadeStyle`] resolution.
 
-use super::style::{CascadeStyle, FlatSelectorSegment};
-use crate::{
-    eval::{context::EvaluationContext, evaluate},
-    stylesheet::PropertyKey,
-};
+use super::style::{CascadeSelector, FlatSelectorSegment};
+use crate::eval::{context::EvaluationContext, evaluate};
 use aili_model::state::{EdgeLabel, NodeId, ProgramStateGraph};
 use std::collections::{BTreeSet, HashSet};
 
 /// Helper object for the resolution of stylesheets.
-pub struct SelectorResolver<'a, K: PropertyKey, T: NodeId> {
-    /// The stylesheet whose selectors are being resolved.
-    stylesheet: &'a CascadeStyle<K>,
+pub struct SelectorResolver<'a, T: NodeId> {
+    /// The compiled selectors that are being resolved.
+    selectors: &'a CascadeSelector,
 
     /// Pairs of nodes and selector sequence points
     /// that have already been matched.
@@ -27,14 +24,14 @@ pub struct SelectorResolver<'a, K: PropertyKey, T: NodeId> {
     stack: Vec<ResolveFrame>,
 }
 
-impl<'a, K: PropertyKey, T: NodeId> SelectorResolver<'a, K, T> {
+impl<'a, T: NodeId> SelectorResolver<'a, T> {
     /// Constructs a new resolver that resolves a particular stylesheet.
-    pub fn new(style: &'a CascadeStyle<K>) -> Self {
+    pub fn new(selectors: &'a CascadeSelector) -> Self {
         Self {
-            stylesheet: style,
+            selectors,
             matched_sequence_points: HashSet::new(),
             stack: vec![ResolveFrame {
-                active_states: style.all_starting_states(),
+                active_states: selectors.all_starting_states(),
             }],
         }
     }
@@ -50,8 +47,7 @@ impl<'a, K: PropertyKey, T: NodeId> SelectorResolver<'a, K, T> {
             .active_states
             .iter()
             .filter(|state| {
-                self.stylesheet.0[state.rule_index]
-                    .machine
+                self.selectors.0[state.rule_index]
                     .path
                     .get(state.instruction_index)
                     .is_some_and(|instruction| match instruction {
@@ -101,8 +97,8 @@ impl<'a, K: PropertyKey, T: NodeId> SelectorResolver<'a, K, T> {
 
         // Make a transitive closure of selector states reachable at this node
         while let Some((state, target)) = open_states.pop() {
-            let selector = &self.stylesheet.0[state.rule_index].machine;
-            if state.instruction_index >= selector.path.len() {
+            let selector = &self.selectors.0[state.rule_index].path;
+            if state.instruction_index >= selector.len() {
                 // We made it to the end of the selector
                 // That means it has matched the node
                 matched_rules.push((state.rule_index, target));
@@ -113,7 +109,7 @@ impl<'a, K: PropertyKey, T: NodeId> SelectorResolver<'a, K, T> {
             if !visited_states.insert(state) {
                 continue;
             }
-            match &selector.path[state.instruction_index] {
+            match &selector[state.instruction_index] {
                 FlatSelectorSegment::MatchEdge(_) => {
                     // Traversing an edge is only permitted if the node has already been committed
                     // This ensures the resolver halts by only allowing each edge to be traversed once
@@ -172,7 +168,7 @@ impl<'a, K: PropertyKey, T: NodeId> SelectorResolver<'a, K, T> {
     }
 }
 
-impl<K: PropertyKey> CascadeStyle<K> {
+impl CascadeSelector {
     /// Retrieves the list of all starting states of all selectors
     /// in a stalesheet.
     fn all_starting_states(&self) -> Vec<SelectorState> {

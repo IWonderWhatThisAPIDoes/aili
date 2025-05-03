@@ -4,10 +4,7 @@ use super::mapping_builder::PropertyMappingBuilder;
 use crate::property::{EntityPropertyMapping, PropertyKey};
 use aili_model::state::{EdgeLabel, ProgramStateNode, RootedProgramStateGraph};
 use aili_style::{
-    cascade::{
-        selector_resolver::{SelectionCaret, SelectorResolver},
-        style::CascadeStyle,
-    },
+    cascade::{CascadeStyle, SelectionCaret, SelectorResolver},
     eval::{context::EvaluationContext, evaluate, variable_pool::VariablePool},
     selectable::Selectable,
     stylesheet::StyleKey,
@@ -32,7 +29,7 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     stylesheet: &'a CascadeStyle<PropertyKey>,
 
     /// Resolver that tracks the stylesheet's selectors.
-    resolver: SelectorResolver<'a, PropertyKey, T::NodeId>,
+    resolver: SelectorResolver<'a, T::NodeId>,
 
     /// Builder that constructs the resulting mapping.
     mapping: PropertyMappingBuilder<T::NodeId>,
@@ -46,7 +43,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         Self {
             graph,
             stylesheet,
-            resolver: SelectorResolver::new(stylesheet),
+            resolver: SelectorResolver::new(stylesheet.selector_machine()),
             mapping: PropertyMappingBuilder::new(),
             variable_pool: VariablePool::new(),
         }
@@ -92,7 +89,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
     ) {
         // Resolve rules in correct order
         matched_rules.sort_by_cached_key(|&(rule_index, caret)| {
-            let has_extra = self.stylesheet.0[rule_index].machine.extra.is_some();
+            let has_extra = self.stylesheet.rule_at(rule_index).extra_label.is_some();
             // Primary ordering: incoming edge before node
             // Secondary ordering: nodes and edges before extras
             // Tertiary ordering: declaration order in the stylesheet
@@ -112,7 +109,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
             } else {
                 continue;
             };
-            selected.extra_label = self.stylesheet.0[rule_index].machine.extra.clone();
+            selected.extra_label = self.stylesheet.rule_at(rule_index).extra_label.clone();
             self.selected_entity(&selected, node, rule_index, previous_edge);
         }
     }
@@ -164,7 +161,7 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         if target.is_extra() {
             self.variable_pool.push();
         }
-        let properties = &self.stylesheet.0[rule_index].properties;
+        let properties = &self.stylesheet.rule_at(rule_index).properties;
         for property in properties {
             let context = Self::evaluation_context(
                 self.graph,

@@ -1,4 +1,7 @@
 //! Utilities for stylesheet resolution.
 
-pub mod selector_resolver;
-pub mod style;
+mod selector_resolver;
+mod style;
+
+pub use selector_resolver::{SelectionCaret, SelectorResolver};
+pub use style::{CascadeSelector, CascadeStyle, CascadeStyleRule};

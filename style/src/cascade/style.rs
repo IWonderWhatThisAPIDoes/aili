@@ -5,27 +5,64 @@ use derive_more::Debug;
 
 /// Compiled stylesheet that can be used to evaluate the cascade.
 #[derive(Debug)]
-pub struct CascadeStyle<K: PropertyKey = RawPropertyKey>(pub Vec<FlatStyleRule<K>>);
+pub struct CascadeStyle<K: PropertyKey = RawPropertyKey> {
+    selectors: CascadeSelector,
+    rules: Vec<CascadeStyleRule<K>>,
+}
+
+impl<K: PropertyKey> CascadeStyle<K> {
+    /// Gets the compiled selectors of the stalesheet.
+    pub fn selector_machine(&self) -> &CascadeSelector {
+        &self.selectors
+    }
+
+    /// Gets a rule at a specified index.
+    ///
+    /// All indices exposed by [`CascadeStyle::selector_machine`]
+    /// are valid.
+    pub fn rule_at(&self, index: usize) -> &CascadeStyleRule<K> {
+        &self.rules[index]
+    }
+}
 
 impl<K: PropertyKey> From<Stylesheet<K>> for CascadeStyle<K> {
     fn from(value: Stylesheet<K>) -> Self {
-        Self(value.0.into_iter().map(FlatStyleRule::from).collect())
-    }
-}
-
-#[derive(Debug)]
-pub struct FlatStyleRule<K: PropertyKey = RawPropertyKey> {
-    pub machine: FlatSelector,
-    pub properties: Vec<StyleClause<K>>,
-}
-
-impl<K: PropertyKey> From<StyleRule<K>> for FlatStyleRule<K> {
-    fn from(value: StyleRule<K>) -> Self {
+        let (selectors, rules) = value
+            .0
+            .into_iter()
+            .map(|mut rule| {
+                let extra_label = rule.selector.extra.take();
+                let selector = rule.selector.into();
+                let body = CascadeStyleRule {
+                    extra_label,
+                    properties: rule.properties,
+                };
+                (selector, body)
+            })
+            .unzip();
         Self {
-            machine: value.selector.into(),
-            properties: value.properties,
+            selectors: CascadeSelector(selectors),
+            rules,
         }
     }
+}
+
+/// Compiled bundle of selectors.
+#[derive(Debug)]
+pub struct CascadeSelector(pub(super) Vec<FlatSelector>);
+
+/// Body of a single rule in a compiled [`CascadeStyle`].
+///
+/// Contains the body of the rule and an optional extra label.
+#[derive(Debug)]
+pub struct CascadeStyleRule<K: PropertyKey = RawPropertyKey> {
+    /// Specifies whether the selector selects an extra element
+    /// attached to the matched node or edge, instead of the node
+    /// or edge directly.
+    pub extra_label: Option<String>,
+
+    /// Properties in the body of the original rule.
+    pub properties: Vec<StyleClause<K>>,
 }
 
 /// [`Selector`] flattened to simplify matching against it.
@@ -47,20 +84,12 @@ pub struct FlatSelector {
     /// by whether or not the last transition matches
     /// the target node.
     pub path: Vec<FlatSelectorSegment>,
-
-    /// Specifies whether the selector selects an extra element
-    /// attached to the matched node or edge, instead of the node
-    /// or edge directly.
-    pub extra: Option<String>,
 }
 
 impl std::fmt::Debug for FlatSelector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for (i, segment) in self.path.iter().enumerate() {
             write!(f, "[{i}] {segment:?}; ")?;
-        }
-        if let Some(extra) = &self.extra {
-            write!(f, "#{extra}")?;
         }
         Ok(())
     }
@@ -77,10 +106,7 @@ impl From<Selector> for FlatSelector {
             path.push(FlatSelectorSegment::MatchNode);
         }
 
-        Self {
-            path,
-            extra: value.extra,
-        }
+        Self { path }
     }
 }
 
@@ -237,7 +263,6 @@ mod test {
         };
         let expected_flat_selector = FlatSelector {
             path: vec![MatchNode],
-            extra: None,
         };
         assert_eq!(
             FlatSelector::from(original_selector),
@@ -263,7 +288,6 @@ mod test {
                 MatchEdge(EdgeLabel::Result.into()),
                 MatchNode,
             ],
-            extra: None,
         };
         assert_eq!(
             FlatSelector::from(original_selector),
@@ -299,7 +323,6 @@ mod test {
                 MatchEdge(EdgeLabel::Deref.into()),
                 MatchNode,
             ],
-            extra: None,
         };
         assert_eq!(
             FlatSelector::from(original_selector),
@@ -345,7 +368,6 @@ mod test {
                 MatchEdge(EdgeLabel::Deref.into()),
                 MatchNode,
             ],
-            extra: None,
         };
         assert_eq!(
             FlatSelector::from(original_selector),
@@ -394,7 +416,6 @@ mod test {
                 /* 15 */ Jump(2),
                 /* 16 */ MatchNode,
             ],
-            extra: None,
         };
         assert_eq!(
             FlatSelector::from(original_selector),
