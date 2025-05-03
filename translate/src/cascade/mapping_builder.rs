@@ -1,7 +1,8 @@
 //! Helper for construction of [`EntityPropertyMapping`]s.
 
-use crate::property::{DisplayMode, EntityPropertyMapping, PropertyKey, PropertyValue, Selectable};
+use crate::property::{DisplayMode, EntityPropertyMapping, PropertyKey};
 use aili_model::state::{NodeId, ProgramStateGraph, ProgramStateNode};
+use aili_style::{selectable::Selectable, values::PropertyValue};
 use std::collections::{HashMap, hash_map::Entry};
 
 /// Identifier of a property variable on an entity.

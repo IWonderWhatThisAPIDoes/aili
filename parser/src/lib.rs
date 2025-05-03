@@ -7,7 +7,7 @@ mod mock_error_handler;
 mod report;
 pub mod symbols;
 
-use aili_translate::stylesheet::Stylesheet;
+use aili_style::stylesheet::Stylesheet;
 use derive_more::{Display, Error, From};
 use grammar::{ErrorManager, Parser};
 use lexer::Token;
@@ -80,18 +80,15 @@ pub fn parse_stylesheet(
 
 #[cfg(test)]
 mod test {
-    use super::{ParseError, parse_stylesheet};
-    use crate::{
+    use super::{
+        ParseError,
         grammar::{self, SyntaxError},
         lexer::LexerError,
         mock_error_handler::ExpectErrors,
-        symbols::InvalidSymbol,
+        parse_stylesheet,
     };
     use aili_model::state::{EdgeLabel, NodeTypeClass};
-    use aili_translate::{
-        property::{FragmentKey, PropertyKey},
-        stylesheet::{expression::*, selector::*, *},
-    };
+    use aili_style::stylesheet::{expression::*, selector::*, *};
 
     #[test]
     fn minimal_empty_rule() {
@@ -111,7 +108,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("abc".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("abc".to_owned())),
                 value: Expression::String("def".to_owned()),
             }],
         }]);
@@ -126,7 +123,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("a".to_owned())),
                 value: Expression::String("b".to_owned()),
             }],
         }]);
@@ -142,11 +139,11 @@ mod test {
             selector: Selector::default(),
             properties: vec![
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::Property("a".to_owned())),
                     value: Expression::Int(1),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::Property("b".to_owned())),
                     value: Expression::Int(2),
                 },
             ],
@@ -177,7 +174,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("a".to_owned())),
                 value: Expression::BinaryOperator(
                     Expression::BinaryOperator(
                         Expression::UnaryOperator(
@@ -224,7 +221,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("value".to_owned())),
                 value: Expression::Select(LimitedSelector::default().into()),
             }],
         }]);
@@ -239,7 +236,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("value".to_owned())),
                 value: Expression::BinaryOperator(
                     Expression::BinaryOperator(
                         Expression::Select(LimitedSelector::default().into()).into(),
@@ -277,7 +274,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("value".to_owned())),
                 value: Expression::Select(
                     LimitedSelector::from_path([
                         EdgeLabel::Named("a".to_owned(), 0).into(),
@@ -298,7 +295,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("value".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("value".to_owned())),
                 value: Expression::Conditional(
                     Expression::BinaryOperator(
                         Expression::Variable("--a".to_owned()).into(),
@@ -419,23 +416,23 @@ mod test {
             selector: Selector::default(),
             properties: vec![
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Display),
+                    key: StyleKey::Property(RawPropertyKey::Property("display".to_owned())),
                     value: Expression::Unset,
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("display".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::QuotedProperty("display".to_owned())),
                     value: Expression::String("unset".to_owned()),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Parent),
+                    key: StyleKey::Property(RawPropertyKey::Property("parent".to_owned())),
                     value: Expression::Bool(true),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Target),
+                    key: StyleKey::Property(RawPropertyKey::Property("target".to_owned())),
                     value: Expression::Bool(false),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("--i".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::QuotedProperty("--i".to_owned())),
                     value: Expression::Int(1),
                 },
             ],
@@ -480,28 +477,28 @@ mod test {
             selector: Selector::default(),
             properties: vec![
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::Property("a".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::IsSet,
                         Expression::Variable("--i".to_owned()).into(),
                     ),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("b".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::Property("b".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeIsA(NodeTypeClass::Root),
                         Expression::Select(LimitedSelector::default().into()).into(),
                     ),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("c".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::Property("c".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeTypeName,
                         Expression::Select(LimitedSelector::default().into()).into(),
                     ),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::Attribute("d".to_owned())),
+                    key: StyleKey::Property(RawPropertyKey::Property("d".to_owned())),
                     value: Expression::UnaryOperator(
                         expression::UnaryOperator::NodeValue,
                         Expression::Select(LimitedSelector::default().into()).into(),
@@ -520,7 +517,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Attribute("a".to_owned())),
+                key: StyleKey::Property(RawPropertyKey::Property("a".to_owned())),
                 value: Expression::Conditional(
                     Expression::Int(1).into(),
                     Expression::Conditional(
@@ -693,15 +690,15 @@ mod test {
             selector: Selector::default(),
             properties: vec![
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::FragmentAttribute(
-                        FragmentKey::Start,
+                    key: StyleKey::Property(RawPropertyKey::FragmentProperty(
+                        "start".to_owned(),
                         "a".to_owned(),
                     )),
                     value: Expression::String("a".to_owned()),
                 },
                 StyleClause {
-                    key: StyleKey::Property(PropertyKey::FragmentAttribute(
-                        FragmentKey::End,
+                    key: StyleKey::Property(RawPropertyKey::FragmentProperty(
+                        "end".to_owned(),
                         "b".to_owned(),
                     )),
                     value: Expression::String("b".to_owned()),
@@ -711,18 +708,6 @@ mod test {
         let parsed_stylesheet = parse_stylesheet(source, ExpectErrors::none().f())
             .expect("Stylesheet should have parsed");
         assert_eq!(expected_stylesheet, parsed_stylesheet);
-    }
-
-    #[test]
-    fn invalid_fragment_key() {
-        let source = ":: { not-a-fragment/value: none }";
-        let expected_error = ParseError {
-            error_data: SyntaxError::InvalidFragment(InvalidSymbol("not-a-fragment".to_owned()))
-                .into(),
-            line_number: 1,
-        };
-        parse_stylesheet(source, ExpectErrors::exact([expected_error]).f())
-            .expect("Stylesheet should have parsed");
     }
 
     #[test]
@@ -783,7 +768,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Parent),
+                key: StyleKey::Property(RawPropertyKey::Property("parent".to_owned())),
                 value: Expression::Select(
                     LimitedSelector::from_path([
                         LimitedEdgeMatcher::DynIndex(index_expression),
@@ -838,7 +823,7 @@ mod test {
         let expected_stylesheet = Stylesheet(vec![StyleRule {
             selector: Selector::default(),
             properties: vec![StyleClause {
-                key: StyleKey::Property(PropertyKey::Parent),
+                key: StyleKey::Property(RawPropertyKey::Property("parent".to_owned())),
                 value: Expression::Select(
                     LimitedSelector::from_path([EdgeLabel::Main.into()])
                         .with_origin(Expression::Select(LimitedSelector::default().into()))

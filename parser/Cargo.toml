@@ -9,7 +9,7 @@ repository = "https://github.com/IWonderWhatThisAPIDoes/aili"
 
 [dependencies]
 aili-model = { path = "../model" }
-aili-translate = { path = "../translate" }
+aili-style = { path = "../style" }
 derive_more = { version = "2.0.1", features = ["debug", "display", "error", "from"] }
 logos = "0.15.0"
 pomelo = "0.2.0"

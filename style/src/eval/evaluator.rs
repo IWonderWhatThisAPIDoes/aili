@@ -1,10 +1,7 @@
 //! Main implementation of expression evaluation.
 
 use super::context::EvaluationContext;
-use crate::{
-    property::{PropertyValue, Selectable},
-    stylesheet::expression::*,
-};
+use crate::{selectable::Selectable, stylesheet::expression::*, values::PropertyValue};
 use aili_model::state::*;
 
 /// Helper for evaluating expressions statefully.

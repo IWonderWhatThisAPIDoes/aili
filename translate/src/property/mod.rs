@@ -1,13 +1,11 @@
 //! Keys and values of properties of visualizable entities.
 
-mod selectable;
-mod values;
+pub mod symbols;
 
 use aili_model::state::NodeId;
+use aili_style::selectable::Selectable;
 use derive_more::{Debug, From};
-pub use selectable::Selectable;
 use std::collections::HashMap;
-pub use values::PropertyValue;
 
 /// A key that values can be assigned to on a selectable entity.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]

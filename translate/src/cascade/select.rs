@@ -2,12 +2,12 @@
 
 #![cfg(test)]
 
-use super::{
-    eval::{context::EvaluationContext, evaluate},
-    style::FlatSelectorSegment,
-};
-use crate::stylesheet::selector::EdgeMatcher;
 use aili_model::state::{ProgramStateNode, RootedProgramStateGraph};
+use aili_style::{
+    cascade::style::FlatSelectorSegment,
+    eval::{context::EvaluationContext, evaluate},
+    stylesheet::selector::EdgeMatcher,
+};
 use std::collections::HashSet;
 
 /// Tests a selector against all nodes in a graph.
@@ -178,11 +178,12 @@ impl<'a, T: RootedProgramStateGraph> GetSelectorMatches<'a, T> {
 
 mod test {
     use super::*;
-    use crate::{
-        cascade::{style::FlatSelector, test_graph::TestGraph},
+    use crate::cascade::test_graph::TestGraph;
+    use aili_model::state::EdgeLabel;
+    use aili_style::{
+        cascade::style::FlatSelector,
         stylesheet::{expression::*, selector::*},
     };
-    use aili_model::state::EdgeLabel;
 
     #[test]
     fn select_main_and_any_number_of_named() {

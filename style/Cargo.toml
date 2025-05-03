@@ -1,0 +1,12 @@
+[package]
+name = "aili-style"
+description = "Stylesheets that assign properties to entities of Aili State model"
+version = "0.1.0"
+edition = "2024"
+authors = ["IWonderWhatThisAPIDoes"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/IWonderWhatThisAPIDoes/aili"
+
+[dependencies]
+aili-model = { path = "../model" }
+derive_more = { version = "2.0.1", features = ["debug", "display", "from"] }

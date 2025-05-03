@@ -1,15 +1,16 @@
-//! Simple interface to [`aili_translate::stylesheet`].
+//! Simple interface to [`aili_style::stylesheet`].
 
 use aili_parser::{ParseError, parse_stylesheet};
-use aili_translate::cascade::CascadeStyle;
+use aili_style::{cascade::style::CascadeStyle, stylesheet};
+use aili_translate::property::PropertyKey;
 use js_sys::Function;
 use wasm_bindgen::prelude::*;
 
 /// Compiled visualization stylesheet.
 ///
-/// See [`aili_translate::cascade::CascadeStyle`]
+/// See [`aili_style::cascade::style::CascadeStyle`]
 #[wasm_bindgen]
-pub struct Stylesheet(pub(crate) CascadeStyle);
+pub struct Stylesheet(pub(crate) CascadeStyle<PropertyKey>);
 
 #[wasm_bindgen]
 impl Stylesheet {
@@ -22,6 +23,7 @@ impl Stylesheet {
             }
         };
         parse_stylesheet(source, on_error)
+            .map(stylesheet::Stylesheet::map_key)
             .map(CascadeStyle::from)
             .map(Stylesheet)
             .map_err(JsError::from)

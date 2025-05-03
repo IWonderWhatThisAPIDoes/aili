@@ -93,12 +93,12 @@ pub enum UnaryOperator {
     /// ## Return Values
     /// | Argument                                                 | Return value                                         |
     /// |----------------------------------------------------------|------------------------------------------------------|
-    /// | [`Unset`](crate::property::PropertyValue::Unset)         | [`Unset`](crate::property::PropertyValue::Unset)     |
-    /// | [`String`](crate::property::PropertyValue::String)       | Argument is unchanged                                |
+    /// | [`Unset`](crate::values::PropertyValue::Unset)         | [`Unset`](crate::values::PropertyValue::Unset)     |
+    /// | [`String`](crate::values::PropertyValue::String)       | Argument is unchanged                                |
     /// | [`Int`](aili_model::state::NodeValue::Int)               | Argument is unchanged                                |
     /// | [`Uint`](aili_model::state::NodeValue::Uint)             | Argument is unchanged                                |
     /// | [`Bool`](aili_model::state::NodeValue::Bool)             | [`Uint`](aili_model::state::NodeValue::Uint), 0 or 1 |
-    /// | [`Selection`](crate::property::PropertyValue::Selection) | Equivalent to `+val(x)`                              |
+    /// | [`Selection`](crate::values::PropertyValue::Selection) | Equivalent to `+val(x)`                              |
     #[debug("+")]
     Plus,
 
@@ -107,12 +107,12 @@ pub enum UnaryOperator {
     /// ## Return Values
     /// | Argument                                                 | Return value                                                                                                       |
     /// |----------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
-    /// | [`Unset`](crate::property::PropertyValue::Unset)         | [`Unset`](crate::property::PropertyValue::Unset)                                                                   |
-    /// | [`String`](crate::property::PropertyValue::String)       | [`Unset`](crate::property::PropertyValue::Unset),                                                                  |
-    /// | [`Int`](aili_model::state::NodeValue::Int)               | [`Int`](aili_model::state::NodeValue::Int) or [`Unset`](crate::property::PropertyValue::Unset) in case of overflow |
-    /// | [`Uint`](aili_model::state::NodeValue::Uint)             | [`Int`](aili_model::state::NodeValue::Int) or [`Unset`](crate::property::PropertyValue::Unset) in case of overflow |
+    /// | [`Unset`](crate::values::PropertyValue::Unset)         | [`Unset`](crate::values::PropertyValue::Unset)                                                                   |
+    /// | [`String`](crate::values::PropertyValue::String)       | [`Unset`](crate::values::PropertyValue::Unset),                                                                  |
+    /// | [`Int`](aili_model::state::NodeValue::Int)               | [`Int`](aili_model::state::NodeValue::Int) or [`Unset`](crate::values::PropertyValue::Unset) in case of overflow |
+    /// | [`Uint`](aili_model::state::NodeValue::Uint)             | [`Int`](aili_model::state::NodeValue::Int) or [`Unset`](crate::values::PropertyValue::Unset) in case of overflow |
     /// | [`Bool`](aili_model::state::NodeValue::Bool)             | [`Int`](aili_model::state::NodeValue::Int), 0 or -1                                                                |
-    /// | [`Selection`](crate::property::PropertyValue::Selection) | Equivalent to `-val(x)`                                                                                            |
+    /// | [`Selection`](crate::values::PropertyValue::Selection) | Equivalent to `-val(x)`                                                                                            |
     #[debug("-")]
     Minus,
 
@@ -120,7 +120,7 @@ pub enum UnaryOperator {
     ///
     /// ## Return Values
     /// [`Bool`](aili_model::state::NodeValue::Bool).
-    /// Negation of [`is_truthy`](crate::property::PropertyValue::is_truthy).
+    /// Negation of [`is_truthy`](crate::values::PropertyValue::is_truthy).
     #[debug("!")]
     Not,
 
@@ -129,8 +129,8 @@ pub enum UnaryOperator {
     /// ## Return Values
     /// [`NodeValue`](aili_model::state::NodeValue) of the node referred to by the argument.
     ///
-    /// [`Unset`](crate::property::PropertyValue::Unset) if the argument is not
-    /// a [`Selection`](crate::property::PropertyValue::Selection),
+    /// [`Unset`](crate::values::PropertyValue::Unset) if the argument is not
+    /// a [`Selection`](crate::values::PropertyValue::Selection),
     /// the selected entity is not a node, or it is a node with no value.
     #[debug("val")]
     NodeValue,
@@ -146,10 +146,10 @@ pub enum UnaryOperator {
     /// Gets the name of state node's type.
     ///
     /// ## Return Values
-    /// [`String`](crate::property::PropertyValue::String) containing the name of the type of the argument
+    /// [`String`](crate::values::PropertyValue::String) containing the name of the type of the argument
     /// if it is a selection of a node and it has one of types [`Frame`](aili_model::state::NodeTypeClass::Frame),
     /// [`Atom`](aili_model::state::NodeTypeClass::Atom), or [`Struct`](aili_model::state::NodeTypeClass::Struct).
-    /// [`Unset`](crate::property::PropertyValue::Unset) otherwise.
+    /// [`Unset`](crate::values::PropertyValue::Unset) otherwise.
     #[debug("typename")]
     NodeTypeName,
 
@@ -157,7 +157,7 @@ pub enum UnaryOperator {
     ///
     /// ## Return Values
     /// [`Bool`](aili_model::state::NodeValue::Bool). False if the argument
-    /// is [`Unset`](crate::property::PropertyValue::Unset), true otherwise.
+    /// is [`Unset`](crate::values::PropertyValue::Unset), true otherwise.
     #[debug("isset")]
     IsSet,
 }
@@ -168,58 +168,58 @@ pub enum BinaryOperator {
     /// Arithmetic addition or string concatenation.
     ///
     /// ## Return Values
-    /// - If either argument is [`Selection`](crate::property::PropertyValue::Selection), it is first evaluated
+    /// - If either argument is [`Selection`](crate::values::PropertyValue::Selection), it is first evaluated
     ///   (equivalent to using the [`NodeValue`](UnaryOperator::NodeValue) operator).
-    /// - Then, if either argument is [`String`](crate::property::PropertyValue::String), the other is converted
-    ///   to string and the arguments are concatenated. [`Unset`](crate::property::PropertyValue::Unset) converts
+    /// - Then, if either argument is [`String`](crate::values::PropertyValue::String), the other is converted
+    ///   to string and the arguments are concatenated. [`Unset`](crate::values::PropertyValue::Unset) converts
     ///   to empty string and [`Bool`](aili_model::state::NodeValue::Bool) values convert to `"true"` and `"false"`.
     /// - Otwerwise, if both arguments can be coerced to numeric types, they are added.
-    ///   [`Unset`](crate::property::PropertyValue::Unset) is returned in case of overflow.
-    /// - Otherwise, [`Unset`](crate::property::PropertyValue::Unset) is returned.
+    ///   [`Unset`](crate::values::PropertyValue::Unset) is returned in case of overflow.
+    /// - Otherwise, [`Unset`](crate::values::PropertyValue::Unset) is returned.
     #[debug("+")]
     Plus,
 
     /// Arithmetic subtraction.
     ///
     /// ## Return Values
-    /// - If either argument is [`Selection`](crate::property::PropertyValue::Selection), it is first evaluated
+    /// - If either argument is [`Selection`](crate::values::PropertyValue::Selection), it is first evaluated
     ///   (equivalent to using the [`NodeValue`](UnaryOperator::NodeValue) operator).
     /// - Then, if both arguments can be coerced to numeric types, they are subtracted.
-    ///   [`Unset`](crate::property::PropertyValue::Unset) is returned in case of overflow.
-    /// - Otherwise, [`Unset`](crate::property::PropertyValue::Unset) is returned.
+    ///   [`Unset`](crate::values::PropertyValue::Unset) is returned in case of overflow.
+    /// - Otherwise, [`Unset`](crate::values::PropertyValue::Unset) is returned.
     #[debug("-")]
     Minus,
 
     /// Arithmetic multiplication.
     ///
     /// ## Return Values
-    /// - If either argument is [`Selection`](crate::property::PropertyValue::Selection), it is first evaluated
+    /// - If either argument is [`Selection`](crate::values::PropertyValue::Selection), it is first evaluated
     ///   (equivalent to using the [`NodeValue`](UnaryOperator::NodeValue) operator).
     /// - Then, if both arguments can be coerced to numeric types, they are multiplied.
-    ///   [`Unset`](crate::property::PropertyValue::Unset) is returned in case of overflow.
-    /// - Otherwise, [`Unset`](crate::property::PropertyValue::Unset) is returned.
+    ///   [`Unset`](crate::values::PropertyValue::Unset) is returned in case of overflow.
+    /// - Otherwise, [`Unset`](crate::values::PropertyValue::Unset) is returned.
     #[debug("*")]
     Mul,
 
     /// Euclidean integer arithmetic division.
     ///
     /// ## Return Values
-    /// - If either argument is [`Selection`](crate::property::PropertyValue::Selection), it is first evaluated
+    /// - If either argument is [`Selection`](crate::values::PropertyValue::Selection), it is first evaluated
     ///   (equivalent to using the [`NodeValue`](UnaryOperator::NodeValue) operator).
     /// - Then, if both arguments can be coerced to numeric types, they are divided.
-    ///   [`Unset`](crate::property::PropertyValue::Unset) is returned in case of overflow.
-    /// - Otherwise, [`Unset`](crate::property::PropertyValue::Unset) is returned.
+    ///   [`Unset`](crate::values::PropertyValue::Unset) is returned in case of overflow.
+    /// - Otherwise, [`Unset`](crate::values::PropertyValue::Unset) is returned.
     #[debug("/")]
     Div,
 
     /// Euclidean integer arithmetic remainder.
     ///
     /// ## Return Values
-    /// - If either argument is [`Selection`](crate::property::PropertyValue::Selection), it is first evaluated
+    /// - If either argument is [`Selection`](crate::values::PropertyValue::Selection), it is first evaluated
     ///   (equivalent to using the [`NodeValue`](UnaryOperator::NodeValue) operator).
     /// - Then, if both arguments can be coerced to numeric types, they are divided.
-    ///   [`Unset`](crate::property::PropertyValue::Unset) is returned in case of overflow.
-    /// - Otherwise, [`Unset`](crate::property::PropertyValue::Unset) is returned.
+    ///   [`Unset`](crate::values::PropertyValue::Unset) is returned in case of overflow.
+    /// - Otherwise, [`Unset`](crate::values::PropertyValue::Unset) is returned.
     #[debug("%")]
     Mod,
 
@@ -228,11 +228,11 @@ pub enum BinaryOperator {
     /// ## Return Values
     /// [`Bool`](aili_model::state::NodeValue::Bool). True if arguments are equal, false otherwise.
     ///
-    /// If either argument is [`Selection`](crate::property::PropertyValue::Selection), it is first evaluated
+    /// If either argument is [`Selection`](crate::values::PropertyValue::Selection), it is first evaluated
     /// (equivalent to using the [`NodeValue`](UnaryOperator::NodeValue) operator). Then, the following pairs of values are equal.
     /// All other pairs of values are not equal.
-    /// - [`Unset`](crate::property::PropertyValue::Unset) is equal to itself.
-    /// - Two [`String`](crate::property::PropertyValue::String)s are equal if they contain identical characters.
+    /// - [`Unset`](crate::values::PropertyValue::Unset) is equal to itself.
+    /// - Two [`String`](crate::values::PropertyValue::String)s are equal if they contain identical characters.
     /// - Two numeric values ([`Int`](aili_model::state::NodeValue::Int) or [`Uint`](aili_model::state::NodeValue::Uint))
     ///   are equal if they have the same value arithmetically.
     /// - True is equal to one and itself. False is equal to zero and itself.
@@ -253,7 +253,7 @@ pub enum BinaryOperator {
     /// [`Bool`](aili_model::state::NodeValue::Bool). True if left operand is ordered before right operand.
     /// False otherwise.
     ///
-    /// - If either argument is [`Selection`](crate::property::PropertyValue::Selection), it is first evaluated
+    /// - If either argument is [`Selection`](crate::values::PropertyValue::Selection), it is first evaluated
     ///   (equivalent to using the [`NodeValue`](UnaryOperator::NodeValue) operator).
     /// - Then, if both operands can be coerced to non-equal numeric values,
     ///   the one with smaller value is ordered before the other.
@@ -292,7 +292,7 @@ pub enum BinaryOperator {
     ///
     /// ## Return Values
     /// [`Bool`](aili_model::state::NodeValue::Bool). True if both arguments
-    /// are [truthy](crate::property::PropertyValue::is_truthy), false otherwise.
+    /// are [truthy](crate::values::PropertyValue::is_truthy), false otherwise.
     #[debug("&&")]
     And,
 
@@ -300,7 +300,7 @@ pub enum BinaryOperator {
     ///
     /// ## Return Values
     /// [`Bool`](aili_model::state::NodeValue::Bool). True if either argument
-    /// is [truthy](crate::property::PropertyValue::is_truthy), false otherwise.
+    /// is [truthy](crate::values::PropertyValue::is_truthy), false otherwise.
     #[debug("||")]
     Or,
 }

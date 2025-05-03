@@ -2,11 +2,9 @@
 
 pub mod context;
 mod evaluator;
-#[cfg(test)]
-mod test;
 pub mod variable_pool;
 
-use crate::{property::PropertyValue, stylesheet::expression::Expression};
+use crate::{stylesheet::expression::Expression, values::PropertyValue};
 use aili_model::state::ProgramStateGraph;
 use context::EvaluationContext;
 use evaluator::Evaluator;

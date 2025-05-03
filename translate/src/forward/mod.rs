@@ -4,10 +4,12 @@
 mod debug;
 mod test_vis;
 
-use crate::property::*;
 use aili_model::{state::NodeId, vis::*};
+use aili_style::selectable::Selectable;
 use derive_more::Display;
 use std::collections::HashMap;
+
+use crate::property::{DisplayMode, EntityPropertyMapping, FragmentKey, PropertyMap};
 
 /// Describes an occurrence in the renderer
 /// that should not arise when using it as intended

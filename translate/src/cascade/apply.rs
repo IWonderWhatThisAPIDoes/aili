@@ -1,17 +1,21 @@
 //! Evaluation of an entire stylesheet.
 
-use super::{
-    eval::{context::EvaluationContext, evaluate, variable_pool::VariablePool},
-    mapping_builder::PropertyMappingBuilder,
-    selector_resolver::{SelectionCaret, SelectorResolver},
-    style::CascadeStyle,
-};
-use crate::{property::*, stylesheet::StyleKey};
+use super::mapping_builder::PropertyMappingBuilder;
+use crate::property::{EntityPropertyMapping, PropertyKey};
 use aili_model::state::{EdgeLabel, ProgramStateNode, RootedProgramStateGraph};
+use aili_style::{
+    cascade::{
+        selector_resolver::{SelectionCaret, SelectorResolver},
+        style::CascadeStyle,
+    },
+    eval::{context::EvaluationContext, evaluate, variable_pool::VariablePool},
+    selectable::Selectable,
+    stylesheet::StyleKey,
+};
 
 /// Applies a stylesheet to a graph.
 pub fn apply_stylesheet<T: RootedProgramStateGraph>(
-    stylesheet: &CascadeStyle,
+    stylesheet: &CascadeStyle<PropertyKey>,
     graph: &T,
 ) -> EntityPropertyMapping<T::NodeId> {
     let mut helper = ApplyStylesheet::new(stylesheet, graph);
@@ -25,10 +29,10 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
     graph: &'g T,
 
     /// The stylesheet being evaluated.
-    stylesheet: &'a CascadeStyle,
+    stylesheet: &'a CascadeStyle<PropertyKey>,
 
     /// Resolver that tracks the stylesheet's selectors.
-    resolver: SelectorResolver<'a, T::NodeId>,
+    resolver: SelectorResolver<'a, PropertyKey, T::NodeId>,
 
     /// Builder that constructs the resulting mapping.
     mapping: PropertyMappingBuilder<T::NodeId>,
@@ -38,7 +42,7 @@ struct ApplyStylesheet<'a, 'g, T: RootedProgramStateGraph> {
 }
 
 impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
-    fn new(stylesheet: &'a CascadeStyle, graph: &'g T) -> Self {
+    fn new(stylesheet: &'a CascadeStyle<PropertyKey>, graph: &'g T) -> Self {
         Self {
             graph,
             stylesheet,
@@ -206,9 +210,13 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
 
 #[cfg(test)]
 mod test {
-    use super::{PropertyKey::*, *};
+    use super::*;
     use crate::{
         cascade::test_graph::TestGraph,
+        property::{PropertyKey::*, *},
+    };
+    use aili_style::{
+        selectable::Selectable,
         stylesheet::{StyleKey::*, expression::*, selector::*, *},
     };
 

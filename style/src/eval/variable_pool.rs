@@ -1,6 +1,6 @@
 //! Container for storing interpreter variables.
 
-use crate::property::PropertyValue;
+use crate::values::PropertyValue;
 use aili_model::state::NodeId;
 use std::collections::HashMap;
 

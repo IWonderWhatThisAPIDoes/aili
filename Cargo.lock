@@ -29,6 +29,7 @@ dependencies = [
  "aili-gdbstate",
  "aili-model",
  "aili-parser",
+ "aili-style",
  "aili-translate",
  "js-sys",
  "wasm-bindgen",
@@ -47,10 +48,18 @@ name = "aili-parser"
 version = "0.1.0"
 dependencies = [
  "aili-model",
- "aili-translate",
+ "aili-style",
  "derive_more",
  "logos",
  "pomelo",
+]
+
+[[package]]
+name = "aili-style"
+version = "0.1.0"
+dependencies = [
+ "aili-model",
+ "derive_more",
 ]
 
 [[package]]
@@ -58,6 +67,7 @@ name = "aili-translate"
 version = "0.1.0"
 dependencies = [
  "aili-model",
+ "aili-style",
  "derive_more",
 ]
 

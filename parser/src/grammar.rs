@@ -5,10 +5,7 @@
 
 use crate::symbols::*;
 use aili_model::state::EdgeLabel;
-use aili_translate::{
-    property::{FragmentKey, PropertyKey},
-    stylesheet::{expression::*, selector::*, *},
-};
+use aili_style::stylesheet::{expression::*, selector::*, *};
 use derive_more::{Display, Error, From};
 use pomelo::pomelo;
 
@@ -53,10 +50,6 @@ pub enum SyntaxError {
     /// An invalid literal was used in an expression.
     #[display("token {:?} which is not a literal cannot appear in an expression", _0.0)]
     InvalidUnquoted(InvalidSymbol),
-
-    /// An unrecognized token was used as a fragment key.
-    #[display("unknown fragment key {:?}", _0.0)]
-    InvalidFragment(InvalidSymbol),
 
     /// Missing closing brace at the end of input.
     #[display("last rule is missing a closing delimiter")]
@@ -270,9 +263,13 @@ pomelo! {
     proplist1 ::=                                      { Vec::new() }
     proplist1 ::= proplist1(mut l) clause(c) Semicolon { l.push(c); l }
     clause ::= lvalue(l) Colon rvalue(r)               { StyleClause { key: l, value: r } }
-    lvalue ::= Quoted(s)                               { StyleKey::Property(PropertyKey::Attribute(s.to_owned())) }
-    lvalue ::= Unquoted(s)                             { unquoted_style_key(s) }
-    lvalue ::= Unquoted(f) Slash Unquoted|Quoted(s)    { StyleKey::Property(PropertyKey::FragmentAttribute(extra.try_or(fragment_key(f).map_err(SyntaxError::InvalidFragment), FragmentKey::Start), s.to_owned())) }
+    lvalue ::= Quoted(s)                               { StyleKey::Property(RawPropertyKey::QuotedProperty(s.to_owned())) }
+    lvalue ::= Unquoted(s)                             { if is_variable_name(s) {
+                                                             StyleKey::Variable(s.to_owned())
+                                                         } else {
+                                                             StyleKey::Property(RawPropertyKey::Property(s.to_owned()))
+                                                       } }
+    lvalue ::= Unquoted(f) Slash Unquoted|Quoted(s)    { StyleKey::Property(RawPropertyKey::FragmentProperty(f.to_owned(), s.to_owned())) }
     rvalue ::= rexpr;
     rvalue ::= Unquoted(s)                             { resolve_unquoted_expression(s).unwrap_or_else(|InvalidSymbol(s)| Expression::String(s)) }
 
@@ -475,7 +472,7 @@ mod test {
             Stylesheet(vec![StyleRule {
                 selector: Selector::default(),
                 properties: vec![StyleClause {
-                    key: StyleKey::Property(PropertyKey::Display),
+                    key: StyleKey::Property(RawPropertyKey::Property("display".to_owned())),
                     value: Expression::Unset
                 }]
             }])

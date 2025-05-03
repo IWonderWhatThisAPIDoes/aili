@@ -8,7 +8,7 @@ that describes the mapping between the models.
 
 Aili-Translate stands in the middle of an application, so it is usualy
 not used on its own. Here is a small example that statelessly
-resolves a stylesheet and displays the result in a Vis tree.
+resolves a [stylesheet](../style) and displays the result in a Vis tree.
 
 Both State graph and Vis tree would be provided by the back end
 and front end, respectively. A stylesheet may be constructed
@@ -17,17 +17,21 @@ manually, although it would most likely be done using
 
 ```rust
 use aili_model::{state::RootedProgramStateGraph, vis::VisTree};
-use aili_translate::{
-    cascade::{apply_stylesheet, CascadeStyle},
-    forward::Renderer,
-    property::Selectable,
+use aili_style::{
+    cascade::style::CascadeStyle,
+    selectable::Selectable,
     stylesheet::Stylesheet,
+};
+use aili_translate::{
+    cascade::apply_stylesheet,
+    forward::Renderer,
+    property::PropertyKey,
 };
 
 fn translate(
     state: impl RootedProgramStateGraph,
     vis: impl VisTree,
-    stylesheet: Stylesheet,
+    stylesheet: Stylesheet<PropertyKey>,
 ) {
     // Compile the stylesheet so that Translate can use it
     let compiled_stylesheet = CascadeStyle::from(stylesheet);

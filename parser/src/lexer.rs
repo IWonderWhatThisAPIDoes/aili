@@ -219,7 +219,7 @@ pub enum Token<'s> {
     Question,
 
     /// Operator that introduces a
-    /// [`Select`](aili_translate::stylesheet::expression::Expression::Select)
+    /// [`Select`](aili_style::stylesheet::expression::Expression::Select)
     /// expression.
     ///
     /// ## Syntax

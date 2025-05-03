@@ -18,6 +18,7 @@ wasm-bindgen = "0.2.100"
 wasm-bindgen-futures = { version = "0.4.50", optional = true }
 js-sys = "0.3.77"
 aili-model = { path = "../model" }
+aili-style = { path = "../style" }
 aili-translate = { path = "../translate" }
 aili-parser = { path = "../parser" }
 aili-gdbstate = { path = "../gdbstate", optional = true }

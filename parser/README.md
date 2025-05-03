@@ -1,7 +1,7 @@
 # Aili-Parser
 
 Parser for a human-readable and -writable representation
-of the stylesheets used by [Aili-Translate](../translate).
+of the stylesheets defined by [Aili-Style](../style).
 
 ## Using Aili-Parser
 

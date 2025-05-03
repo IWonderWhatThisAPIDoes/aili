@@ -62,7 +62,7 @@ pub enum SelectorSegment {
     #[debug(".alt{_0:?}")]
     Branch(Vec<SelectorPath>),
 
-    /// Matches if a condition evaluates to a [truthy](crate::property::PropertyValue::is_truthy)
+    /// Matches if a condition evaluates to a [truthy](crate::values::PropertyValue::is_truthy)
     /// value.
     #[debug(".if({_0:?})")]
     Condition(Expression),

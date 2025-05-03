@@ -1,16 +1,18 @@
 //! Unit tests for expression evaluation.
 
-use super::{context::EvaluationContext, evaluate};
-use crate::{
-    cascade::test_graph::TestGraph,
-    property::PropertyValue,
+mod test_graph;
+
+use aili_model::state::RootedProgramStateGraph as _;
+use aili_style::{
+    eval::{context::EvaluationContext, evaluate},
     stylesheet::expression::{
         BinaryOperator as BinaryOp,
         Expression::{self, *},
         UnaryOperator as UnaryOp,
     },
+    values::PropertyValue,
 };
-use aili_model::state::RootedProgramStateGraph as _;
+use test_graph::TestGraph;
 
 /// Evaluate an expression at the root node of the [`TestGraph::default_graph`].
 fn eval_on_default_graph(expression: &Expression) -> PropertyValue<usize> {

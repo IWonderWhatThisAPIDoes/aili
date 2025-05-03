@@ -5,22 +5,22 @@ use derive_more::Debug;
 
 /// Compiled stylesheet that can be used to evaluate the cascade.
 #[derive(Debug)]
-pub struct CascadeStyle(pub(super) Vec<FlatStyleRule>);
+pub struct CascadeStyle<K: PropertyKey = RawPropertyKey>(pub Vec<FlatStyleRule<K>>);
 
-impl From<Stylesheet> for CascadeStyle {
-    fn from(value: Stylesheet) -> Self {
+impl<K: PropertyKey> From<Stylesheet<K>> for CascadeStyle<K> {
+    fn from(value: Stylesheet<K>) -> Self {
         Self(value.0.into_iter().map(FlatStyleRule::from).collect())
     }
 }
 
 #[derive(Debug)]
-pub struct FlatStyleRule {
+pub struct FlatStyleRule<K: PropertyKey = RawPropertyKey> {
     pub machine: FlatSelector,
-    pub properties: Vec<StyleClause>,
+    pub properties: Vec<StyleClause<K>>,
 }
 
-impl From<StyleRule> for FlatStyleRule {
-    fn from(value: StyleRule) -> Self {
+impl<K: PropertyKey> From<StyleRule<K>> for FlatStyleRule<K> {
+    fn from(value: StyleRule<K>) -> Self {
         Self {
             machine: value.selector.into(),
             properties: value.properties,
@@ -113,7 +113,7 @@ pub enum FlatSelectorSegment {
 
     /// Transition that does not take any input,
     /// but verifies a condition. The condition must evaluate
-    /// to a [truthy](crate::property::PropertyValue::is_truthy)
+    /// to a [truthy](crate::values::PropertyValue::is_truthy)
     /// value in order to take the transition.
     #[debug("if ({_0:?})")]
     Restrict(Expression),

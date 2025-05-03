@@ -1,13 +1,7 @@
 //! Definitions of symbol names used by semantic analysis
 
 use aili_model::state::{EdgeLabel, NodeTypeClass};
-use aili_translate::{
-    property::{FragmentKey, PropertyKey},
-    stylesheet::{
-        StyleKey,
-        expression::{Expression, MagicVariableKey, UnaryOperator},
-    },
-};
+use aili_style::stylesheet::expression::{Expression, MagicVariableKey, UnaryOperator};
 use derive_more::{Display, Error};
 
 /// Error type returned by symbol name matchers
@@ -35,31 +29,6 @@ pub fn edge_label_from_name(name: &str) -> Result<EdgeLabel, InvalidSymbol> {
         "ref" => Ok(EdgeLabel::Deref),
         "len" => Ok(EdgeLabel::Length),
         _ => Err(InvalidSymbol(name.to_owned())),
-    }
-}
-
-/// Maps stylesheet clause keys ([`StyleKey`]) to their symbol names.
-///
-/// ## Symbol Names
-/// | Symbol name                           | Associated clause key                 |
-/// |---------------------------------------|---------------------------------------|
-/// | `display`                             | [`Display`](PropertyKey::Display)     |
-/// | `parent`                              | [`Parent`](PropertyKey::Parent)       |
-/// | `target`                              | [`Target`](PropertyKey::Target)       |
-/// | Symbols matching [`is_variable_name`] | [`Variable`](StyleKey::Variable)      |
-/// | Other                                 | [`Attribute`](PropertyKey::Attribute) |
-pub fn unquoted_style_key(key: &str) -> StyleKey {
-    match key {
-        "display" => StyleKey::Property(PropertyKey::Display),
-        "parent" => StyleKey::Property(PropertyKey::Parent),
-        "target" => StyleKey::Property(PropertyKey::Target),
-        _ => {
-            if is_variable_name(key) {
-                StyleKey::Variable(key.to_owned())
-            } else {
-                StyleKey::Property(PropertyKey::Attribute(key.to_owned()))
-            }
-        }
     }
 }
 
@@ -136,21 +105,6 @@ pub fn literal_expression_by_name(name: &str) -> Result<Expression, InvalidSymbo
         "true" => Ok(Expression::Bool(true)),
         "false" => Ok(Expression::Bool(false)),
         _ => Err(InvalidSymbol(name.to_owned())),
-    }
-}
-
-/// Maps [`FragmentKey`]s to their names.
-///
-/// ## Symbol Names
-/// | Symbol name | Associated fragment           |
-/// |-------------|-------------------------------|
-/// | `start`     | [`Start`](FragmentKey::Start) |
-/// | `end`       | [`End`](FragmentKey::End)     |
-pub fn fragment_key(key: &str) -> Result<FragmentKey, InvalidSymbol> {
-    match key {
-        "start" => Ok(FragmentKey::Start),
-        "end" => Ok(FragmentKey::End),
-        _ => Err(InvalidSymbol(key.to_owned())),
     }
 }
 

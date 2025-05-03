@@ -1,16 +1,17 @@
 //! Helper for [`CascadeStyle`] resolution.
 
-use super::{
+use super::style::{CascadeStyle, FlatSelectorSegment};
+use crate::{
     eval::{context::EvaluationContext, evaluate},
-    style::{CascadeStyle, FlatSelectorSegment},
+    stylesheet::PropertyKey,
 };
 use aili_model::state::{EdgeLabel, NodeId, ProgramStateGraph};
 use std::collections::{BTreeSet, HashSet};
 
 /// Helper object for the resolution of stylesheets.
-pub struct SelectorResolver<'a, T: NodeId> {
+pub struct SelectorResolver<'a, K: PropertyKey, T: NodeId> {
     /// The stylesheet whose selectors are being resolved.
-    stylesheet: &'a CascadeStyle,
+    stylesheet: &'a CascadeStyle<K>,
 
     /// Pairs of nodes and selector sequence points
     /// that have already been matched.
@@ -26,9 +27,9 @@ pub struct SelectorResolver<'a, T: NodeId> {
     stack: Vec<ResolveFrame>,
 }
 
-impl<'a, T: NodeId> SelectorResolver<'a, T> {
+impl<'a, K: PropertyKey, T: NodeId> SelectorResolver<'a, K, T> {
     /// Constructs a new resolver that resolves a particular stylesheet.
-    pub fn new(style: &'a CascadeStyle) -> Self {
+    pub fn new(style: &'a CascadeStyle<K>) -> Self {
         Self {
             stylesheet: style,
             matched_sequence_points: HashSet::new(),
@@ -171,7 +172,7 @@ impl<'a, T: NodeId> SelectorResolver<'a, T> {
     }
 }
 
-impl CascadeStyle {
+impl<K: PropertyKey> CascadeStyle<K> {
     /// Retrieves the list of all starting states of all selectors
     /// in a stalesheet.
     fn all_starting_states(&self) -> Vec<SelectorState> {

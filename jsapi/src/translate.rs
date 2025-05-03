@@ -7,10 +7,8 @@ use crate::{
     vis::VisTree,
 };
 use aili_model::state::{ProgramStateGraph, RootedProgramStateGraph};
-use aili_translate::{
-    forward::{Renderer, RendererWarning},
-    property::Selectable,
-};
+use aili_style::selectable::Selectable;
+use aili_translate::forward::{Renderer, RendererWarning};
 use wasm_bindgen::prelude::*;
 
 /// Declares a renderer type for a given target.

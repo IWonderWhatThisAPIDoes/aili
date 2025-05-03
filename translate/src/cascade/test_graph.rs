@@ -2,7 +2,6 @@
 
 #![cfg(test)]
 
-use crate::stylesheet::expression::LimitedSelector;
 use aili_model::state::*;
 use std::collections::HashMap;
 
@@ -122,24 +121,6 @@ impl TestGraph {
             /* 12 */ TestNode([(Deref, 10)].into(), None),
             /* 13 */ TestNode([(Deref, 12)].into(), None),
         ])
-    }
-
-    /// Constructs a selector that selects a valueless node
-    /// in the [`default_graph`](TestGraph::default_graph).
-    pub fn valueless_node_selector() -> LimitedSelector {
-        LimitedSelector::from_path([])
-    }
-
-    /// Constructs a selector that matches a numeric-valued node
-    /// in the [`default_graph`](TestGraph::default_graph).
-    pub fn numeric_node_selector() -> LimitedSelector {
-        LimitedSelector::from_path([EdgeLabel::Named("a".into(), 0).into()])
-    }
-
-    /// Constructs a selector that does not match a node
-    /// in the [`default_graph`](TestGraph::default_graph).
-    pub fn missing_node_selector() -> LimitedSelector {
-        LimitedSelector::from_path([EdgeLabel::Result.into()])
     }
 
     /// Value of the node selected by
