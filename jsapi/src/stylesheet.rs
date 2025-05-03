@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 
 /// Compiled visualization stylesheet.
 ///
-/// See [`aili_style::cascade::style::CascadeStyle`]
+/// See [`CascadeStyle`].
 #[wasm_bindgen]
 pub struct Stylesheet(pub(crate) CascadeStyle<PropertyKey>);
 

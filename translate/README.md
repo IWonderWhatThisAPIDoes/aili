@@ -18,7 +18,7 @@ manually, although it would most likely be done using
 ```rust
 use aili_model::{state::RootedProgramStateGraph, vis::VisTree};
 use aili_style::{
-    cascade::style::CascadeStyle,
+    cascade::CascadeStyle,
     selectable::Selectable,
     stylesheet::Stylesheet,
 };

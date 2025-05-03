@@ -1,4 +1,4 @@
-//! Helper for [`CascadeStyle`] resolution.
+//! Helper for [`CascadeSelector`] resolution.
 
 use super::style::{CascadeSelector, FlatSelectorSegment};
 use crate::eval::{context::EvaluationContext, evaluate};
