@@ -481,10 +481,15 @@ impl GdbStateGraph {
             .into_mut()
     }
 
-    fn parse_node_value(s: &str) -> Option<NodeValue> {
+    fn parse_node_value(mut s: &str) -> Option<NodeValue> {
         // GDB includes both numeric and character representation of chars
-        static CHAR_VALUE_REGEX: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"^([+\-]?\d+)\s*'(:?[^']|\\.+)'$").unwrap());
+        // and char pointers, so we need to strip the character string
+        static CHAR_VALUE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r#"^([+\-]?(?:0[xX])?[\da-fA-F]+)\s*(?:'.*'|".*")$"#).unwrap()
+        });
+        if let Some(caps) = CHAR_VALUE_REGEX.captures(s) {
+            s = caps.get(1).unwrap().as_str()
+        }
         if let Ok(u) = s.parse() {
             // Parse it as unsigned decimal
             Some(NodeValue::Uint(u))
@@ -494,9 +499,6 @@ impl GdbStateGraph {
         } else if let Some(h) = s.strip_prefix("0x") {
             // Parse it as hexadecimal
             u64::from_str_radix(h, 16).ok().map(NodeValue::Uint)
-        } else if let Some(caps) = CHAR_VALUE_REGEX.captures(s) {
-            // Parse it as character
-            caps[1].parse().ok().map(NodeValue::Int)
         } else {
             // It's probably a struct or array, so do not include a value
             None
@@ -504,11 +506,18 @@ impl GdbStateGraph {
     }
 
     fn preprocess_type_name(name: String) -> String {
+        // Const keyword should not be apart of the type name
+        let name = name
+            .strip_prefix("const ")
+            .map(str::to_owned)
+            .unwrap_or(name);
         // This is C, so struct type names may include the struct keyword
         // We do not want that to be included, so we drop it if possible
-        name.strip_prefix("struct ")
+        let name = name
+            .strip_prefix("struct ")
             .map(str::to_owned)
-            .unwrap_or(name)
+            .unwrap_or(name);
+        name
     }
 }
 
