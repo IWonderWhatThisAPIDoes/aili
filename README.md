@@ -4,6 +4,8 @@ Prototype semantic visual debugger.
 
 ## Modules in This Repository
 
+![Overview of modules in the repository](./assets/overview.png)
+
 | Module                          | Description                                                     |
 |---------------------------------|-----------------------------------------------------------------|
 | [:yellow_square: Debugger](./debugger) | Demo application that showcases the whole debugger pipeline. |
