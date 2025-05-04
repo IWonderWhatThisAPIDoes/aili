@@ -30,6 +30,24 @@ export enum DebugSessionStatus {
 }
 
 /**
+ * How far ahead the debugger can step.
+ */
+export enum DebugStepRange {
+    /**
+     * Single step with stepping into function call.
+     */
+    SINGLE,
+    /**
+     * Single step, skipping function calls.
+     */
+    NEXT,
+    /**
+     * Runs the current function to completion.
+     */
+    FINISH,
+}
+
+/**
  * Converts a debugger status to the corresponding status of a debug session.
  * 
  * @param debuggerStatus Status of the debugger.
@@ -110,13 +128,15 @@ export class DebuggerSession {
     /**
      * Single-steps the debugger session and updates state.
      * 
+     * @param range How far the debug session should advance.
+     * 
      * @throws No debug session is active
      *         or the debugger could not make the step.
      */
-    async step(): Promise<void> {
+    async step(range: DebugStepRange = DebugStepRange.SINGLE): Promise<void> {
         await this.withErrorLogging(async () => {
             this.assertStatus(DebugSessionStatus.READY);
-            await this.sendMiCommandAndAssertSuccess('-exec-step');
+            await this.sendMiCommandAndAssertSuccess(STEP_RANGE_TO_GDB_COMMAND[range]);
             await this.debuggerContainer.whenDebuggeeStops();
         });
     }
@@ -215,3 +235,13 @@ export class DebuggerSession {
     private readonly _onStatusChanged: Hook<[DebugSessionStatus]>;
     private readonly debuggerContainer: Debugger;
 }
+
+/**
+ * Maps stepping ranges to the GDB/MI commands
+ * that advance the debuggee by that range.
+ */
+const STEP_RANGE_TO_GDB_COMMAND: Record<DebugStepRange, string> = {
+    [DebugStepRange.SINGLE]: '-exec-step',
+    [DebugStepRange.NEXT]: '-exec-next',
+    [DebugStepRange.FINISH]: '-exec-finish',
+};

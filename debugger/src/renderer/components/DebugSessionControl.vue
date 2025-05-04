@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
     import { computed, ref } from 'vue';
-    import { DebugSessionStatus } from '../controllers/session';
+    import { DebugSessionStatus, DebugStepRange } from '../controllers/session';
     import { DebugSessionManager } from '../controllers/session-manager';
 
     const { session } = defineProps<{ session: DebugSessionManager }>();
@@ -60,9 +60,9 @@
         }
     }
 
-    function nextStep(): void {
+    function nextStep(range: DebugStepRange): void {
         if (status.value === DebugSessionStatus.READY) {
-            session.step();
+            session.step(range);
         }
     }
 </script>
@@ -79,8 +79,14 @@
         <button :disabled="status === DebugSessionStatus.BUSY || pathToDebuggee === ''" @click="startStop">
             {{ startStopButtonText }}
         </button>
-        <button :disabled="status !== DebugSessionStatus.READY" @click="nextStep">
+        <button :disabled="status !== DebugSessionStatus.READY" @click="nextStep(DebugStepRange.SINGLE)">
             Step
+        </button>
+        <button :disabled="status !== DebugSessionStatus.READY" @click="nextStep(DebugStepRange.NEXT)">
+            Next
+        </button>
+        <button :disabled="status !== DebugSessionStatus.READY" @click="nextStep(DebugStepRange.FINISH)">
+            Out
         </button>
     </div>
 </template>

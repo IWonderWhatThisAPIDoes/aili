@@ -6,7 +6,7 @@
 
 import { GdbMiSession, GdbStateGraph } from 'aili-jsapi';
 import { Debugger, DebuggerInputSource, isStatusRunning, SourceLocation } from './debugger';
-import { DebuggerSession, DebugSessionStatus } from './session';
+import { DebuggerSession, DebugSessionStatus, DebugStepRange } from './session';
 import { Hook, Hookable, Logger } from 'aili-hooligan';
 
 /**
@@ -78,13 +78,15 @@ export class DebugSessionManager {
     /**
      * Single-steps the debugger session and updates state.
      * 
+     * @param range How far the debug session should advance.
+     * 
      * @throws No debug session is active
      *         or the debugger could not make the step.
      */
-    async step(): Promise<void> {
+    async step(range: DebugStepRange = DebugStepRange.SINGLE): Promise<void> {
         this.assertStatus(DebugSessionStatus.READY);
         await this.transaction(async () => {
-            await this.session.step();
+            await this.session.step(range);
             // The debuggee may have exited normally,
             // so the debug session would not be active anymore
             if (this.session.status === DebugSessionStatus.INACTIVE) {
