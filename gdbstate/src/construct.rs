@@ -30,7 +30,9 @@ impl GdbStateGraph {
     /// asynchronously.
     pub async fn new(gdb: &mut impl GdbMiSession) -> Result<Self> {
         let mut graph = Self::empty();
-        graph.update_stack_trace(gdb).await?;
+        GdbStateGraphWriter::new(&mut graph, gdb)
+            .update_stack_trace()
+            .await?;
         Ok(graph)
     }
 
@@ -41,8 +43,9 @@ impl GdbStateGraph {
     /// of commands that need to be invoked. Modifying the session
     /// in between calls can yield unexpected results.
     pub async fn update(&mut self, gdb: &mut impl GdbMiSession) -> Result<()> {
-        self.update_variable_objects(gdb).await?;
-        self.update_stack_trace(gdb).await?;
+        let mut writer = GdbStateGraphWriter::new(self, gdb);
+        writer.update_variable_objects().await?;
+        writer.update_stack_trace().await?;
         Ok(())
     }
 
@@ -59,20 +62,42 @@ impl GdbStateGraph {
         }
         Ok(())
     }
+}
 
-    async fn update_variable_objects(&mut self, gdb: &mut impl GdbMiSession) -> Result<()> {
-        let changelist = gdb.var_update(PrintValues::SimpleValues).await?;
+/// Helper object for constructing and updating [`GdbStateGraph`]
+/// using a [`GdbMiSession`].
+struct GdbStateGraphWriter<'a, T: GdbMiSession> {
+    graph: &'a mut GdbStateGraph,
+    gdb: &'a mut T,
+}
+
+impl<T: GdbMiSession> std::ops::Deref for GdbStateGraphWriter<'_, T> {
+    type Target = GdbStateGraph;
+    fn deref(&self) -> &Self::Target {
+        self.graph
+    }
+}
+
+impl<T: GdbMiSession> std::ops::DerefMut for GdbStateGraphWriter<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.graph
+    }
+}
+
+impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
+    fn new(graph: &'a mut GdbStateGraph, gdb: &'a mut T) -> Self {
+        Self { graph, gdb }
+    }
+
+    async fn update_variable_objects(&mut self) -> Result<()> {
+        let changelist = self.gdb.var_update(PrintValues::SimpleValues).await?;
         for change in &changelist {
-            self.update_variable_object(change, gdb).await?;
+            self.update_variable_object(change).await?;
         }
         Ok(())
     }
 
-    async fn update_variable_object(
-        &mut self,
-        var_object: &VariableObjectUpdate,
-        gdb: &mut impl GdbMiSession,
-    ) -> Result<()> {
+    async fn update_variable_object(&mut self, var_object: &VariableObjectUpdate) -> Result<()> {
         if var_object.dynamic {
             // TODO: Warn
             // Dynamic variable objects should never be returned by GDB unless explicitly enabled
@@ -81,7 +106,7 @@ impl GdbStateGraph {
             // TODO: Warn
         }
         if var_object.in_scope != InScope::True {
-            self.variable_object_out_of_scope(&var_object.object, gdb)
+            self.variable_object_out_of_scope(&var_object.object)
                 .await?;
         } else if let Some(variable) = self.variables.get_mut(&var_object.object) {
             // Otherwise, the value must have changed, so reevaluate it
@@ -96,13 +121,14 @@ impl GdbStateGraph {
                     self.free_dereference(&var_object.object, &old_deref_id);
                 }
                 if let (Some(NodeValue::Uint(address)), Some(type_name)) = (new_value, type_name) {
-                    if gdb
+                    if self
+                        .gdb
                         .data_evaluate_expression(&format!("*(char*){address}"))
                         .await
                         .is_ok()
                     {
                         let deref_var_object = Box::pin(
-                            self.get_or_create_dereference_variable_node(gdb, address, &type_name),
+                            self.get_or_create_dereference_variable_node(address, &type_name),
                         )
                         .await?;
                         self.link_dereference_relation(&var_object.object, &deref_var_object);
@@ -143,11 +169,7 @@ impl GdbStateGraph {
         }
     }
 
-    async fn variable_object_out_of_scope(
-        &mut self,
-        var_object: &VariableObject,
-        gdb: &mut impl GdbMiSession,
-    ) -> Result<()> {
+    async fn variable_object_out_of_scope(&mut self, var_object: &VariableObject) -> Result<()> {
         // The variable has gone out of scope, so we destroy it
         let parent_node = self.remove_variables_recursive(var_object);
         // Remove the reference to it from its parent frame
@@ -159,7 +181,7 @@ impl GdbStateGraph {
             // Only local variables can go out of scope
             // TODO: warn
         }
-        gdb.var_delete(var_object).await?;
+        self.gdb.var_delete(var_object).await?;
         Ok(())
     }
 
@@ -209,8 +231,8 @@ impl GdbStateGraph {
         node.parent
     }
 
-    async fn update_stack_trace(&mut self, gdb: &mut impl GdbMiSession) -> Result<()> {
-        let stack_trace = gdb.stack_list_frames().await?;
+    async fn update_stack_trace(&mut self) -> Result<()> {
+        let stack_trace = self.gdb.stack_list_frames().await?;
         // There is no way to tell if the top stack frame has
         // returned and then the same function was called
         // (as opposed to still being in that function),
@@ -236,22 +258,20 @@ impl GdbStateGraph {
         self.drop_stack_frames_after(update_index);
         // New variables may have come into scope at the topmost unchanged frame
         if update_index > 0 {
-            gdb.stack_select_frame(stack_trace[stack_trace.len() - update_index].level)
+            self.gdb
+                .stack_select_frame(stack_trace[stack_trace.len() - update_index].level)
                 .await?;
-            self.update_local_variables(update_index - 1, gdb).await?;
+            self.update_local_variables(update_index - 1).await?;
         }
         // Create new frames starting at the first different frame
         let frames_to_push = stack_trace.into_iter().rev().skip(update_index);
-        self.push_stack_frames(frames_to_push, gdb).await?;
+        self.push_stack_frames(frames_to_push).await?;
         Ok(())
     }
 
-    async fn update_local_variables(
-        &mut self,
-        frame_index: usize,
-        gdb: &mut impl GdbMiSession,
-    ) -> Result<()> {
-        let mut locals = gdb
+    async fn update_local_variables(&mut self, frame_index: usize) -> Result<()> {
+        let mut locals = self
+            .gdb
             .stack_list_variables(PrintValues::NoValues, false)
             .await?;
         // Sort the output by name so that variables of the same name end up together
@@ -277,7 +297,7 @@ impl GdbStateGraph {
                 .any(|(e, _)| *e == edge_id);
             // If the stack frame does not know about the variable, create it now
             if !has_the_variable {
-                self.create_local_variable(gdb, frame_index, &name, edge_id)
+                self.create_local_variable(frame_index, &name, edge_id)
                     .await?;
             }
             // TODO: Check that the stack knows about all shadowed variables as well,
@@ -288,22 +308,22 @@ impl GdbStateGraph {
 
     async fn create_local_variable(
         &mut self,
-        gdb: &mut impl GdbMiSession,
         frame_index: usize,
         name: &str,
         edge_label: EdgeLabel,
     ) -> Result<()> {
-        let var_object = gdb
+        let var_object = self
+            .gdb
             .var_create(VariableObjectFrameContext::CurrentFrame, name)
             .await?;
         let handle = self
-            .create_variable_tree(gdb, var_object, Some(GdbStateNodeId::Frame(frame_index)))
+            .create_variable_tree(var_object, Some(GdbStateNodeId::Frame(frame_index)))
             .await?;
         let id = GdbStateNodeId::VarObject(handle.clone());
         self.stack_trace[frame_index]
             .successors
             .push((edge_label, id));
-        self.add_variable_to_address_map(gdb, name, handle, false)
+        self.add_variable_to_address_map(name, handle, false)
             .await?;
         Ok(())
     }
@@ -331,19 +351,14 @@ impl GdbStateGraph {
     async fn push_stack_frames(
         &mut self,
         new_frames: impl IntoIterator<Item = StackFrame>,
-        gdb: &mut impl GdbMiSession,
     ) -> Result<()> {
         for frame in new_frames {
-            self.push_stack_frame(frame, gdb).await?;
+            self.push_stack_frame(frame).await?;
         }
         Ok(())
     }
 
-    async fn push_stack_frame(
-        &mut self,
-        frame: StackFrame,
-        gdb: &mut impl GdbMiSession,
-    ) -> Result<()> {
+    async fn push_stack_frame(&mut self, frame: StackFrame) -> Result<()> {
         // Get the esteemed index of the frame
         let frame_index = self.stack_trace.len();
         // Create the node and add it to the trace
@@ -361,49 +376,45 @@ impl GdbStateGraph {
                 .push((EdgeLabel::Next, GdbStateNodeId::Frame(frame_index)));
         }
         // Populate all local variables
-        gdb.stack_select_frame(frame.level).await?;
-        self.update_local_variables(frame_index, gdb).await?;
+        self.gdb.stack_select_frame(frame.level).await?;
+        self.update_local_variables(frame_index).await?;
         Ok(())
     }
 
     #[expect(unused)]
-    async fn populate_global_variables(&mut self, gdb: &mut impl GdbMiSession) -> Result<()> {
+    async fn populate_global_variables(&mut self) -> Result<()> {
         // Get all global variables across all files
-        let query_result = gdb.symbol_info_variables().await?;
+        let query_result = self.gdb.symbol_info_variables().await?;
         for file in query_result {
             for symbol in &file.symbols {
-                self.create_global_variable(symbol, gdb).await?;
+                self.create_global_variable(symbol).await?;
             }
         }
         Ok(())
     }
 
-    async fn create_global_variable(
-        &mut self,
-        variable_symbol: &Symbol,
-        gdb: &mut impl GdbMiSession,
-    ) -> Result<()> {
+    async fn create_global_variable(&mut self, variable_symbol: &Symbol) -> Result<()> {
         let edge_name = variable_symbol.name.clone();
         // Create the node
-        let handle = self.read_global_variable_node(variable_symbol, gdb).await?;
+        let handle = self.read_global_variable_node(variable_symbol).await?;
         let id = GdbStateNodeId::VarObject(handle.clone());
         // Insert the node into root
         self.root_node.add_named_successor(edge_name, id);
         // Add the variable to address map
-        self.add_variable_to_address_map(gdb, &variable_symbol.name, handle, true)
+        self.add_variable_to_address_map(&variable_symbol.name, handle, true)
             .await?;
         Ok(())
     }
 
     async fn add_variable_to_address_map(
         &mut self,
-        gdb: &mut impl GdbMiSession,
         variable_name: &str,
         var_object: VariableObject,
         is_global: bool,
     ) -> Result<()> {
         let prefix = if is_global { "::" } else { "" };
-        let address = gdb
+        let address = self
+            .gdb
             .data_evaluate_expression(&format!("&{prefix}{variable_name}"))
             .await?;
         if let Some(NodeValue::Uint(address)) = Self::parse_node_value(&address) {
@@ -418,21 +429,20 @@ impl GdbStateGraph {
     async fn read_global_variable_node(
         &mut self,
         variable_symbol: &Symbol,
-        gdb: &mut impl GdbMiSession,
     ) -> Result<VariableObject> {
-        let var_object = gdb
+        let var_object = self
+            .gdb
             .var_create(
                 VariableObjectFrameContext::CurrentFrame,
                 &format!("::{}", variable_symbol.name),
             )
             .await?;
-        self.create_variable_tree(gdb, var_object, Some(GdbStateNodeId::Root))
+        self.create_variable_tree(var_object, Some(GdbStateNodeId::Root))
             .await
     }
 
     async fn create_variable_tree(
         &mut self,
-        gdb: &mut impl GdbMiSession,
         var_object: VariableObjectData,
         parent: Option<GdbStateNodeId>,
     ) -> Result<VariableObject> {
@@ -445,7 +455,7 @@ impl GdbStateGraph {
         self.create_variable_node(var_object, parent);
         if has_children {
             // If there are children, now is the time to resolve them
-            self.after_create_non_atom_variable_node(gdb, &var_object_handle)
+            self.after_create_non_atom_variable_node(&var_object_handle)
                 .await?;
         }
         Ok(var_object_handle)
@@ -453,7 +463,6 @@ impl GdbStateGraph {
 
     async fn after_create_non_atom_variable_node(
         &mut self,
-        gdb: &mut impl GdbMiSession,
         var_object: &VariableObject,
     ) -> Result<()> {
         let node = self
@@ -474,7 +483,8 @@ impl GdbStateGraph {
             if address == 0 {
                 return Ok(());
             }
-            let can_access_target_address = gdb
+            let can_access_target_address = self
+                .gdb
                 .data_evaluate_expression(&format!("*(char*){address}"))
                 .await
                 .is_ok();
@@ -485,11 +495,11 @@ impl GdbStateGraph {
                 return Ok(());
             };
             let deref_var_object =
-                Box::pin(self.get_or_create_dereference_variable_node(gdb, address, &type_name))
-                    .await?;
+                Box::pin(self.get_or_create_dereference_variable_node(address, &type_name)).await?;
             self.link_dereference_relation(var_object, &deref_var_object);
         } else {
-            let children = gdb
+            let children = self
+                .gdb
                 .var_list_children(var_object, PrintValues::SimpleValues)
                 .await?;
             let container_kind = ContainerKind::deduce_from_children(&children.children)
@@ -504,7 +514,6 @@ impl GdbStateGraph {
                     for child in children.children {
                         // Construct the full tree recursively
                         let child_node_handle = Box::pin(self.create_variable_tree(
-                            gdb,
                             child.variable_object,
                             Some(GdbStateNodeId::VarObject(var_object.clone())),
                         ))
@@ -525,7 +534,6 @@ impl GdbStateGraph {
                     for child in children.children {
                         // Construct the full tree recursively
                         let child_node_handle = Box::pin(self.create_variable_tree(
-                            gdb,
                             child.variable_object,
                             Some(GdbStateNodeId::VarObject(var_object.clone())),
                         ))
@@ -588,7 +596,6 @@ impl GdbStateGraph {
 
     async fn get_or_create_dereference_variable_node(
         &mut self,
-        gdb: &mut impl GdbMiSession,
         address: u64,
         pointer_type_name: &str,
     ) -> Result<VariableObject> {
@@ -596,15 +603,15 @@ impl GdbStateGraph {
         if let Some(var_object) = self.address_mapping.get(&address) {
             return Ok(var_object.clone());
         }
-        let deref_var_object = gdb
+        let deref_var_object = self
+            .gdb
             .var_create(
                 VariableObjectFrameContext::CurrentFrame,
                 &format!("*({pointer_type_name}){address}"),
             )
             .await?;
         let var_object = deref_var_object.object.clone();
-        self.create_variable_tree(gdb, deref_var_object, None)
-            .await?;
+        self.create_variable_tree(deref_var_object, None).await?;
         self.address_mapping.insert(address, var_object.clone());
         Ok(var_object)
     }
