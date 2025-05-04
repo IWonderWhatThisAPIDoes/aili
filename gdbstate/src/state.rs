@@ -112,13 +112,21 @@ pub(crate) struct GdbStateNodeForVariable {
     ///
     /// If this is empty, the node is a heap-allocated object.
     pub parent: Option<GdbStateNodeId>,
+
+    /// References to [`NodeTypeClass::Ref`] nodes whose
+    /// [`EdgeLabel::Deref`] points to this node.
+    pub referers: Vec<VariableObject>,
 }
 
 /// [`GdbStateNode`] with additional data for a node that
 /// represents a [`VariableObject`].
 impl GdbStateNodeForVariable {
     pub fn new(node: GdbStateNode, parent: Option<GdbStateNodeId>) -> Self {
-        Self { node, parent }
+        Self {
+            node,
+            parent,
+            referers: Vec::new(),
+        }
     }
 
     /// True if the node is associated with a top-level GDB variable object.

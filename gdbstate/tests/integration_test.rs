@@ -400,3 +400,52 @@ fn pointer_update() {
     assert!(deref_q.is_some());
     assert_ne!(deref_p, deref_q);
 }
+
+#[test]
+fn pointer_to_local() {
+    let mut gdb = gdb_from_source(
+        r"
+        int main(void) {
+            int a = 0;
+            int* p = &a;
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(10).unwrap();
+    let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    let a_id = state_graph
+        .get_id_at_root(&[EdgeLabel::Main, EdgeLabel::Named("a".to_owned(), 0)])
+        .unwrap();
+    let p_deref_id = state_graph
+        .get_id_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("p".to_owned(), 0),
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
+    assert_eq!(a_id, p_deref_id);
+}
+
+#[test]
+fn dangling_reference_detachment() {
+    let mut gdb = gdb_from_source(
+        r"
+        int main(void) {
+            int* p;
+            if (1) {
+                int a = 42;
+                p = &a;
+                /* breakpoint 1 */ a = 0;
+            }
+            /* breakpoint 2 */;
+        }",
+    );
+    gdb.run_to_line(7).unwrap();
+    let mut state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    gdb.run_to_line(9).unwrap();
+    state_graph.update(&mut gdb).expect_ready().unwrap();
+    let pointer = state_graph
+        .get_at_root(&[EdgeLabel::Main, EdgeLabel::Named("p".to_owned(), 0)])
+        .unwrap();
+    assert!(pointer.get_successor(&EdgeLabel::Deref).is_none());
+}

@@ -85,13 +85,17 @@ impl GdbStateGraph {
                 .await?;
         } else if let Some(variable) = self.variables.get_mut(&var_object.object) {
             // Otherwise, the value must have changed, so reevaluate it
-            variable.value = var_object.value.as_deref().and_then(Self::parse_node_value);
+            let new_value = var_object.value.as_deref().and_then(Self::parse_node_value);
+            variable.value = new_value;
             // If the variable is a pointer, update its dereference
             if variable.type_class == NodeTypeClass::Ref {
-                variable.remove_successor(&EdgeLabel::Deref);
-                if let (Some(NodeValue::Uint(address)), Some(type_name)) =
-                    (variable.value, variable.type_name.clone())
+                let type_name = variable.type_name.clone();
+                if let Some(GdbStateNodeId::VarObject(old_deref_id)) =
+                    variable.remove_successor(&EdgeLabel::Deref)
                 {
+                    self.free_dereference(&var_object.object, &old_deref_id);
+                }
+                if let (Some(NodeValue::Uint(address)), Some(type_name)) = (new_value, type_name) {
                     if gdb
                         .data_evaluate_expression(&format!("*(char*){address}"))
                         .await
@@ -101,14 +105,7 @@ impl GdbStateGraph {
                             self.get_or_create_dereference_variable_node(gdb, address, &type_name),
                         )
                         .await?;
-                        self.variables
-                            .get_mut(&var_object.object)
-                            .expect("The node was just created")
-                            .successors
-                            .push((
-                                EdgeLabel::Deref,
-                                GdbStateNodeId::VarObject(deref_var_object),
-                            ));
+                        self.link_dereference_relation(&var_object.object, &deref_var_object);
                     }
                 }
             }
@@ -116,6 +113,34 @@ impl GdbStateGraph {
         // If we do not know about the object, someone else must have
         // created it in the session, so we ignore it
         Ok(())
+    }
+
+    fn free_dereference(
+        &mut self,
+        referer_handle: &VariableObject,
+        dereference_handle: &VariableObject,
+    ) {
+        let Some(dereference_node) = self.variables.get_mut(dereference_handle) else {
+            // TODO: Warn
+            return;
+        };
+        let Some(referer_index) = dereference_node
+            .referers
+            .iter()
+            .enumerate()
+            .find(|(_, r)| *r == referer_handle)
+            .map(|(i, _)| i)
+        else {
+            // TODO: Warn
+            return;
+        };
+        // Remove the expiring referer from the list of referers
+        dereference_node.referers.swap_remove(referer_index);
+        // If the node has been leaked (is heap-allocated)
+        // and has no remaining referers, destroy it
+        if dereference_node.referers.is_empty() && dereference_node.parent.is_none() {
+            self.remove_variables_recursive(dereference_handle);
+        }
     }
 
     async fn variable_object_out_of_scope(
@@ -139,38 +164,49 @@ impl GdbStateGraph {
     }
 
     fn remove_variables_recursive(&mut self, handle: &VariableObject) -> Option<GdbStateNodeId> {
-        if let Some(node) = self.variables.remove(handle) {
-            for (edge_label, next_object) in node.node.successors {
-                match edge_label {
-                    // These edges are what one would reasonably expect here
-                    EdgeLabel::Named(_, _) | EdgeLabel::Index(_) | EdgeLabel::Length => {}
-                    // Leave dereference edges be, they go by different rules
-                    // (most notably, they are not a tree, and we do not want
-                    // a dangling reference here)
-                    EdgeLabel::Deref => continue,
-                    // These edges cannot go from a variable node,
-                    // so we emit a warning if it ever happens
-                    EdgeLabel::Main | EdgeLabel::Next | EdgeLabel::Result => {
-                        // TODO: Warn
-                        continue;
+        let node = self.variables.remove(handle)?;
+        // Unlink dangling references
+        for referer in node.referers {
+            if let Some(referer_node) = self.variables.get_mut(&referer) {
+                referer_node.remove_successor(&EdgeLabel::Deref);
+            } else {
+                // TODO: Warn
+                // Referers should be kept up-to-date
+            }
+        }
+        // Remove all child nodes
+        for (edge_label, next_object) in node.node.successors {
+            match edge_label {
+                // These edges are what one would reasonably expect here
+                EdgeLabel::Named(_, _) | EdgeLabel::Index(_) | EdgeLabel::Length => {
+                    match next_object {
+                        GdbStateNodeId::Root | GdbStateNodeId::Frame(_) => {
+                            // TODO: Warn
+                        }
+                        GdbStateNodeId::VarObject(v) => {
+                            self.remove_variables_recursive(&v);
+                        }
+                        GdbStateNodeId::Length(v) => {
+                            self.length_nodes.remove(&v);
+                        }
                     }
                 }
-                match next_object {
-                    GdbStateNodeId::Root | GdbStateNodeId::Frame(_) => {
-                        // TODO: Warn
+                // Dereference edges have their own freeing mechanism
+                EdgeLabel::Deref => {
+                    if let GdbStateNodeId::VarObject(dereference) = next_object {
+                        self.free_dereference(handle, &dereference);
+                    } else {
+                        // TODO: Warn, only variable nodes should
                     }
-                    GdbStateNodeId::VarObject(v) => {
-                        self.remove_variables_recursive(&v);
-                    }
-                    GdbStateNodeId::Length(v) => {
-                        self.length_nodes.remove(&v);
-                    }
+                }
+                // These edges cannot go from a variable node,
+                // so we emit a warning if it ever happens
+                EdgeLabel::Main | EdgeLabel::Next | EdgeLabel::Result => {
+                    // TODO: Warn
                 }
             }
-            node.parent
-        } else {
-            None
         }
+        node.parent
     }
 
     async fn update_stack_trace(&mut self, gdb: &mut impl GdbMiSession) -> Result<()> {
@@ -260,12 +296,15 @@ impl GdbStateGraph {
         let var_object = gdb
             .var_create(VariableObjectFrameContext::CurrentFrame, name)
             .await?;
-        let id = self
+        let handle = self
             .create_variable_tree(gdb, var_object, Some(GdbStateNodeId::Frame(frame_index)))
             .await?;
+        let id = GdbStateNodeId::VarObject(handle.clone());
         self.stack_trace[frame_index]
             .successors
             .push((edge_label, id));
+        self.add_variable_to_address_map(gdb, name, handle, false)
+            .await?;
         Ok(())
     }
 
@@ -332,7 +371,7 @@ impl GdbStateGraph {
         // Get all global variables across all files
         let query_result = gdb.symbol_info_variables().await?;
         for file in query_result {
-            for symbol in file.symbols {
+            for symbol in &file.symbols {
                 self.create_global_variable(symbol, gdb).await?;
             }
         }
@@ -341,22 +380,46 @@ impl GdbStateGraph {
 
     async fn create_global_variable(
         &mut self,
-        variable_symbol: Symbol,
+        variable_symbol: &Symbol,
         gdb: &mut impl GdbMiSession,
     ) -> Result<()> {
         let edge_name = variable_symbol.name.clone();
         // Create the node
-        let id = self.read_global_variable_node(variable_symbol, gdb).await?;
+        let handle = self.read_global_variable_node(variable_symbol, gdb).await?;
+        let id = GdbStateNodeId::VarObject(handle.clone());
         // Insert the node into root
         self.root_node.add_named_successor(edge_name, id);
+        // Add the variable to address map
+        self.add_variable_to_address_map(gdb, &variable_symbol.name, handle, true)
+            .await?;
+        Ok(())
+    }
+
+    async fn add_variable_to_address_map(
+        &mut self,
+        gdb: &mut impl GdbMiSession,
+        variable_name: &str,
+        var_object: VariableObject,
+        is_global: bool,
+    ) -> Result<()> {
+        let prefix = if is_global { "::" } else { "" };
+        let address = gdb
+            .data_evaluate_expression(&format!("&{prefix}{variable_name}"))
+            .await?;
+        if let Some(NodeValue::Uint(address)) = Self::parse_node_value(&address) {
+            self.address_mapping.insert(address, var_object);
+            // TODO: Handle the case if the variable already exists
+        } else {
+            // TODO: Warn
+        }
         Ok(())
     }
 
     async fn read_global_variable_node(
         &mut self,
-        variable_symbol: Symbol,
+        variable_symbol: &Symbol,
         gdb: &mut impl GdbMiSession,
-    ) -> Result<GdbStateNodeId> {
+    ) -> Result<VariableObject> {
         let var_object = gdb
             .var_create(
                 VariableObjectFrameContext::CurrentFrame,
@@ -372,7 +435,7 @@ impl GdbStateGraph {
         gdb: &mut impl GdbMiSession,
         var_object: VariableObjectData,
         parent: Option<GdbStateNodeId>,
-    ) -> Result<GdbStateNodeId> {
+    ) -> Result<VariableObject> {
         if var_object.dynamic {
             // TODO: Warn
             // Dynamic variable objects should never be returned by GDB unless explicitly enabled
@@ -385,7 +448,7 @@ impl GdbStateGraph {
             self.after_create_non_atom_variable_node(gdb, &var_object_handle)
                 .await?;
         }
-        Ok(GdbStateNodeId::VarObject(var_object_handle))
+        Ok(var_object_handle)
     }
 
     async fn after_create_non_atom_variable_node(
@@ -424,14 +487,7 @@ impl GdbStateGraph {
             let deref_var_object =
                 Box::pin(self.get_or_create_dereference_variable_node(gdb, address, &type_name))
                     .await?;
-            self.variables
-                .get_mut(var_object)
-                .expect("The node was just created")
-                .successors
-                .push((
-                    EdgeLabel::Deref,
-                    GdbStateNodeId::VarObject(deref_var_object),
-                ));
+            self.link_dereference_relation(var_object, &deref_var_object);
         } else {
             let children = gdb
                 .var_list_children(var_object, PrintValues::SimpleValues)
@@ -447,12 +503,13 @@ impl GdbStateGraph {
                 ContainerKind::Struct => {
                     for child in children.children {
                         // Construct the full tree recursively
-                        let child_node_id = Box::pin(self.create_variable_tree(
+                        let child_node_handle = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
                             Some(GdbStateNodeId::VarObject(var_object.clone())),
                         ))
                         .await?;
+                        let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
                         // Insert child into parent
                         self.variables
                             .get_mut(var_object)
@@ -467,12 +524,13 @@ impl GdbStateGraph {
                     let mut length = 0;
                     for child in children.children {
                         // Construct the full tree recursively
-                        let child_node_id = Box::pin(self.create_variable_tree(
+                        let child_node_handle = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
                             Some(GdbStateNodeId::VarObject(var_object.clone())),
                         ))
                         .await?;
+                        let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
                         // Parse the variable's index
                         let Ok(index) = child.exp.parse() else {
                             // `ContainerKind::deduce_from_children` ensures that all
@@ -506,6 +564,26 @@ impl GdbStateGraph {
             }
         }
         Ok(())
+    }
+
+    fn link_dereference_relation(
+        &mut self,
+        referer_handle: &VariableObject,
+        dereference_handle: &VariableObject,
+    ) {
+        self.variables
+            .get_mut(referer_handle)
+            .expect("Attempted to link dereference to nonexistent node")
+            .successors
+            .push((
+                EdgeLabel::Deref,
+                GdbStateNodeId::VarObject(dereference_handle.clone()),
+            ));
+        self.variables
+            .get_mut(dereference_handle)
+            .expect("Attempted to link referer to nonexistent node")
+            .referers
+            .push(referer_handle.clone());
     }
 
     async fn get_or_create_dereference_variable_node(
