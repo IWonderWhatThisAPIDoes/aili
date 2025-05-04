@@ -94,9 +94,9 @@ impl GdbStateGraph {
         gdb: &mut impl GdbMiSession,
     ) -> Result<()> {
         // The variable has gone out of scope, so we destroy it
-        let embedding = self.remove_variables_recursive(var_object);
+        let parent_node = self.remove_variables_recursive(var_object);
         // Remove the reference to it from its parent frame
-        if let Some(VariableNodeEmbedding::Local(frame_index)) = embedding {
+        if let Some(GdbStateNodeId::Frame(frame_index)) = parent_node {
             self.stack_trace[frame_index]
                 .remove_successor_by_id(&GdbStateNodeId::VarObject(var_object.clone()));
         } else {
@@ -107,10 +107,7 @@ impl GdbStateGraph {
         Ok(())
     }
 
-    fn remove_variables_recursive(
-        &mut self,
-        handle: &VariableObject,
-    ) -> Option<VariableNodeEmbedding> {
+    fn remove_variables_recursive(&mut self, handle: &VariableObject) -> Option<GdbStateNodeId> {
         if let Some(node) = self.variables.remove(handle) {
             for (edge_label, next_object) in node.node.successors {
                 match edge_label {
@@ -139,7 +136,7 @@ impl GdbStateGraph {
                     }
                 }
             }
-            Some(node.embedding)
+            node.parent
         } else {
             None
         }
@@ -217,11 +214,7 @@ impl GdbStateGraph {
                     .var_create(VariableObjectFrameContext::CurrentFrame, &name)
                     .await?;
                 let id = self
-                    .create_variable_tree(
-                        gdb,
-                        var_object,
-                        VariableNodeEmbedding::Local(frame_index),
-                    )
+                    .create_variable_tree(gdb, var_object, Some(GdbStateNodeId::Frame(frame_index)))
                     .await?;
                 self.stack_trace[frame_index].successors.push((edge_id, id));
             }
@@ -325,7 +318,7 @@ impl GdbStateGraph {
                 &format!("::{}", variable_symbol.name),
             )
             .await?;
-        self.create_variable_tree(gdb, var_object, VariableNodeEmbedding::Global)
+        self.create_variable_tree(gdb, var_object, Some(GdbStateNodeId::Root))
             .await
     }
 
@@ -333,7 +326,7 @@ impl GdbStateGraph {
         &mut self,
         gdb: &mut impl GdbMiSession,
         var_object: VariableObjectData,
-        embedding: VariableNodeEmbedding,
+        parent: Option<GdbStateNodeId>,
     ) -> Result<GdbStateNodeId> {
         if var_object.dynamic {
             // TODO: Warn
@@ -342,7 +335,7 @@ impl GdbStateGraph {
         let has_children = var_object.numchild > 0;
         let object_handle = var_object.object.clone();
         let var_object_handle = var_object.object.clone();
-        self.create_variable_node(var_object, embedding);
+        self.create_variable_node(var_object, parent);
         if has_children {
             let children = gdb
                 .var_list_children(&object_handle, PrintValues::SimpleValues)
@@ -361,7 +354,7 @@ impl GdbStateGraph {
                         let child_node_id = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
-                            VariableNodeEmbedding::Nested,
+                            Some(GdbStateNodeId::VarObject(var_object_handle.clone())),
                         ))
                         .await?;
                         // Insert child into parent
@@ -381,7 +374,7 @@ impl GdbStateGraph {
                         let child_node_id = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
-                            VariableNodeEmbedding::Nested,
+                            Some(GdbStateNodeId::VarObject(var_object_handle.clone())),
                         ))
                         .await?;
                         // Parse the variable's index
@@ -433,9 +426,9 @@ impl GdbStateGraph {
     fn create_variable_node(
         &mut self,
         var_object: VariableObjectData,
-        embedding: VariableNodeEmbedding,
+        parent: Option<GdbStateNodeId>,
     ) {
-        let node = self.new_variable_node(var_object.object, NodeTypeClass::Atom, embedding);
+        let node = self.new_variable_node(var_object.object, NodeTypeClass::Atom, parent);
         node.type_name = Some(Self::preprocess_type_name(var_object.type_name));
         node.value = var_object.value.as_deref().and_then(Self::parse_node_value);
     }
@@ -444,13 +437,13 @@ impl GdbStateGraph {
         &mut self,
         id: VariableObject,
         type_class: NodeTypeClass,
-        embedding: VariableNodeEmbedding,
+        parent: Option<GdbStateNodeId>,
     ) -> &mut GdbStateNode {
         self.variables
             .entry(id)
             .insert_entry(GdbStateNodeForVariable::new(
                 GdbStateNode::new(type_class),
-                embedding,
+                parent,
             ))
             .into_mut()
     }

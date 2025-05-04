@@ -102,33 +102,22 @@ pub(crate) struct GdbStateNodeForVariable {
     #[deref_mut]
     pub node: GdbStateNode,
 
-    /// Identifies the context in which the variable exists.
-    pub embedding: VariableNodeEmbedding,
+    /// Reference to the main parent node, if any.
+    ///
+    /// If this is empty, the node is a heap-allocated object.
+    pub parent: Option<GdbStateNodeId>,
 }
 
 /// [`GdbStateNode`] with additional data for a node that
 /// represents a [`VariableObject`].
 impl GdbStateNodeForVariable {
-    pub fn new(node: GdbStateNode, embedding: VariableNodeEmbedding) -> Self {
-        Self { node, embedding }
+    pub fn new(node: GdbStateNode, parent: Option<GdbStateNodeId>) -> Self {
+        Self { node, parent }
     }
 
     /// True if the node is associated with a top-level GDB variable object.
     pub fn is_top_level(&self) -> bool {
-        self.embedding != VariableNodeEmbedding::Nested
+        // Node is not top-level if its parent is also a variable node
+        !matches!(self.parent, Some(GdbStateNodeId::VarObject(_)))
     }
-}
-
-/// Relevant information about parent of a [`VariableObject`]-based
-/// [`GdbStateNode`].
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum VariableNodeEmbedding {
-    /// The node is a global variable.
-    Global,
-
-    /// The node is a local variable.
-    Local(usize),
-
-    /// The node is a field or an array item.
-    Nested,
 }
