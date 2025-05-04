@@ -211,17 +211,31 @@ impl GdbStateGraph {
                 .any(|(e, _)| *e == edge_id);
             // If the stack frame does not know about the variable, create it now
             if !has_the_variable {
-                let var_object = gdb
-                    .var_create(VariableObjectFrameContext::CurrentFrame, &name)
+                self.create_local_variable(gdb, frame_index, &name, edge_id)
                     .await?;
-                let id = self
-                    .create_variable_tree(gdb, var_object, Some(GdbStateNodeId::Frame(frame_index)))
-                    .await?;
-                self.stack_trace[frame_index].successors.push((edge_id, id));
             }
             // TODO: Check that the stack knows about all shadowed variables as well,
             // and warn if it does not (they are not reachable from our current point)
         }
+        Ok(())
+    }
+
+    async fn create_local_variable(
+        &mut self,
+        gdb: &mut impl GdbMiSession,
+        frame_index: usize,
+        name: &str,
+        edge_label: EdgeLabel,
+    ) -> Result<()> {
+        let var_object = gdb
+            .var_create(VariableObjectFrameContext::CurrentFrame, name)
+            .await?;
+        let id = self
+            .create_variable_tree(gdb, var_object, Some(GdbStateNodeId::Frame(frame_index)))
+            .await?;
+        self.stack_trace[frame_index]
+            .successors
+            .push((edge_label, id));
         Ok(())
     }
 
@@ -334,18 +348,47 @@ impl GdbStateGraph {
             // Dynamic variable objects should never be returned by GDB unless explicitly enabled
         }
         let has_children = var_object.numchild > 0;
-        let object_handle = var_object.object.clone();
         let var_object_handle = var_object.object.clone();
         self.create_variable_node(var_object, parent);
         if has_children {
+            // If there are children, now is the time to resolve them
+            self.after_create_non_atom_variable_node(gdb, &var_object_handle)
+                .await?;
+        }
+        Ok(GdbStateNodeId::VarObject(var_object_handle))
+    }
+
+    async fn after_create_non_atom_variable_node(
+        &mut self,
+        gdb: &mut impl GdbMiSession,
+        var_object: &VariableObject,
+    ) -> Result<()> {
+        let node = self
+            .variables
+            .get_mut(var_object)
+            .expect("The variable object must be mapped to a node");
+        if node.value.is_some() {
+            // If the value of the node parsed as an elementary value,
+            // the node is a pointer
+            node.type_class = NodeTypeClass::Ref;
+            // Remove the node's type if it was given one, pointer nodes do not have types
+            node.type_name = None;
+            // GDB will report a child no matter what, but if it's a null pointer,
+            // it should not appear in the state graph
+            if node.value.is_some_and(|x| x != 0u64.into()) {
+                // Pointers should be handled differently
+                // because they break the tree structure of the state graph
+                // TODO: Dereference the pointer
+            }
+        } else {
             let children = gdb
-                .var_list_children(&object_handle, PrintValues::SimpleValues)
+                .var_list_children(var_object, PrintValues::SimpleValues)
                 .await?;
             let container_kind = ContainerKind::deduce_from_children(&children.children)
                 .expect("We have just verified that the node has children; type must be deducible");
             let node = self
                 .variables
-                .get_mut(&var_object_handle)
+                .get_mut(var_object)
                 .expect("The node was just created");
             node.type_class = container_kind.into();
             match container_kind {
@@ -355,12 +398,12 @@ impl GdbStateGraph {
                         let child_node_id = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
-                            Some(GdbStateNodeId::VarObject(var_object_handle.clone())),
+                            Some(GdbStateNodeId::VarObject(var_object.clone())),
                         ))
                         .await?;
                         // Insert child into parent
                         self.variables
-                            .get_mut(&var_object_handle)
+                            .get_mut(var_object)
                             .expect("The node was just created")
                             .add_named_successor(child.exp, child_node_id);
                     }
@@ -375,7 +418,7 @@ impl GdbStateGraph {
                         let child_node_id = Box::pin(self.create_variable_tree(
                             gdb,
                             child.variable_object,
-                            Some(GdbStateNodeId::VarObject(var_object_handle.clone())),
+                            Some(GdbStateNodeId::VarObject(var_object.clone())),
                         ))
                         .await?;
                         // Parse the variable's index
@@ -389,7 +432,7 @@ impl GdbStateGraph {
                         length = length.max(index + 1);
                         // Insert child into parent
                         self.variables
-                            .get_mut(&var_object_handle)
+                            .get_mut(var_object)
                             .expect("The node was just created")
                             .successors
                             .push((EdgeLabel::Index(index), child_node_id));
@@ -397,31 +440,20 @@ impl GdbStateGraph {
                     // Insert the length node
                     let mut length_node = GdbStateNode::new(NodeTypeClass::Atom);
                     length_node.value = Some(NodeValue::Uint(length as u64));
-                    self.length_nodes
-                        .insert(var_object_handle.clone(), length_node);
+                    self.length_nodes.insert(var_object.clone(), length_node);
                     self.variables
-                        .get_mut(&var_object_handle)
+                        .get_mut(var_object)
                         .expect("The node was just created")
                         .successors
                         .push((
                             EdgeLabel::Length,
-                            GdbStateNodeId::Length(var_object_handle.clone()),
+                            GdbStateNodeId::Length(var_object.clone()),
                         ));
                 }
-                ContainerKind::Pointer => {
-                    // Remove the node's type if it was given one, pointer nodes do not have types
-                    node.type_name = None;
-                    // GDB will report a child no matter what, but if it's a null pointer,
-                    // it should not appear in the state graph
-                    if node.value.is_some_and(|x| x != 0u64.into()) {
-                        // Pointers should be handled differently
-                        // because they break the tree structure of the state graph
-                        // TODO: Dereference the pointer
-                    }
-                }
+                ContainerKind::Pointer => unreachable!(),
             }
         }
-        Ok(GdbStateNodeId::VarObject(var_object_handle))
+        Ok(())
     }
 
     fn create_variable_node(

@@ -84,7 +84,12 @@ impl ProgramStateNode for &GdbStateNode {
         self.type_class
     }
     fn node_type_id(&self) -> Option<Self::NodeTypeId<'_>> {
-        self.type_name.as_deref()
+        match self.type_class {
+            NodeTypeClass::Atom | NodeTypeClass::Struct | NodeTypeClass::Frame => {
+                self.type_name.as_deref()
+            }
+            NodeTypeClass::Ref | NodeTypeClass::Root | NodeTypeClass::Array => None,
+        }
     }
     fn successors(&self) -> impl Iterator<Item = (&EdgeLabel, Self::NodeId)> {
         self.successors.iter().map(|(e, n)| (e, n.clone()))
