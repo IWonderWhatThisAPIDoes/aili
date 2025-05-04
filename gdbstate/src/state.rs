@@ -3,7 +3,7 @@
 use crate::gdbmi::types::VariableObject;
 use aili_model::state::*;
 use derive_more::{Debug, Deref, DerefMut};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// Identifiers of state nodes used by [`GdbStateGraph`].
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -34,6 +34,7 @@ pub struct GdbStateGraph {
     pub(crate) stack_trace: Vec<GdbStateNode>,
     pub(crate) variables: HashMap<VariableObject, GdbStateNodeForVariable>,
     pub(crate) length_nodes: HashMap<VariableObject, GdbStateNode>,
+    pub(crate) address_mapping: BTreeMap<u64, VariableObject>,
 }
 
 impl ProgramStateGraph for GdbStateGraph {

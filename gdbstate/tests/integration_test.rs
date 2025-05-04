@@ -312,7 +312,91 @@ fn pointer_argument() {
     let argv = state_graph
         .get_at_root(&[EdgeLabel::Main, EdgeLabel::Named("argv".to_owned(), 0)])
         .unwrap();
+    let argv0 = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("argv".to_owned(), 0),
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
+    let argv00 = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("argv".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
     assert_eq!(argv.node_type_class(), NodeTypeClass::Ref);
     assert_eq!(argv.node_type_id(), None);
     assert!(argv.value().is_some_and(|v| v != NodeValue::Uint(0)));
+    assert_eq!(argv0.node_type_class(), NodeTypeClass::Ref);
+    assert_eq!(argv0.node_type_id(), None);
+    assert!(argv0.value().is_some_and(|v| v != NodeValue::Uint(0)));
+    assert_eq!(argv00.node_type_class(), NodeTypeClass::Atom);
+    assert_eq!(argv00.node_type_id(), Some("char"));
+}
+
+#[test]
+fn pointer_copying() {
+    let mut gdb = gdb_from_source(
+        r"
+        int main (int argc, const char* const * argv) {
+            const char* p = argv[0];
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(4).unwrap();
+    let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    let argv00_id = state_graph
+        .get_id_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("argv".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
+    let deref_p_id = state_graph
+        .get_id_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("p".to_owned(), 0),
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
+    // Both dereferences should point to the same node
+    assert_eq!(argv00_id, deref_p_id);
+}
+
+#[test]
+fn pointer_update() {
+    let mut gdb = gdb_from_source(
+        r"
+        int main (int argc, const char* const * argv) {
+            const char* p = argv[0], * q = p;
+            /* breakpoint 1 */;
+            ++q;
+            /* breakpoint 2 */;
+        }",
+    );
+    gdb.run_to_line(4).unwrap();
+    let mut state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    gdb.run_to_line(6).unwrap();
+    state_graph.update(&mut gdb).expect_ready().unwrap();
+    let p = state_graph
+        .get_at_root(&[EdgeLabel::Main, EdgeLabel::Named("p".to_owned(), 0)])
+        .unwrap();
+    let q = state_graph
+        .get_at_root(&[EdgeLabel::Main, EdgeLabel::Named("q".to_owned(), 0)])
+        .unwrap();
+    // The pointers should be offset by one byte
+    match (p.value(), q.value()) {
+        (Some(NodeValue::Uint(p)), Some(NodeValue::Uint(q))) => assert_eq!(q, p + 1),
+        _ => panic!("Pointers have unexpected values"),
+    }
+    // The targeted nodes should be different
+    let deref_p = p.get_successor(&EdgeLabel::Deref);
+    let deref_q = q.get_successor(&EdgeLabel::Deref);
+    assert!(deref_p.is_some());
+    assert!(deref_q.is_some());
+    assert_ne!(deref_p, deref_q);
 }

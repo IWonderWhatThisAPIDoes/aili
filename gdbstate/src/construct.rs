@@ -7,7 +7,10 @@ use crate::{
 use aili_model::state::*;
 use derive_more::Debug;
 use regex::Regex;
-use std::{collections::HashMap, sync::LazyLock};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::LazyLock,
+};
 
 impl GdbStateGraph {
     /// Constructs a state graph that only consists of the root node
@@ -17,6 +20,7 @@ impl GdbStateGraph {
             stack_trace: Vec::new(),
             variables: HashMap::new(),
             length_nodes: HashMap::new(),
+            address_mapping: BTreeMap::new(),
         }
     }
 
@@ -82,6 +86,32 @@ impl GdbStateGraph {
         } else if let Some(variable) = self.variables.get_mut(&var_object.object) {
             // Otherwise, the value must have changed, so reevaluate it
             variable.value = var_object.value.as_deref().and_then(Self::parse_node_value);
+            // If the variable is a pointer, update its dereference
+            if variable.type_class == NodeTypeClass::Ref {
+                variable.remove_successor(&EdgeLabel::Deref);
+                if let (Some(NodeValue::Uint(address)), Some(type_name)) =
+                    (variable.value, variable.type_name.clone())
+                {
+                    if gdb
+                        .data_evaluate_expression(&format!("*(char*){address}"))
+                        .await
+                        .is_ok()
+                    {
+                        let deref_var_object = Box::pin(
+                            self.get_or_create_dereference_variable_node(gdb, address, &type_name),
+                        )
+                        .await?;
+                        self.variables
+                            .get_mut(&var_object.object)
+                            .expect("The node was just created")
+                            .successors
+                            .push((
+                                EdgeLabel::Deref,
+                                GdbStateNodeId::VarObject(deref_var_object),
+                            ));
+                    }
+                }
+            }
         }
         // If we do not know about the object, someone else must have
         // created it in the session, so we ignore it
@@ -371,15 +401,37 @@ impl GdbStateGraph {
             // If the value of the node parsed as an elementary value,
             // the node is a pointer
             node.type_class = NodeTypeClass::Ref;
-            // Remove the node's type if it was given one, pointer nodes do not have types
-            node.type_name = None;
+            // Get the pointer's type name so we can cast properly
+            let pointer_type_name = node.type_name.clone();
             // GDB will report a child no matter what, but if it's a null pointer,
             // it should not appear in the state graph
-            if node.value.is_some_and(|x| x != 0u64.into()) {
-                // Pointers should be handled differently
-                // because they break the tree structure of the state graph
-                // TODO: Dereference the pointer
+            let Some(NodeValue::Uint(address)) = node.value else {
+                return Ok(());
+            };
+            if address == 0 {
+                return Ok(());
             }
+            let can_access_target_address = gdb
+                .data_evaluate_expression(&format!("*(char*){address}"))
+                .await
+                .is_ok();
+            if !can_access_target_address {
+                return Ok(());
+            }
+            let Some(type_name) = pointer_type_name else {
+                return Ok(());
+            };
+            let deref_var_object =
+                Box::pin(self.get_or_create_dereference_variable_node(gdb, address, &type_name))
+                    .await?;
+            self.variables
+                .get_mut(var_object)
+                .expect("The node was just created")
+                .successors
+                .push((
+                    EdgeLabel::Deref,
+                    GdbStateNodeId::VarObject(deref_var_object),
+                ));
         } else {
             let children = gdb
                 .var_list_children(var_object, PrintValues::SimpleValues)
@@ -454,6 +506,29 @@ impl GdbStateGraph {
             }
         }
         Ok(())
+    }
+
+    async fn get_or_create_dereference_variable_node(
+        &mut self,
+        gdb: &mut impl GdbMiSession,
+        address: u64,
+        pointer_type_name: &str,
+    ) -> Result<VariableObject> {
+        // If the node already exists, return it right away
+        if let Some(var_object) = self.address_mapping.get(&address) {
+            return Ok(var_object.clone());
+        }
+        let deref_var_object = gdb
+            .var_create(
+                VariableObjectFrameContext::CurrentFrame,
+                &format!("*({pointer_type_name}){address}"),
+            )
+            .await?;
+        let var_object = deref_var_object.object.clone();
+        self.create_variable_tree(gdb, deref_var_object, None)
+            .await?;
+        self.address_mapping.insert(address, var_object.clone());
+        Ok(var_object)
     }
 
     fn create_variable_node(
