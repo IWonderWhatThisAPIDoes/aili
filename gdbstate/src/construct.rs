@@ -97,8 +97,9 @@ impl GdbStateGraph {
         let parent_node = self.remove_variables_recursive(var_object);
         // Remove the reference to it from its parent frame
         if let Some(GdbStateNodeId::Frame(frame_index)) = parent_node {
-            self.stack_trace[frame_index]
-                .remove_successor_by_id(&GdbStateNodeId::VarObject(var_object.clone()));
+            if let Some(frame) = self.stack_trace.get_mut(frame_index) {
+                frame.remove_successor_by_id(&GdbStateNodeId::VarObject(var_object.clone()));
+            }
         } else {
             // Only local variables can go out of scope
             // TODO: warn
@@ -169,7 +170,7 @@ impl GdbStateGraph {
         self.drop_stack_frames_after(update_index);
         // New variables may have come into scope at the topmost unchanged frame
         if update_index > 0 {
-            gdb.stack_select_frame(stack_trace[update_index - 1].level)
+            gdb.stack_select_frame(stack_trace[stack_trace.len() - update_index].level)
                 .await?;
             self.update_local_variables(update_index - 1, gdb).await?;
         }

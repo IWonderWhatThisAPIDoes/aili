@@ -284,6 +284,28 @@ fn update_after_popping_stack() {
 }
 
 #[test]
+fn update_in_function_call() {
+    let mut gdb = gdb_from_source(
+        r"
+        int f() { /* breakpoint */ }
+        int main(void) {
+            int a = 0;
+            f();
+        }",
+    );
+    // Construct the graph in function call
+    gdb.run_to_line(2).unwrap();
+    let mut state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    // Update it right away, we want to see what the update does
+    state_graph.update(&mut gdb).expect_ready().unwrap();
+    let function_frame = state_graph
+        .get_at_root(&[EdgeLabel::Main, EdgeLabel::Next])
+        .unwrap();
+    // No variables should have leaked from other frames
+    assert!(function_frame.successors().next().is_none());
+}
+
+#[test]
 fn pointer_argument() {
     let mut gdb = gdb_from_source("int main (int argc, const char* const * argv) {}");
     let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
