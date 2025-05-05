@@ -408,13 +408,22 @@ fn pointer_to_local() {
         int main(void) {
             int a = 0;
             int* p = &a;
+            int* q;
+            int z = 0;
+            // This pointer points to a variable that comes, both alphabetically
+            // and in declaration order, after the pointer,
+            // so the backend might encounter it first as well
+            q = &z;
             /* breakpoint */;
         }",
     );
-    gdb.run_to_line(10).unwrap();
+    gdb.run_to_line(11).unwrap();
     let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
     let a_id = state_graph
         .get_id_at_root(&[EdgeLabel::Main, EdgeLabel::Named("a".to_owned(), 0)])
+        .unwrap();
+    let z_id = state_graph
+        .get_id_at_root(&[EdgeLabel::Main, EdgeLabel::Named("z".to_owned(), 0)])
         .unwrap();
     let p_deref_id = state_graph
         .get_id_at_root(&[
@@ -423,7 +432,15 @@ fn pointer_to_local() {
             EdgeLabel::Deref,
         ])
         .unwrap();
+    let q_deref_id = state_graph
+        .get_id_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("q".to_owned(), 0),
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
     assert_eq!(a_id, p_deref_id);
+    assert_eq!(z_id, q_deref_id);
 }
 
 #[test]

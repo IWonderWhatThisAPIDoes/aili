@@ -8,7 +8,7 @@ use aili_model::state::*;
 use derive_more::Debug;
 use regex::Regex;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, VecDeque},
     sync::LazyLock,
 };
 
@@ -30,9 +30,9 @@ impl GdbStateGraph {
     /// asynchronously.
     pub async fn new(gdb: &mut impl GdbMiSession) -> Result<Self> {
         let mut graph = Self::empty();
-        GdbStateGraphWriter::new(&mut graph, gdb)
-            .update_stack_trace()
-            .await?;
+        let mut writer = GdbStateGraphWriter::new(&mut graph, gdb);
+        writer.update_stack_trace().await?;
+        writer.resolve_deferred_dereferences().await?;
         Ok(graph)
     }
 
@@ -46,6 +46,7 @@ impl GdbStateGraph {
         let mut writer = GdbStateGraphWriter::new(self, gdb);
         writer.update_variable_objects().await?;
         writer.update_stack_trace().await?;
+        writer.resolve_deferred_dereferences().await?;
         Ok(())
     }
 
@@ -67,8 +68,13 @@ impl GdbStateGraph {
 /// Helper object for constructing and updating [`GdbStateGraph`]
 /// using a [`GdbMiSession`].
 struct GdbStateGraphWriter<'a, T: GdbMiSession> {
+    /// The graph that is being updated.
     graph: &'a mut GdbStateGraph,
+    /// GDB session from which information is obtained.
     gdb: &'a mut T,
+    /// References to [`NodeTypeClass::Ref`] nodes whose
+    /// [`EdgeLabel::Deref`] should be evaluated later.
+    deferred_pointers: VecDeque<VariableObject>,
 }
 
 impl<T: GdbMiSession> std::ops::Deref for GdbStateGraphWriter<'_, T> {
@@ -86,7 +92,11 @@ impl<T: GdbMiSession> std::ops::DerefMut for GdbStateGraphWriter<'_, T> {
 
 impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
     fn new(graph: &'a mut GdbStateGraph, gdb: &'a mut T) -> Self {
-        Self { graph, gdb }
+        Self {
+            graph,
+            gdb,
+            deferred_pointers: VecDeque::new(),
+        }
     }
 
     async fn update_variable_objects(&mut self) -> Result<()> {
@@ -114,30 +124,56 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             variable.value = new_value;
             // If the variable is a pointer, update its dereference
             if variable.type_class == NodeTypeClass::Ref {
-                let type_name = variable.type_name.clone();
                 if let Some(GdbStateNodeId::VarObject(old_deref_id)) =
                     variable.remove_successor(&EdgeLabel::Deref)
                 {
                     self.free_dereference(&var_object.object, &old_deref_id);
                 }
-                if let (Some(NodeValue::Uint(address)), Some(type_name)) = (new_value, type_name) {
-                    if self
-                        .gdb
-                        .data_evaluate_expression(&format!("*(char*){address}"))
-                        .await
-                        .is_ok()
-                    {
-                        let deref_var_object = Box::pin(
-                            self.get_or_create_dereference_variable_node(address, &type_name),
-                        )
-                        .await?;
-                        self.link_dereference_relation(&var_object.object, &deref_var_object);
-                    }
-                }
+                // Resolve the dereference later
+                self.add_deferred_dereference(var_object.object.clone());
             }
         }
         // If we do not know about the object, someone else must have
         // created it in the session, so we ignore it
+        Ok(())
+    }
+
+    fn add_deferred_dereference(&mut self, var_object: VariableObject) {
+        self.deferred_pointers.push_back(var_object);
+    }
+
+    async fn resolve_deferred_dereferences(&mut self) -> Result<()> {
+        while let Some(ref_object) = self.deferred_pointers.pop_front() {
+            // Get the pointer node, bail if it has been removed
+            let Some(node) = self.variables.get_mut(&ref_object) else {
+                continue;
+            };
+            // Get the pointer's type name so we can cast properly
+            let pointer_type_name = node.type_name.clone();
+            // If it's a null pointer, it should not appear in the state graph
+            let Some(NodeValue::Uint(address)) = node.value else {
+                continue;
+            };
+            if address == 0 {
+                continue;
+            }
+            let can_access_target_address = self
+                .gdb
+                .data_evaluate_expression(&format!("*(char*){address}"))
+                .await
+                .is_ok();
+            if !can_access_target_address {
+                continue;
+            }
+            let Some(type_name) = pointer_type_name else {
+                continue;
+            };
+            // TODO: Some errors can be ignored here
+            let deref_var_object = self
+                .get_or_create_dereference_variable_node(address, &type_name)
+                .await?;
+            self.link_dereference_relation(&ref_object, &deref_var_object);
+        }
         Ok(())
     }
 
@@ -473,30 +509,8 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             // If the value of the node parsed as an elementary value,
             // the node is a pointer
             node.type_class = NodeTypeClass::Ref;
-            // Get the pointer's type name so we can cast properly
-            let pointer_type_name = node.type_name.clone();
-            // GDB will report a child no matter what, but if it's a null pointer,
-            // it should not appear in the state graph
-            let Some(NodeValue::Uint(address)) = node.value else {
-                return Ok(());
-            };
-            if address == 0 {
-                return Ok(());
-            }
-            let can_access_target_address = self
-                .gdb
-                .data_evaluate_expression(&format!("*(char*){address}"))
-                .await
-                .is_ok();
-            if !can_access_target_address {
-                return Ok(());
-            }
-            let Some(type_name) = pointer_type_name else {
-                return Ok(());
-            };
-            let deref_var_object =
-                Box::pin(self.get_or_create_dereference_variable_node(address, &type_name)).await?;
-            self.link_dereference_relation(var_object, &deref_var_object);
+            // Resolve the dereference later
+            self.add_deferred_dereference(var_object.clone());
         } else {
             let children = self
                 .gdb
