@@ -108,6 +108,9 @@ pub(crate) struct GdbStateNodeForVariable {
     #[deref_mut]
     pub node: GdbStateNode,
 
+    /// Address of the variable, if available
+    pub address: Option<u64>,
+
     /// Reference to the main parent node, if any.
     ///
     /// If this is empty, the node is a heap-allocated object.
@@ -125,6 +128,7 @@ impl GdbStateNodeForVariable {
         Self {
             node,
             parent,
+            address: None,
             referers: Vec::new(),
         }
     }

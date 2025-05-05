@@ -466,3 +466,88 @@ fn dangling_reference_detachment() {
         .unwrap();
     assert!(pointer.get_successor(&EdgeLabel::Deref).is_none());
 }
+
+#[test]
+fn linked_list() {
+    let mut gdb = gdb_from_source(
+        r"
+        #include<stdlib.h>
+
+        struct node {
+            struct node* next;
+            int value;
+        };
+
+        int main(void) {
+            struct node* head = (struct node*)malloc(sizeof(*head));
+            head->value = 41;
+            head->next = (struct node*)malloc(sizeof(*head));
+            head->next->value = 42;
+            head->next->next = (struct node*)malloc(sizeof(*head));
+            head->next->next->value = 43;
+            head->next->next->next = NULL;
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(17).unwrap();
+    let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    let first = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("head".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("value".to_owned(), 0),
+        ])
+        .unwrap();
+    let second = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("head".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("next".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("value".to_owned(), 0),
+        ])
+        .unwrap();
+    let third = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("head".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("next".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("next".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("value".to_owned(), 0),
+        ])
+        .unwrap();
+    assert_eq!(first.value(), Some(NodeValue::Int(41)));
+    assert_eq!(second.value(), Some(NodeValue::Int(42)));
+    assert_eq!(third.value(), Some(NodeValue::Int(43)));
+}
+
+#[test]
+fn reusing_deallocated_memory() {
+    let mut gdb = gdb_from_source(
+        r"
+        #include <stdlib.h>
+
+        int main(void) {
+            int* p = (int*)malloc(sizeof(int));
+            /* breakpoint 1 */;
+            free(p);
+            p = NULL;
+            /* breakpoint 2 */;
+            // This malloc might reuse the same address as the previous
+            // The update at the last breakpoint should not fail because of this
+            p = (int*)malloc(sizeof(int));
+            /* breakpoint 3 */;
+        }",
+    );
+    gdb.run_to_line(6).unwrap();
+    let mut state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    gdb.run_to_line(9).unwrap();
+    state_graph.update(&mut gdb).expect_ready().unwrap();
+    gdb.run_to_line(13).unwrap();
+    state_graph.update(&mut gdb).expect_ready().unwrap();
+}

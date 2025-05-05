@@ -223,6 +223,10 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
 
     fn remove_variables_recursive(&mut self, handle: &VariableObject) -> Option<GdbStateNodeId> {
         let node = self.variables.remove(handle)?;
+        // If the node has an address, remove it from the address map
+        if let Some(address) = node.address {
+            self.address_mapping.remove(&address);
+        }
         // Unlink dangling references
         for referer in node.referers {
             if let Some(referer_node) = self.variables.get_mut(&referer) {
@@ -454,6 +458,10 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             .data_evaluate_expression(&format!("&{prefix}{variable_name}"))
             .await?;
         if let Some(NodeValue::Uint(address)) = Self::parse_node_value(&address) {
+            self.variables
+                .get_mut(&var_object)
+                .expect("The variable node was just created")
+                .address = Some(address);
             self.address_mapping.insert(address, var_object);
             // TODO: Handle the case if the variable already exists
         } else {
@@ -624,9 +632,12 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 &format!("*({pointer_type_name}){address}"),
             )
             .await?;
-        let var_object = deref_var_object.object.clone();
-        self.create_variable_tree(deref_var_object, None).await?;
+        let var_object = self.create_variable_tree(deref_var_object, None).await?;
         self.address_mapping.insert(address, var_object.clone());
+        self.variables
+            .get_mut(&var_object)
+            .expect("The variable node was just created")
+            .address = Some(address);
         Ok(var_object)
     }
 
@@ -679,18 +690,24 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         }
     }
 
-    fn preprocess_type_name(name: String) -> String {
+    fn preprocess_type_name(mut name: String) -> String {
         // Const keyword should not be apart of the type name
-        let name = name
+        name = name
             .strip_prefix("const ")
             .map(str::to_owned)
             .unwrap_or(name);
         // This is C, so struct type names may include the struct keyword
         // We do not want that to be included, so we drop it if possible
-        let name = name
-            .strip_prefix("struct ")
-            .map(str::to_owned)
-            .unwrap_or(name);
+        // But only if the type is actually only the struct - for example,
+        // pointer types should keep their full names
+        if let Some(short_name) = name.strip_prefix("struct ") {
+            if short_name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '_')
+            {
+                name = short_name.to_owned();
+            }
+        }
         name
     }
 }
