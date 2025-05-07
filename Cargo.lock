@@ -16,6 +16,7 @@ name = "aili-gdbstate"
 version = "0.1.0"
 dependencies = [
  "aili-model",
+ "aili-style",
  "derive_more",
  "logos",
  "pomelo",

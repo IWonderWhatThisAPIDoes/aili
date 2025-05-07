@@ -1,7 +1,12 @@
 mod utils;
 
+use aili_gdbstate::hints::PointerLengthHintKey;
 use aili_gdbstate::state::GdbStateGraph;
 use aili_model::state::*;
+use aili_style::cascade::CascadeStyle;
+use aili_style::stylesheet::expression::{Expression, LimitedSelector};
+use aili_style::stylesheet::selector::{EdgeMatcher, Selector, SelectorSegment};
+use aili_style::stylesheet::{StyleClause, StyleKey, StyleRule, Stylesheet};
 use utils::future::ExpectReady as _;
 use utils::gdb_from_source;
 
@@ -550,4 +555,238 @@ fn reusing_deallocated_memory() {
     state_graph.update(&mut gdb).expect_ready().unwrap();
     gdb.run_to_line(13).unwrap();
     state_graph.update(&mut gdb).expect_ready().unwrap();
+}
+
+#[test]
+fn constant_length_hint() {
+    let hints = CascadeStyle::from(Stylesheet(vec![StyleRule {
+        selector: Selector::from_path(
+            [
+                SelectorSegment::Match(EdgeLabel::Main.into()),
+                SelectorSegment::Match(EdgeMatcher::Named("argv".to_owned())),
+            ]
+            .into(),
+        ),
+        properties: vec![StyleClause {
+            key: StyleKey::Property(PointerLengthHintKey::Length),
+            value: Expression::Int(3),
+        }],
+    }]));
+    let mut gdb = gdb_from_source("int main(int argc, char** argv) {}");
+    let state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    let argv_length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("argv".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    let argv_0 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(0),
+    ]);
+    let argv_1 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(1),
+    ]);
+    let argv_2 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(2),
+    ]);
+    let argv_3 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(3),
+    ]);
+    assert_eq!(argv_length.value(), Some(NodeValue::Uint(3)));
+    assert!(argv_0.is_some());
+    assert!(argv_1.is_some());
+    assert!(argv_2.is_some());
+    assert!(argv_3.is_none());
+}
+
+#[test]
+fn length_hint_from_variable() {
+    let hints = CascadeStyle::from(Stylesheet(vec![StyleRule {
+        selector: Selector::from_path(
+            [
+                SelectorSegment::Match(EdgeLabel::Main.into()),
+                SelectorSegment::Match(EdgeMatcher::Named("argv".to_owned())),
+            ]
+            .into(),
+        ),
+        properties: vec![
+            StyleClause {
+                key: StyleKey::Variable("--len".to_owned()),
+                value: Expression::Int(3),
+            },
+            StyleClause {
+                key: StyleKey::Property(PointerLengthHintKey::Length),
+                value: Expression::Variable("--len".to_owned()),
+            },
+        ],
+    }]));
+    let mut gdb = gdb_from_source("int main(int argc, char** argv) {}");
+    let state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    let argv_length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("argv".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    let argv_0 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(0),
+    ]);
+    let argv_1 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(1),
+    ]);
+    let argv_2 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(2),
+    ]);
+    let argv_3 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("argv".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(3),
+    ]);
+    assert_eq!(argv_length.value(), Some(NodeValue::Uint(3)));
+    assert!(argv_0.is_some());
+    assert!(argv_1.is_some());
+    assert!(argv_2.is_some());
+    assert!(argv_3.is_none());
+}
+
+#[test]
+fn variable_length_hint() {
+    let hints = CascadeStyle::from(Stylesheet(vec![
+        StyleRule {
+            selector: Selector::from_path([SelectorSegment::Match(EdgeLabel::Main.into())].into()),
+            properties: vec![StyleClause {
+                key: StyleKey::Variable("--argc".to_owned()),
+                value: Expression::Select(
+                    LimitedSelector::from_path([EdgeLabel::Named("argc".to_owned(), 0).into()])
+                        .into(),
+                ),
+            }],
+        },
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::Match(EdgeLabel::Main.into()),
+                    SelectorSegment::Match(EdgeMatcher::Named("argv".to_owned())),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Property(PointerLengthHintKey::Length),
+                value: Expression::Variable("--argc".to_owned()),
+            }],
+        },
+    ]));
+    let mut gdb = gdb_from_source("int main(int argc, char** argv) {}");
+    let state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    let argc = state_graph
+        .get_at_root(&[EdgeLabel::Main, EdgeLabel::Named("argc".to_owned(), 0)])
+        .unwrap();
+    let argv_length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("argv".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    assert_eq!(argc.value(), argv_length.value());
+}
+
+#[test]
+fn resize_array_with_length_hint() {
+    let hints = CascadeStyle::from(Stylesheet(vec![
+        StyleRule {
+            selector: Selector::from_path([SelectorSegment::Match(EdgeLabel::Main.into())].into()),
+            properties: vec![StyleClause {
+                key: StyleKey::Variable("--len".to_owned()),
+                value: Expression::Select(
+                    LimitedSelector::from_path([EdgeLabel::Named("len".to_owned(), 0).into()])
+                        .into(),
+                ),
+            }],
+        },
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::Match(EdgeLabel::Main.into()),
+                    SelectorSegment::Match(EdgeMatcher::Named("p".to_owned())),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Property(PointerLengthHintKey::Length),
+                value: Expression::Variable("--len".to_owned()),
+            }],
+        },
+    ]));
+    let mut gdb = gdb_from_source(
+        r"
+        #include <stdlib.h>
+
+        int main() {
+            int len = 2;
+            int* p = malloc(len * sizeof(*p));
+            /* breakpoint 1 */;
+            len = 4;
+            p = malloc(len * sizeof(*p));
+            /* breakpoint 2 */;
+        }",
+    );
+    gdb.run_to_line(7).unwrap();
+    let mut state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    gdb.run_to_line(10).unwrap();
+    state_graph
+        .update_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    let p_length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("p".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    let p_3 = state_graph.get_at_root(&[
+        EdgeLabel::Main,
+        EdgeLabel::Named("p".to_owned(), 0),
+        EdgeLabel::Deref,
+        EdgeLabel::Index(3),
+    ]);
+    assert_eq!(p_length.value(), Some(NodeValue::Uint(4)));
+    assert!(p_3.is_some());
 }

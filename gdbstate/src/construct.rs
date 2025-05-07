@@ -2,10 +2,17 @@
 
 use crate::{
     gdbmi::{result::Result, session::GdbMiSession, types::*},
+    hints::PointerLengthHintKey,
     state::*,
 };
 use aili_model::state::*;
-use derive_more::Debug;
+use aili_style::{
+    cascade::{CascadeStyle, SelectionCaret, SelectorResolver},
+    eval::{context::EvaluationContext, evaluate, unwrap_node_value, variable_pool::VariablePool},
+    stylesheet::StyleKey,
+    values::PropertyValue,
+};
+use derive_more::{Debug, Deref, DerefMut};
 use regex::Regex;
 use std::{
     collections::{BTreeMap, HashMap, VecDeque},
@@ -21,6 +28,7 @@ impl GdbStateGraph {
             variables: HashMap::new(),
             length_nodes: HashMap::new(),
             address_mapping: BTreeMap::new(),
+            resolved_length_hints: HashMap::new(),
         }
     }
 
@@ -29,9 +37,22 @@ impl GdbStateGraph {
     /// This function sends commands to GDB and awaits responses
     /// asynchronously.
     pub async fn new(gdb: &mut impl GdbMiSession) -> Result<Self> {
+        Self::new_with_hints(gdb, &CascadeStyle::empty()).await
+    }
+
+    /// Constructs a new state graph using a provided GDB session
+    /// and a hint sheet to help deduce what each block of allocated memory is.
+    ///
+    /// This function sends commands to GDB and awaits responses
+    /// asynchronously.
+    pub async fn new_with_hints(
+        gdb: &mut impl GdbMiSession,
+        pointer_hints: &CascadeStyle<PointerLengthHintKey>,
+    ) -> Result<Self> {
         let mut graph = Self::empty();
-        let mut writer = GdbStateGraphWriter::new(&mut graph, gdb);
+        let mut writer = GdbStateGraphWriter::new(&mut graph, gdb, pointer_hints);
         writer.update_stack_trace().await?;
+        writer.resolve_length_hints_from(&GdbStateNodeId::Root);
         writer.resolve_deferred_dereferences().await?;
         Ok(graph)
     }
@@ -43,9 +64,25 @@ impl GdbStateGraph {
     /// of commands that need to be invoked. Modifying the session
     /// in between calls can yield unexpected results.
     pub async fn update(&mut self, gdb: &mut impl GdbMiSession) -> Result<()> {
-        let mut writer = GdbStateGraphWriter::new(self, gdb);
+        self.update_with_hints(gdb, &CascadeStyle::empty()).await
+    }
+
+    /// Updates an existing state graph using a provided GDB session
+    /// and a hint sheet to help deduce what each block of allocated memory is.
+    ///
+    /// It is assumed that it is the same session and hint sheet that was passed
+    /// to [`GdbStateGraph::new`] in order to recude the number
+    /// of commands that need to be invoked. Modifying the session
+    /// in between calls can yield unexpected results.
+    pub async fn update_with_hints(
+        &mut self,
+        gdb: &mut impl GdbMiSession,
+        pointer_hints: &CascadeStyle<PointerLengthHintKey>,
+    ) -> Result<()> {
+        let mut writer = GdbStateGraphWriter::new(self, gdb, pointer_hints);
         writer.update_variable_objects().await?;
         writer.update_stack_trace().await?;
+        writer.resolve_length_hints_from(&GdbStateNodeId::Root);
         writer.resolve_deferred_dereferences().await?;
         Ok(())
     }
@@ -67,32 +104,33 @@ impl GdbStateGraph {
 
 /// Helper object for constructing and updating [`GdbStateGraph`]
 /// using a [`GdbMiSession`].
+#[derive(Deref, DerefMut)]
 struct GdbStateGraphWriter<'a, T: GdbMiSession> {
     /// The graph that is being updated.
+    #[deref]
+    #[deref_mut]
     graph: &'a mut GdbStateGraph,
+
     /// GDB session from which information is obtained.
     gdb: &'a mut T,
+
+    /// Stylesheet that provides hints to help
+    /// deduce the length of arrays.
+    pointer_hint_sheet: &'a CascadeStyle<PointerLengthHintKey>,
+
     /// References to [`NodeTypeClass::Ref`] nodes whose
     /// [`EdgeLabel::Deref`] should be evaluated later.
     deferred_pointers: VecDeque<VariableObject>,
 }
 
-impl<T: GdbMiSession> std::ops::Deref for GdbStateGraphWriter<'_, T> {
-    type Target = GdbStateGraph;
-    fn deref(&self) -> &Self::Target {
-        self.graph
-    }
-}
-
-impl<T: GdbMiSession> std::ops::DerefMut for GdbStateGraphWriter<'_, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.graph
-    }
-}
-
 impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
-    fn new(graph: &'a mut GdbStateGraph, gdb: &'a mut T) -> Self {
+    fn new(
+        graph: &'a mut GdbStateGraph,
+        gdb: &'a mut T,
+        pointer_hints: &'a CascadeStyle<PointerLengthHintKey>,
+    ) -> Self {
         Self {
+            pointer_hint_sheet: pointer_hints,
             graph,
             gdb,
             deferred_pointers: VecDeque::new(),
@@ -168,9 +206,25 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             let Some(type_name) = pointer_type_name else {
                 continue;
             };
+            // Get the length of the array if it exists
+            let length_hint = self
+                .resolved_length_hints
+                .get(&ref_object)
+                .and_then(|hint| {
+                    let context = EvaluationContext::from_graph(
+                        self.graph,
+                        GdbStateNodeId::VarObject(ref_object.clone()),
+                    );
+                    let unwrapped_hint = unwrap_node_value(hint.clone(), &context);
+                    if let PropertyValue::Value(NodeValue::Uint(l)) = unwrapped_hint {
+                        Some(l)
+                    } else {
+                        None
+                    }
+                });
             // TODO: Some errors can be ignored here
             let deref_var_object = self
-                .get_or_create_dereference_variable_node(address, &type_name)
+                .get_or_create_dereference_variable_node(address, &type_name, length_hint)
                 .await?;
             self.link_dereference_relation(&ref_object, &deref_var_object);
         }
@@ -227,6 +281,8 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         if let Some(address) = node.address {
             self.address_mapping.remove(&address);
         }
+        // If the node has a length hint, remove it from that map
+        self.resolved_length_hints.remove(handle);
         // Unlink dangling references
         for referer in node.referers {
             if let Some(referer_node) = self.variables.get_mut(&referer) {
@@ -419,6 +475,77 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         self.gdb.stack_select_frame(frame.level).await?;
         self.update_local_variables(frame_index).await?;
         Ok(())
+    }
+
+    fn resolve_length_hints_from(&mut self, origin: &GdbStateNodeId) {
+        let mut resolved_hints = std::mem::take(&mut self.resolved_length_hints);
+        let mut resolver = SelectorResolver::new(self.pointer_hint_sheet.selector_machine());
+        let mut variable_pool = VariablePool::new();
+        self.resolve_length_hints_with_resolver_from(
+            origin,
+            &mut resolver,
+            &mut variable_pool,
+            &mut resolved_hints,
+        );
+        self.resolved_length_hints = resolved_hints;
+    }
+
+    fn resolve_length_hints_with_resolver_from(
+        &self,
+        origin: &GdbStateNodeId,
+        resolver: &mut SelectorResolver<GdbStateNodeId>,
+        variable_pool: &mut VariablePool<&'a str, GdbStateNodeId>,
+        resolved_hints: &mut HashMap<VariableObject, PropertyValue<GdbStateNodeId>>,
+    ) {
+        let context =
+            EvaluationContext::from_graph(self.graph, origin.clone()).with_variables(variable_pool);
+        let matched_rules = resolver.resolve_node(origin.clone(), &context);
+        for (rule_index, caret) in matched_rules {
+            let rule = self.pointer_hint_sheet.rule_at(rule_index);
+            if caret == SelectionCaret::PrecedingEdge || rule.extra_label.is_some() {
+                // TODO: Warn, this kind of rules should not appear here
+                continue;
+            }
+            for property in &rule.properties {
+                let context = EvaluationContext::from_graph(self.graph, origin.clone())
+                    .with_variables(variable_pool);
+                match &property.key {
+                    StyleKey::Variable(name) => {
+                        let variable_value = evaluate(&property.value, &context);
+                        variable_pool.insert(name, variable_value);
+                    }
+                    StyleKey::Property(PointerLengthHintKey::Length) => {
+                        // If it is a variable node, resolve the
+                        if let GdbStateNodeId::VarObject(var_object) = origin {
+                            let length_value = evaluate(&property.value, &context);
+                            resolved_hints.insert(var_object.clone(), length_value);
+                        } else {
+                            // TODO: Warn, only variables should be assigned lengths
+                        }
+                    }
+                }
+            }
+        }
+        for (edge_label, successor) in self
+            .graph
+            .get(origin)
+            .into_iter()
+            .flat_map(|n| &n.successors)
+        {
+            if *edge_label == EdgeLabel::Deref {
+                // Do not resolve past a dereference edge,
+                // each heap-allocated object will be the root of its own resolution
+                continue;
+            }
+            resolver.push_edge(edge_label);
+            self.resolve_length_hints_with_resolver_from(
+                successor,
+                resolver,
+                variable_pool,
+                resolved_hints,
+            );
+            resolver.pop_edge();
+        }
     }
 
     #[expect(unused)]
@@ -620,16 +747,18 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         &mut self,
         address: u64,
         pointer_type_name: &str,
+        array_length: Option<u64>,
     ) -> Result<VariableObject> {
         // If the node already exists, return it right away
         if let Some(var_object) = self.address_mapping.get(&address) {
             return Ok(var_object.clone());
         }
+        let length_suffix = array_length.map(|l| format!("@{l}")).unwrap_or_default();
         let deref_var_object = self
             .gdb
             .var_create(
                 VariableObjectFrameContext::CurrentFrame,
-                &format!("*({pointer_type_name}){address}"),
+                &format!("*({pointer_type_name}){address}{length_suffix}"),
             )
             .await?;
         let var_object = self.create_variable_tree(deref_var_object, None).await?;
