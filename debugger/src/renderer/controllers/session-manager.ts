@@ -4,7 +4,7 @@
  * @module
  */
 
-import { GdbMiSession, GdbStateGraph } from 'aili-jsapi';
+import { GdbMiSession, GdbStateGraph, LengthHintSheet } from 'aili-jsapi';
 import { Debugger, DebuggerInputSource, isStatusRunning, SourceLocation } from './debugger';
 import { DebuggerSession, DebugSessionStatus, DebugStepRange } from './session';
 import { Hook, Hookable, Logger } from 'aili-hooligan';
@@ -58,7 +58,8 @@ export class DebugSessionManager {
         this.assertStatus(DebugSessionStatus.INACTIVE);
         await this.transaction(async () => {
             await this.session.start();
-            this.stateGraph = await GdbStateGraph.fromSession(this.debugMi);
+            this.hintsForThisSession = this.hintSheet;
+            this.stateGraph = await GdbStateGraph.fromSession(this.debugMi, this.hintsForThisSession);
             this._onStateGraphUpdate.trigger(this.stateGraph);
         });
     }
@@ -92,7 +93,7 @@ export class DebugSessionManager {
             if (this.session.status === DebugSessionStatus.INACTIVE) {
                 await this.sessionEnded();
             } else if (this.stateGraph) {
-                await this.stateGraph.update(this.debugMi);
+                await this.stateGraph.update(this.debugMi, this.hintsForThisSession);
                 this._onStateGraphUpdate.trigger(this.stateGraph);
             }
         });
@@ -202,6 +203,11 @@ export class DebugSessionManager {
         }
         this.stateGraph = undefined;
     }
+    /**
+     * Stylesheet that provides hints to help deduce the length of allocated arrays.
+     */
+    hintSheet: LengthHintSheet = LengthHintSheet.empty();
+    private hintsForThisSession: LengthHintSheet;
     private _status: DebugSessionStatus;
     private statusBusyOverride: boolean = false;
     private readonly _onStateGraphUpdate: Hook<[GdbStateGraph]>;

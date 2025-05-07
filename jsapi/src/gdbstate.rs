@@ -2,6 +2,7 @@
 
 #![cfg(feature = "gdbstate")]
 
+use crate::stylesheet::LengthHintSheet;
 use aili_gdbstate::{
     gdbmi::stream::StringGdbMiStream,
     state::{GdbStateGraph as GdbStateGraphImpl, GdbStateNode, GdbStateNodeId},
@@ -82,17 +83,24 @@ pub struct GdbStateGraph(pub(crate) GdbStateGraphImpl);
 impl GdbStateGraph {
     /// Constructs a new state graph from a GDB/MI session.
     #[wasm_bindgen(js_name = "fromSession")]
-    pub async fn from_session(mut gdb_mi: &GdbMi) -> Result<Self, JsError> {
-        aili_gdbstate::state::GdbStateGraph::new(&mut gdb_mi)
+    pub async fn from_session(
+        mut gdb_mi: &GdbMi,
+        hint_sheet: &LengthHintSheet,
+    ) -> Result<Self, JsError> {
+        aili_gdbstate::state::GdbStateGraph::new_with_hints(&mut gdb_mi, &hint_sheet.0)
             .await
             .map(Self)
             .map_err(|e| JsError::new(&format!("{e}")))
     }
 
     /// Updates the state graph using the provided GDB/MI session.
-    pub async fn update(&mut self, mut gdb_mi: &GdbMi) -> Result<(), JsError> {
+    pub async fn update(
+        &mut self,
+        mut gdb_mi: &GdbMi,
+        hint_sheet: &LengthHintSheet,
+    ) -> Result<(), JsError> {
         self.0
-            .update(&mut gdb_mi)
+            .update_with_hints(&mut gdb_mi, &hint_sheet.0)
             .await
             .map_err(|e| JsError::new(&format!("{e}")))
     }

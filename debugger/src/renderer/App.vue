@@ -14,9 +14,9 @@
 <script setup lang="ts">
     import { computed, ref, useTemplateRef } from 'vue';
     import { HookableLogger } from 'aili-hooligan';
-    import { GdbStateGraph, Stylesheet } from 'aili-jsapi';
+    import { GdbStateGraph, Stylesheet, LengthHintSheet } from 'aili-jsapi';
     import { Debugger } from './controllers/debugger';
-    import { DEFAULT_STYLESHEET } from './utils/default-stylesheet';
+    import { DEFAULT_STYLESHEET, DEFAULT_HINT_SHEET } from './utils/default-stylesheet';
     import { DebugSessionStatus } from './controllers/session';
     import { DebugSessionManager } from './controllers/session-manager';
     import { SourceViewer } from './controllers/source-viewer';
@@ -31,6 +31,7 @@
     import SourceView from './components/SourceView.vue';
 
     const showDebugger = ref(false);
+    const showDebuggee = ref(false);
     const showLog = ref(false);
     const showStylesheet = ref(true);
     const showStyle = ref(false);
@@ -41,7 +42,7 @@
     const allPanelsHidden = computed(() => {
         return !showDebugger.value && !showLog.value && !showStylesheet.value &&
             !showStyle.value && !showVis.value && !showViewport.value &&
-            !showRaw.value && !showSource.value;
+            !showRaw.value && !showSource.value && !showDebuggee.value;
     });
 
     const mainViewport = useTemplateRef('main-viewport');
@@ -90,6 +91,10 @@
         mainStylesheet = stylesheet;
         applyMainStylesheet();
     }
+
+    function hintSheetChanged(_: string, hintSheet: LengthHintSheet): void {
+        debugSession.hintSheet = hintSheet;
+    }
 </script>
 
 <template>
@@ -98,6 +103,12 @@
             <div class="placeholder" v-show="allPanelsHidden"></div>
             <Panel class="panel" title="Debugger" v-show="showDebugger">
                 <DebuggerControlPanel :debug="debuggerContainer" />
+            </Panel>
+            <Panel class="panel" title="Debuggee" v-show="showDebuggee">
+                <StyleEditor
+                    :content="DEFAULT_HINT_SHEET"
+                    :compile="LengthHintSheet.parse"
+                    @style-changed="hintSheetChanged" />
             </Panel>
             <Panel class="panel" title="Source" v-show="showSource">
                 <SourceView :debug="debuggerContainer" :sourceViewer="sourceViewer" />
@@ -140,6 +151,10 @@
                 <label>
                     <input type="checkbox" v-model="showDebugger">
                     Debugger
+                </label>
+                <label>
+                    <input type="checkbox" v-model="showDebuggee">
+                    Debuggee
                 </label>
                 <label>
                     <input type="checkbox" v-model="showSource">

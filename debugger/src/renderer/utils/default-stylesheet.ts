@@ -97,3 +97,34 @@ ref::edge {
 }
 
 `;
+
+/**
+ * Default pointer hint sheet that does not provide any hints,
+ * but explains the usage to the user.
+ */
+export const DEFAULT_HINT_SHEET: string =
+`/**
+ * This is the hint sheet -
+ * hints for the backend to determine
+ * the length of dynamically allocated
+ * arrays go here
+ * 
+ * An example hint sheet might look like this:
+ * 
+ * :vector {
+ *   // Get the vector's capacity
+ *   --cap: @("cap");
+ * }
+ * 
+ * :vector "ptr" {
+ *   // Tell the backend to treat
+ *   // the vector's buffer
+ *   // as a pointer to array,
+ *   // not to a single element,
+ *   // and that its length can be
+ *   // found in this variable
+ *   length: --cap;
+ * }
+ */
+
+`;
