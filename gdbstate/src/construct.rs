@@ -670,7 +670,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         // GDB includes both numeric and character representation of chars
         // and char pointers, so we need to strip the character string
         static CHAR_VALUE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-            Regex::new(r#"^([+\-]?(?:0[xX])?[\da-fA-F]+)\s*(?:'.*'|".*")$"#).unwrap()
+            Regex::new(r#"^([+\-]?(?:0[xX])?[\da-fA-F]+)\s*(?:'.*'|".*"|<.*>)$"#).unwrap()
         });
         if let Some(caps) = CHAR_VALUE_REGEX.captures(s) {
             s = caps.get(1).unwrap().as_str()
