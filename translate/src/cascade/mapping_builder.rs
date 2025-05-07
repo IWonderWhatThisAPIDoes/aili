@@ -2,7 +2,11 @@
 
 use crate::property::{DisplayMode, EntityPropertyMapping, PropertyKey};
 use aili_model::state::{NodeId, ProgramStateGraph, ProgramStateNode};
-use aili_style::{selectable::Selectable, values::PropertyValue};
+use aili_style::{
+    eval::{context::EvaluationContext, unwrap_node_value},
+    selectable::Selectable,
+    values::PropertyValue,
+};
 use std::collections::{HashMap, hash_map::Entry};
 
 /// Identifier of a property variable on an entity.
@@ -253,19 +257,9 @@ impl<T: NodeId> PropertyMappingBuilder<T> {
         value: PropertyValue<T>,
         graph: &impl ProgramStateGraph<NodeId = T>,
     ) -> PropertyValue<T> {
-        if let PropertyValue::Selection(sel) = &value {
-            if sel.is_node() {
-                graph
-                    .get(&sel.node_id)
-                    .and_then(|node| node.value())
-                    .map(Into::into)
-                    .unwrap_or_default()
-            } else {
-                PropertyValue::Unset
-            }
-        } else {
-            value
-        }
+        let mut context = EvaluationContext::stateless();
+        context.graph = Some(graph);
+        unwrap_node_value(value, &context)
     }
 }
 

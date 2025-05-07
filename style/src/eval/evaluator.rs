@@ -274,7 +274,7 @@ impl<T: ProgramStateGraph> Evaluator<'_, T> {
 
     /// If a property value is a selector, this converts it to value by accessing
     /// the node's value.
-    fn coerce_to_value(&self, value: PropertyValue<T::NodeId>) -> PropertyValue<T::NodeId> {
+    pub fn coerce_to_value(&self, value: PropertyValue<T::NodeId>) -> PropertyValue<T::NodeId> {
         match value {
             PropertyValue::Selection(target) => {
                 if target.is_node() {

@@ -11,6 +11,14 @@ pub struct CascadeStyle<K: PropertyKey = RawPropertyKey> {
 }
 
 impl<K: PropertyKey> CascadeStyle<K> {
+    /// Constructs an empty stylesheet.
+    pub fn empty() -> Self {
+        Self {
+            selectors: CascadeSelector(Vec::new()),
+            rules: Vec::new(),
+        }
+    }
+
     /// Gets the compiled selectors of the stalesheet.
     pub fn selector_machine(&self) -> &CascadeSelector {
         &self.selectors
@@ -22,6 +30,12 @@ impl<K: PropertyKey> CascadeStyle<K> {
     /// are valid.
     pub fn rule_at(&self, index: usize) -> &CascadeStyleRule<K> {
         &self.rules[index]
+    }
+}
+
+impl<K: PropertyKey> Default for CascadeStyle<K> {
+    fn default() -> Self {
+        Self::empty()
     }
 }
 
