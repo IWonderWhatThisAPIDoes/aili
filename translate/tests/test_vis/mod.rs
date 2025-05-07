@@ -1,7 +1,5 @@
 //! Stub [`VisTree`] for testing.
 
-#![cfg(test)]
-
 use aili_model::vis::*;
 use std::collections::HashMap;
 
