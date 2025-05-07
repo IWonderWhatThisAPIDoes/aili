@@ -2,30 +2,33 @@
  * Stylesheet editor with a warning panel.
 -->
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
     import { nextTick, useTemplateRef } from 'vue';
     import { Severity } from 'aili-hooligan';
-    import { Stylesheet, StylesheetParseError } from 'aili-jsapi';
+    import { StylesheetParseError } from 'aili-jsapi';
     import ScrollBox from './ScrollBox.vue';
     import EditorConsole from './EditorConsole.vue';
     import LogConsole from './LogConsole.vue';
 
-    const { content } = defineProps<{ content?: string }>();
-    const emit = defineEmits<{ 'style-changed': [source: string, stylesheet: Stylesheet] }>();
+    const { content, compile } = defineProps<{
+        content?: string,
+        compile: (source: string, errorHandler: (e: StylesheetParseError) => void) => T,
+    }>();
+    const emit = defineEmits<{ 'style-changed': [source: string, stylesheet: T] }>();
 
     const logView = useTemplateRef('editor-log');
 
     function stylesheetChanged(newSource: string) {
         // Remove logs from the pase iteration, we will be creating new ones
         logView.value?.clear();
-        let compiledStyle: Stylesheet | undefined = undefined;
+        let compiledStyle: T | undefined = undefined;
         let reportedWarning = false;
         try {
             function warnAboutRecoveredError(err: StylesheetParseError) {
                 logView.value?.addEntry([], Severity.WARNING, err.message, undefined);
                 reportedWarning = true;
             }
-            compiledStyle = Stylesheet.parse(newSource, warnAboutRecoveredError);
+            compiledStyle = compile(newSource, warnAboutRecoveredError);
         } catch (e) {
             logView.value?.addEntry([], Severity.ERROR, String(e), undefined);
             return;

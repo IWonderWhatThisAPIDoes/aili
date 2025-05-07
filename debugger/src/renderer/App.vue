@@ -105,7 +105,8 @@
             <Panel class="panel" title="Stylesheet" v-show="showStylesheet">
                 <StyleEditor
                     :content="DEFAULT_STYLESHEET"
-                    @style-changed="stylesheetChanged"/>
+                    :compile="Stylesheet.parse"
+                    @style-changed="stylesheetChanged" />
             </Panel>
             <Panel class="panel" title="Resolved Style" v-show="showStyle">
                 <ScrollBox>
