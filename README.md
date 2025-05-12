@@ -15,6 +15,6 @@ Prototype semantic visual debugger.
 | [:yellow_square::crab: JSAPI](./jsapi) | Bindings between modules written in Rust and Javascript. |
 | [:crab: Model](./model)         | Definitions of Program State and Visualization models.          |
 | [:crab: Parser](./parser)       | Parser for stylesheets of the Style module.                     |
-| [:crab: Style](./style)         | Stylesheets that assign properties to State entities            |
+| [:crab: Style](./style)         | Stylesheets that assign properties to State entities.           |
 | [:crab: Translate](./translate) | Translator for converting between Program state and Visualization models based on a stylesheet that describes the mapping. |
 | [:yellow_square: Vis](./vis)    | Browser-based renderer of Visualization model, written in Typescript. |
