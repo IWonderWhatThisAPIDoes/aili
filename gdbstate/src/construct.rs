@@ -455,7 +455,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
     }
 
     async fn push_stack_frame(&mut self, frame: StackFrame) -> Result<()> {
-        // Get the esteemed index of the frame
+        // Get the expected index of the frame
         let frame_index = self.stack_trace.len();
         // Create the node and add it to the trace
         let mut frame_node = GdbStateNode::new(NodeTypeClass::Frame);
