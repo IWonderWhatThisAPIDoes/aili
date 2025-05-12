@@ -194,7 +194,7 @@ export class LabelViewModel extends FlowViewModel {
         this.unhookOnDestroy(setAttributeBindings(element.attributes, {
             value: bind.textContent(htmlInner),
             color(value) {
-                const color = bind.color(value);
+                const color = value && bind.color(value);
                 if (color) {
                     svgMain.style.setProperty('fill', color);
                     htmlInner.style.setProperty('color', color);

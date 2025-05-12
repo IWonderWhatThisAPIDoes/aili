@@ -108,7 +108,7 @@ class PinView {
         this.pin = pin;
     }
     moveToElement(element: ElementView | undefined) {
-        if (element.element === this.currentParent) {
+        if (element?.element === this.currentParent) {
             return;
         }
         this.pinContainer = element?.model?.pinContainer;
@@ -210,7 +210,7 @@ class ConnectorViewModel {
             const endpoint = connection.endpoints[i];
             return setAttributeBindings(pin.attributes, {
                 anchor(value) {
-                    const anchor = ConnectorViewModel.PIN_ANCHOR_MAP[value] ?? ConnectorViewModel.PIN_ANCHOR_MAP.auto;
+                    const anchor = value === undefined ? ConnectorViewModel.PIN_ANCHOR_MAP.auto : ConnectorViewModel.PIN_ANCHOR_MAP[value];
                     endpoint.setAnchor(anchor);
                     jsplumb.repaint(endpoint.element);
                 },

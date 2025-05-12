@@ -45,8 +45,8 @@ export function css(
 ): (value: string | undefined) => void {
     const propertyNameList = typeof propertyName === 'string' ? [propertyName] : propertyName;
     return value => {
-        let filteredValue: string | undefined;
-        if (value !== undefined && (filteredValue = filter(value)) !== undefined) {
+        const filteredValue = value && filter(value);
+        if (filteredValue !== undefined) {
             propertyNameList.forEach(propertyName => {
                 html.style.setProperty(propertyName, filteredValue);
             });

@@ -204,9 +204,9 @@ export class TreeView {
     private removeElement(element: ReadonlyVisElement): void {
         // Unhook all observers that manage the element
         const observers = this.elementObservers.get(element);
-        observers.addChild.unhook();
-        observers.addPin.unhook();
-        observers.parentChanged?.unhook();
+        observers?.addChild?.unhook();
+        observers?.addPin?.unhook();
+        observers?.parentChanged?.unhook();
         this.elementObservers.delete(element);
         // Drop the element's view
         this.elementViews.remove(element);

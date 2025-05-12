@@ -64,5 +64,5 @@ export class Viewport {
     }
     private treeView: TreeView;
     private rootDom: ViewportDOMRoot;
-    private currentRoot: ReadonlyVisElement;
+    private currentRoot: ReadonlyVisElement | undefined;
 }
