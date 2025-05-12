@@ -3,7 +3,7 @@
 Demo Electron application that showcases the full Aili pipeline.
 
 This application can be used to debug real C programs.
-[Stylesheets](../translate) can be edited in real time
+[Stylesheets](../style) can be edited in real time
 with diagnostic messages, and applications can be stepped
 through, like in a typical debugger.
 
