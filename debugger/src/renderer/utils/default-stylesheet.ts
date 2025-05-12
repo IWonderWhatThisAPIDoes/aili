@@ -37,6 +37,7 @@ export const DEFAULT_STYLESHEET: string =
 }
 
 :frame {
+  value: typename(@) + "()";
   size: 3;
   fill: "#ca5";
   stroke-width: 2;
