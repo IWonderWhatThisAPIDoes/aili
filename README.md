@@ -1,6 +1,19 @@
 <img src="./assets/logo.png" width="400" alt="Aili" />
 
-Prototype semantic visual debugger.
+Prototype semantic visual debugger developed at the
+[Faculty of Information Technology Czech Technical University in Prague](https://fit.cvut.cz/en).
+
+## How It Works
+
+Aili builds on abstraction to separate the debuggee from the visuals
+presented to the user. At its core, a stylesheet provided by the user
+specifies how each part of the debuggee should be represented graphically.
+
+The stylesheets are loosely based on [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS).
+They are intentionally similar in some syntactic constructs, which may help introduce
+a user who is familiar with CSS, but they also differ in many aspects.
+
+![The Aili pipeline. A state graph is generated that follows the structure of the debuggee's source. A stylesheet then converts it into an XML-like format that describes what the visuals should look like.](./assets/pipeline.png)
 
 ## Modules in This Repository
 
