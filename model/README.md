@@ -8,6 +8,8 @@ the main modules of Aili.
 The State graph model represents the internal state of a debuggee
 with a language-independent graph structure.
 
+![State graph of a C implementation of vector](../assets/state.png)
+
 ## Visualization Tree
 
 The Visualization tree model represents a scene that should be presented

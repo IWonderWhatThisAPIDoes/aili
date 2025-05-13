@@ -1,4 +1,6 @@
 //! Visualization tree model.
+//!
+//! Represents a scene that should be presented to a user.
 
 use derive_more::{Display, Error, From};
 

@@ -1,4 +1,7 @@
 //! Program state graph model.
+//!
+//! Represents the internal state of a debuggee
+//! with a language-independent graph structure.
 
 use derive_more::{Debug, From};
 
