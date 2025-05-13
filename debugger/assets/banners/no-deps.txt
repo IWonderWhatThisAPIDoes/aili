@@ -5,7 +5,8 @@ Licensed under MIT License or Apache License Version 2.0, at your option.
 
 MIT License
 
-Copyright (c) 2025 Tomáš Čajan
+Copyright (c) 2025 Tomáš Čajan, affiliated with
+Faculty of Information Technology Czech Technical University in Prague
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +27,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-Copyright (c) 2025 Tomáš Čajan
+Copyright (c) 2025 Tomáš Čajan, affiliated with
+Faculty of Information Technology Czech Technical University in Prague
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
