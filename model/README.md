@@ -13,7 +13,10 @@ with a language-independent graph structure.
 ## Visualization Tree
 
 The Visualization tree model represents a scene that should be presented
-to a user.
+to a user in an XML-like format where connectors can be added
+between any two elements.
+
+![Example of a visualization tree](../assets/vis.png)
 
 ## Documentation
 
