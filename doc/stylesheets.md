@@ -575,7 +575,12 @@ should be assumed instead.
 }
 ```
 
-Currently, it is not possible to
+The idea is that a dynamically allocated array will probably be accompanied
+by a variable that keeps track of its length.
+
+Currently, it is not possible for the stylesheets to cross
+a dereference boundary - the variable that knows the length
+has to be in the same memory block as the pointer.
 
 ## References
 
