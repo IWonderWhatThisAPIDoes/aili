@@ -12,6 +12,9 @@ about the length of dynamically allocated arrays.
 This module contains the definitions of the stylesheets,
 as well as basic utilities for their evaluation.
 
+See the [stylesheet authors' manual](../doc/stylesheets.md)
+for more information about how stylesheets are used.
+
 ## Documentation
 
 The following command generates documentation and saves it

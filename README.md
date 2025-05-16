@@ -12,6 +12,7 @@ specifies how each part of the debuggee should be represented graphically.
 The stylesheets are loosely based on [CSS](https://developer.mozilla.org/en-US/docs/Web/CSS).
 They are intentionally similar in some syntactic constructs, which may help introduce
 a user who is familiar with CSS, but they also differ in many aspects.
+See the [stylesheet authors' manual](./doc/stylesheets.md) for more information.
 
 ![The Aili pipeline. A state graph is generated that follows the structure of the debuggee's source. A stylesheet then converts it into an XML-like format that describes what the visuals should look like.](./assets/pipeline.png)
 
