@@ -29,20 +29,23 @@
     import DebugSessionControl from './components/DebugSessionControl.vue';
     import VisViewport from './components/VisViewport.vue';
     import SourceView from './components/SourceView.vue';
+    import HelpPage from './components/HelpPage.vue';
 
     const showDebugger = ref(false);
     const showDebuggee = ref(false);
     const showLog = ref(false);
-    const showStylesheet = ref(true);
+    const showStylesheet = ref(false);
     const showStyle = ref(false);
     const showVis = ref(false);
-    const showViewport = ref(true);
+    const showViewport = ref(false);
     const showRaw = ref(false);
     const showSource = ref(false);
+    const showHelp = ref(true);
     const allPanelsHidden = computed(() => {
         return !showDebugger.value && !showLog.value && !showStylesheet.value &&
             !showStyle.value && !showVis.value && !showViewport.value &&
-            !showRaw.value && !showSource.value && !showDebuggee.value;
+            !showRaw.value && !showSource.value && !showDebuggee.value &&
+            !showHelp.value;
     });
 
     const mainViewport = useTemplateRef('main-viewport');
@@ -144,6 +147,9 @@
                     <LogConsole ref="log-console" showTopic />
                 </ScrollBox>
             </Panel>
+            <Panel class="panel" title="Help" v-show="showHelp">
+                <HelpPage />
+            </Panel>
         </div>
         <div class="footer">
             <div class="display-settings">
@@ -183,6 +189,10 @@
                 <label>
                     <input type="checkbox" v-model="showLog">
                     Log
+                </label>
+                <label>
+                    <input type="checkbox" v-model="showHelp">
+                    Help
                 </label>
             </div>
             <DebugSessionControl class="session-control" :session="debugSession" />
