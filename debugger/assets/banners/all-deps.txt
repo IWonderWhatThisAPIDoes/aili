@@ -2,8 +2,7 @@ This distribution contains the following software in object form:
 
 Aili
   https://github.com/IWonderWhatThisAPIDoes/aili
-  Copyright (c) 2025 Tomáš Čajan, affiliated with
-  Faculty of Information Technology Czech Technical University in Prague
+  Copyright (c) 2025 Tomáš Čajan, affiliated with FIT CTU in Prague
   MIT License OR Apache License Version 2.0
 
 Vue.js
