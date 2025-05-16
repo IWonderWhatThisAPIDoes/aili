@@ -9,11 +9,11 @@ use aili_style::selectable::Selectable;
 use derive_more::Display;
 use std::collections::HashMap;
 
-/// Describes an occurrence in the renderer
+/// Describes an occurrence in a [`VisTreeWriter`]
 /// that should not arise when using it as intended
 /// and is likely indicative of an error in the input.
 #[derive(Debug, Display)]
-pub enum RendererWarning<T: NodeId> {
+pub enum VisTreeWriterWarning<T: NodeId> {
     /// The resolved stylesheet has caused a cycle in the visualization tree.
     #[display("detected loop in vis tree near {_0:?}")]
     VisStructureViolation(Selectable<T>),
@@ -21,7 +21,7 @@ pub enum RendererWarning<T: NodeId> {
 
 /// Updates the structure of a [`VisTree`] to reflect
 /// changes in stylesheet resolution.
-pub struct Renderer<'w, T: NodeId, V: VisTree> {
+pub struct VisTreeWriter<'w, T: NodeId, V: VisTree> {
     /// The target visualization tree.
     vis_tree: V,
 
@@ -33,12 +33,12 @@ pub struct Renderer<'w, T: NodeId, V: VisTree> {
     /// of all visualized entities.
     current_mappping: HashMap<Selectable<T>, EntityRendering<T, V>>,
 
-    /// Handler that processes warnings emited by the renderer.
-    warning_handler: Option<Box<dyn FnMut(RendererWarning<T>) + 'w>>,
+    /// Handler that processes warnings emited by the writer.
+    warning_handler: Option<Box<dyn FnMut(VisTreeWriterWarning<T>) + 'w>>,
 }
 
-impl<'w, T: NodeId, V: VisTree> Renderer<'w, T, V> {
-    /// Constructs a new renderer that renders into a tree.
+impl<'w, T: NodeId, V: VisTree> VisTreeWriter<'w, T, V> {
+    /// Constructs a new writer that renders into a tree.
     pub fn new(vis_tree: V) -> Self {
         Self {
             vis_tree,
@@ -48,18 +48,18 @@ impl<'w, T: NodeId, V: VisTree> Renderer<'w, T, V> {
         }
     }
 
-    /// Adds a warning handler to the renderer.
+    /// Adds a warning handler to the writer.
     pub fn set_warning_handler(
         &mut self,
-        warning_handler: Option<Box<dyn FnMut(RendererWarning<T>) + 'w>>,
+        warning_handler: Option<Box<dyn FnMut(VisTreeWriterWarning<T>) + 'w>>,
     ) {
         self.warning_handler = warning_handler;
     }
 
-    /// Adds a warning handler to the renderer.
+    /// Adds a warning handler to the writer.
     pub fn with_warning_handler(
         mut self,
-        warning_handler: Box<dyn FnMut(RendererWarning<T>) + 'w>,
+        warning_handler: Box<dyn FnMut(VisTreeWriterWarning<T>) + 'w>,
     ) -> Self {
         self.set_warning_handler(Some(warning_handler));
         self
@@ -186,7 +186,9 @@ impl<'w, T: NodeId, V: VisTree> Renderer<'w, T, V> {
                 }
                 Err(ParentAssignmentError::StructureViolation) => {
                     if let Some(warning_handler) = &mut self.warning_handler {
-                        warning_handler(RendererWarning::VisStructureViolation(selectable.clone()));
+                        warning_handler(VisTreeWriterWarning::VisStructureViolation(
+                            selectable.clone(),
+                        ));
                     }
                 }
             }

@@ -1,9 +1,9 @@
-//! Pretty-printing [`Renderer`]s.
+//! Pretty-printing [`VisTreeWriter`]s.
 
-use super::Renderer;
+use super::VisTreeWriter;
 use aili_model::{state::NodeId, vis::VisTree};
 
-impl<T, V> std::fmt::Debug for Renderer<'_, T, V>
+impl<T, V> std::fmt::Debug for VisTreeWriter<'_, T, V>
 where
     T: NodeId + Ord,
     V: VisTree,
@@ -17,12 +17,12 @@ where
     }
 }
 
-impl<T, V> Renderer<'_, T, V>
+impl<T, V> VisTreeWriter<'_, T, V>
 where
     T: NodeId,
     V: VisTree,
 {
-    /// Formats the state of a renderer in a way fit for inline debug printing.
+    /// Formats the state of a writer in a way fit for inline debug printing.
     fn debug_fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{ root: {:?}, mapping: {{ ", self.current_root)?;
         for (key, rendering) in &self.current_mappping {
@@ -33,12 +33,12 @@ where
     }
 }
 
-impl<T, V> Renderer<'_, T, V>
+impl<T, V> VisTreeWriter<'_, T, V>
 where
     T: NodeId + Ord,
     V: VisTree,
 {
-    /// Formats the szaze of a renderer as a table for ease of reading.
+    /// Formats the state of a writer as a table for ease of reading.
     fn pretty_print_fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Since we are pretty-printing, sort the table by keys
         // so we have them in a readable order (this is why we require Ord to be implemented)
@@ -127,6 +127,7 @@ where
 }
 
 /// Maximum width to which a column can be padded
+///
 /// If someone brings in extremely long property/entity/value names,
 /// this keeps the table reasonably narrow.
 const MAX_COLUMN_WIDTH: usize = 150;

@@ -1,10 +1,10 @@
-//! Tests for [`Renderer`].
+//! Tests for [`VisTreeWriter`].
 
 mod test_vis;
 
 use aili_style::selectable::Selectable;
 use aili_translate::{
-    forward::{Renderer, RendererWarning},
+    forward::{VisTreeWriter, VisTreeWriterWarning},
     property::{DisplayMode, FragmentKey, PropertyMap},
 };
 use std::collections::HashMap;
@@ -19,7 +19,7 @@ macro_rules! construct {
     };
 }
 
-/// Shorthand for cunstructing the argument of [`Renderer::update`].
+/// Shorthand for cunstructing the argument of [`VisTreeWriter::update`].
 macro_rules! mapping {
     ( $( $id:expr => { $($fill:tt)* } ),* $(,)? ) => {
         [
@@ -72,7 +72,7 @@ fn expect_one_parent_and_child(tree: &TestVisTree) {
 
 #[test]
 fn create_element() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
     ]);
@@ -85,7 +85,7 @@ fn create_element() {
 
 #[test]
 fn create_connector() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::Connector) },
     ]);
@@ -95,7 +95,7 @@ fn create_connector() {
 
 #[test]
 fn create_nothing() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![0 => { display: None }]);
     let vis_tree = renderer.reclaim_vis_tree();
     assert!(vis_tree.connectors.is_empty());
@@ -104,7 +104,7 @@ fn create_nothing() {
 
 #[test]
 fn create_element_with_attributes() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     let attributes = HashMap::from_iter([
         ("hello".to_owned(), "world".to_owned()),
         ("a".to_owned(), "b".to_owned()),
@@ -124,7 +124,7 @@ fn create_element_with_attributes() {
 
 #[test]
 fn update_element_attributes() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     let attributes = HashMap::from_iter([
         ("hello".to_owned(), "world".to_owned()),
         ("a".to_owned(), "b".to_owned()),
@@ -156,7 +156,7 @@ fn update_element_attributes() {
 
 #[test]
 fn create_element_with_parent() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => {
@@ -170,7 +170,7 @@ fn create_element_with_parent() {
 
 #[test]
 fn create_element_without_parent() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => {
             display: Some(DisplayMode::ElementTag("cell".to_owned())),
@@ -187,7 +187,7 @@ fn create_element_without_parent() {
 
 #[test]
 fn create_element_with_connector_for_parent() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::Connector) },
         1 => {
@@ -205,7 +205,7 @@ fn create_element_with_connector_for_parent() {
 
 #[test]
 fn update_parent_of_element() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
@@ -223,7 +223,7 @@ fn update_parent_of_element() {
 
 #[test]
 fn unset_parent_of_element() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => {
@@ -248,7 +248,7 @@ fn unset_parent_of_element() {
 
 #[test]
 fn remove_parent_of_element() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => {
@@ -278,7 +278,7 @@ fn remove_parent_of_element() {
 
 #[test]
 fn create_connector_with_pins() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => { display: Some(DisplayMode::ElementTag("kvt".to_owned())) },
@@ -314,7 +314,7 @@ fn create_connector_with_pins() {
 
 #[test]
 fn change_element_into_connector() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => {
@@ -345,7 +345,7 @@ fn change_element_into_connector() {
 
 #[test]
 fn change_connector_into_element() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::Connector) },
         1 => {
@@ -375,7 +375,7 @@ fn change_connector_into_element() {
 
 #[test]
 fn change_element_tag_name() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
     ]);
@@ -397,7 +397,7 @@ fn change_element_tag_name() {
 
 #[test]
 fn change_parent_element_tag_name() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => {
@@ -425,7 +425,7 @@ fn change_parent_element_tag_name() {
 
 #[test]
 fn swap_parent_and_child() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => { display: Some(DisplayMode::ElementTag("cell".to_owned())) },
         1 => {
@@ -461,7 +461,7 @@ fn swap_parent_and_child() {
 
 #[test]
 fn set_connector_fragment_attributes() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => {
             display: Some(DisplayMode::Connector),
@@ -490,7 +490,7 @@ fn set_connector_fragment_attributes() {
 
 #[test]
 fn update_connector_fragment_attributes() {
-    let mut renderer = Renderer::new(TestVisTree::default());
+    let mut renderer = VisTreeWriter::new(TestVisTree::default());
     renderer.update(mapping![
         0 => {
             display: Some(DisplayMode::Connector),
@@ -541,11 +541,12 @@ fn update_connector_fragment_attributes() {
 #[test]
 fn create_loop_in_vis_tree() {
     let mut warning_was_emited = false;
-    let mut renderer = Renderer::new(TestVisTree::default()).with_warning_handler(Box::new(
-        |warning| match warning {
-            RendererWarning::VisStructureViolation(_) => warning_was_emited = true,
-        },
-    ));
+    let mut renderer =
+        VisTreeWriter::new(TestVisTree::default()).with_warning_handler(Box::new(|warning| {
+            match warning {
+                VisTreeWriterWarning::VisStructureViolation(_) => warning_was_emited = true,
+            }
+        }));
     renderer.update(mapping![
         0 => {
             display: Some(DisplayMode::ElementTag("cell".to_owned())),

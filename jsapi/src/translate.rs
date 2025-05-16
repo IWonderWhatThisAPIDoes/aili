@@ -8,7 +8,7 @@ use crate::{
 };
 use aili_model::state::{ProgramStateGraph, RootedProgramStateGraph};
 use aili_style::selectable::Selectable;
-use aili_translate::forward::{Renderer, RendererWarning};
+use aili_translate::forward::{VisTreeWriter, VisTreeWriterWarning};
 use wasm_bindgen::prelude::*;
 
 /// Declares a renderer type for a given target.
@@ -19,14 +19,14 @@ macro_rules! declare_renderer {
     ( $name:ident ( $state:ty ) ) => {
         /// Program state renderer that renders into a given [`VisTree`].
         #[wasm_bindgen]
-        pub struct $name(Renderer<'static, <$state as ProgramStateGraph>::NodeId, VisTree>);
+        pub struct $name(VisTreeWriter<'static, <$state as ProgramStateGraph>::NodeId, VisTree>);
 
         #[wasm_bindgen]
         impl $name {
             /// Constructs a new renderer that renders into the provided [`VisTree`].
             #[wasm_bindgen(constructor)]
             pub fn new(tree: VisTree) -> Self {
-                Self(Renderer::new(tree))
+                Self(VisTreeWriter::new(tree))
             }
 
             /// Sets the logger to which log messages from the renderer should be sent.
@@ -35,7 +35,7 @@ macro_rules! declare_renderer {
                 self.0.set_warning_handler(logger.map(|logger| {
                     let handler = move |w| logger.log(Severity::Warning, &format!("{w}"));
                     let boxed: Box<
-                        dyn FnMut(RendererWarning<<$state as ProgramStateGraph>::NodeId>),
+                        dyn FnMut(VisTreeWriterWarning<<$state as ProgramStateGraph>::NodeId>),
                     > = Box::new(handler);
                     boxed
                 }));
