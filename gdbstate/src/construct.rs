@@ -622,20 +622,25 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             // Dynamic variable objects should never be returned by GDB unless explicitly enabled
         }
         let has_children = var_object.numchild > 0;
+        let is_container = var_object
+            .value
+            .as_deref()
+            .is_none_or(Self::is_value_of_container);
         let var_object_handle = var_object.object.clone();
         self.create_variable_node(var_object, parent);
         if has_children {
-            // If there are children, now is the time to resolve them
-            self.after_create_non_atom_variable_node(&var_object_handle)
-                .await?;
+            if is_container {
+                // If there are children, now is the time to resolve them
+                self.after_create_container_variable_node(&var_object_handle)
+                    .await?;
+            } else {
+                self.after_create_non_atom_variable_node(&var_object_handle);
+            }
         }
         Ok(var_object_handle)
     }
 
-    async fn after_create_non_atom_variable_node(
-        &mut self,
-        var_object: &VariableObject,
-    ) -> Result<()> {
+    fn after_create_non_atom_variable_node(&mut self, var_object: &VariableObject) {
         let node = self
             .variables
             .get_mut(var_object)
@@ -646,79 +651,84 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             node.type_class = NodeTypeClass::Ref;
             // Resolve the dereference later
             self.add_deferred_dereference(var_object.clone());
-        } else {
-            let children = self
-                .gdb
-                .var_list_children(var_object, PrintValues::SimpleValues)
-                .await?;
-            let container_kind = ContainerKind::deduce_from_children(&children.children)
-                .expect("We have just verified that the node has children; type must be deducible");
-            let node = self
-                .variables
-                .get_mut(var_object)
-                .expect("The node was just created");
-            node.type_class = container_kind.into();
-            match container_kind {
-                ContainerKind::Struct => {
-                    for child in children.children {
-                        // Construct the full tree recursively
-                        let child_node_handle = Box::pin(self.create_variable_tree(
-                            child.variable_object,
-                            Some(GdbStateNodeId::VarObject(var_object.clone())),
-                        ))
-                        .await?;
-                        let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
-                        // Insert child into parent
-                        self.variables
-                            .get_mut(var_object)
-                            .expect("The node was just created")
-                            .add_named_successor(child.exp, child_node_id);
-                    }
+        }
+    }
+
+    async fn after_create_container_variable_node(
+        &mut self,
+        var_object: &VariableObject,
+    ) -> Result<()> {
+        let children = self
+            .gdb
+            .var_list_children(var_object, PrintValues::SimpleValues)
+            .await?;
+        let container_kind = ContainerKind::deduce_from_children(&children.children)
+            .expect("We have just verified that the node has children; type must be deducible");
+        let node = self
+            .variables
+            .get_mut(var_object)
+            .expect("The node was just created");
+        node.type_class = container_kind.into();
+        match container_kind {
+            ContainerKind::Struct => {
+                for child in children.children {
+                    // Construct the full tree recursively
+                    let child_node_handle = Box::pin(self.create_variable_tree(
+                        child.variable_object,
+                        Some(GdbStateNodeId::VarObject(var_object.clone())),
+                    ))
+                    .await?;
+                    let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
+                    // Insert child into parent
+                    self.variables
+                        .get_mut(var_object)
+                        .expect("The node was just created")
+                        .add_named_successor(child.exp, child_node_id);
                 }
-                ContainerKind::Array => {
-                    // Remove the node's type if it was given one, array nodes do not have types
-                    node.type_name = None;
-                    // Cache the full length of the array so we can insert is as a node later
-                    let mut length = 0;
-                    for child in children.children {
-                        // Construct the full tree recursively
-                        let child_node_handle = Box::pin(self.create_variable_tree(
-                            child.variable_object,
-                            Some(GdbStateNodeId::VarObject(var_object.clone())),
-                        ))
-                        .await?;
-                        let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
-                        // Parse the variable's index
-                        let Ok(index) = child.exp.parse() else {
-                            // `ContainerKind::deduce_from_children` ensures that all
-                            // children have numeric names, but the name may be too long
-                            // to store in our variables
-                            // TODO: warn
-                            continue;
-                        };
-                        length = length.max(index + 1);
-                        // Insert child into parent
-                        self.variables
-                            .get_mut(var_object)
-                            .expect("The node was just created")
-                            .successors
-                            .push((EdgeLabel::Index(index), child_node_id));
-                    }
-                    // Insert the length node
-                    let mut length_node = GdbStateNode::new(NodeTypeClass::Atom);
-                    length_node.value = Some(NodeValue::Uint(length as u64));
-                    self.length_nodes.insert(var_object.clone(), length_node);
+            }
+            ContainerKind::Array => {
+                // Remove the node's type if it was given one, array nodes do not have types
+                node.type_name = None;
+                // Cache the full length of the array so we can insert is as a node later
+                let mut length = 0;
+                for child in children.children {
+                    // Construct the full tree recursively
+                    let child_node_handle = Box::pin(self.create_variable_tree(
+                        child.variable_object,
+                        Some(GdbStateNodeId::VarObject(var_object.clone())),
+                    ))
+                    .await?;
+                    let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
+                    // Parse the variable's index
+                    let Ok(index) = child.exp.parse() else {
+                        // `ContainerKind::deduce_from_children` ensures that all
+                        // children have numeric names, but the name may be too long
+                        // to store in our variables
+                        // TODO: warn
+                        continue;
+                    };
+                    length = length.max(index + 1);
+                    // Insert child into parent
                     self.variables
                         .get_mut(var_object)
                         .expect("The node was just created")
                         .successors
-                        .push((
-                            EdgeLabel::Length,
-                            GdbStateNodeId::Length(var_object.clone()),
-                        ));
+                        .push((EdgeLabel::Index(index), child_node_id));
                 }
-                ContainerKind::Pointer => unreachable!(),
+                // Insert the length node
+                let mut length_node = GdbStateNode::new(NodeTypeClass::Atom);
+                length_node.value = Some(NodeValue::Uint(length as u64));
+                self.length_nodes.insert(var_object.clone(), length_node);
+                self.variables
+                    .get_mut(var_object)
+                    .expect("The node was just created")
+                    .successors
+                    .push((
+                        EdgeLabel::Length,
+                        GdbStateNodeId::Length(var_object.clone()),
+                    ));
             }
+            ContainerKind::Pointer => unreachable!(),
         }
         Ok(())
     }
@@ -838,6 +848,11 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             }
         }
         name
+    }
+
+    fn is_value_of_container(value: &str) -> bool {
+        // Containers report their values in this format, if at all
+        value.starts_with("{") || value.starts_with("[")
     }
 }
 
