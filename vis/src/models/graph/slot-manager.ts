@@ -142,13 +142,26 @@ export class GraphSlotManager {
         // Stop observing everything if there are still active slots left
         this.slotResizeObserver.disconnect();
     }
+    updateLayout(): void {
+        // If an update is already scheduled, skip it
+        if (this.layoutUpdateQueued) {
+            return;
+        }
+        // Prevent additional updates until this one is dispatched
+        this.layoutUpdateQueued = true;
+        // Schedule the update to run on next frame
+        requestAnimationFrame(() => {
+            this.updateLayoutNow();
+            this.layoutUpdateQueued = false;
+        });
+    }
     /**
      * Asynchronously recalculates layout using the layout engine
      * received on construction and updates the DOM according to it.
      * 
      * @returns Promise that resolves when the layout has been fully updated.
      */
-    async updateLayout(): Promise<void> {
+    private async updateLayoutNow(): Promise<void> {
         // Recalculate the layout
         await this.layout.recalculateLayout();
         // Update bounding box dimensions
@@ -264,6 +277,7 @@ export class GraphSlotManager {
     private readonly slotAssignments: WeakMap<ReadonlyVisElement, string>;
     private readonly layoutConnectors: WeakMap<ReadonlyVisConnector, LayoutActiveConnector>;
     private readonly slotResizeObserver: ResizeObserver;
+    private layoutUpdateQueued: boolean = false;
 }
 
 /**
