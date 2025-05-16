@@ -1,0 +1,15 @@
+/**
+ * Memory hint sheet for the breadth-first traversal example.
+ */
+
+:node {
+  --n: @("nOutEdges");
+}
+
+:bfs {
+  --n: @("nodeCount");
+}
+
+.alt(:node "outEdges", :bfs "q") {
+  length: --n;
+}

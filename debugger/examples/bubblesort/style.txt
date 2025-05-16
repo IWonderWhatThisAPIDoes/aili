@@ -1,0 +1,74 @@
+/**
+ * Stylesheet for the bubble sort example.
+ */
+
+:: {
+  display: graph;
+  --root: @;
+}
+
+main {
+  display: kvt;
+  --basecolor: val(@("dirty")) ? "#78f" : "#d0cdcd";
+  --main: @;
+  --will-swap: @("arr"[@("j")]) < @("arr"[@("j") - 1])
+}
+
+main .alt("i", "j", "dirty") {
+  display: text;
+  key: --NAME;
+  value: @;
+}
+
+main "dirty" {
+  color: val(@) ? "#78f" : "black";
+  value: !!val(@);
+}
+
+main::extra {
+  display: text;
+  key: "swap";
+  value: --will-swap;
+  color: --will-swap ? "#f55" : "black";
+}
+
+main "arr" {
+  display: row;
+  parent: --root;
+}
+
+main "arr" [] {
+  fill: --basecolor;
+  display: cell;
+  order: --INDEX;
+  value: @;
+}
+
+main "arr" [].if(--INDEX == @((--main) "j") || --INDEX == @((--main) "j") - 1) {
+  fill: --will-swap ? "#f55" : "yellow";
+}
+
+main "arr" [].if(--INDEX >= @((--main) "i")) {
+  fill: "#8d0";
+}
+
+main .alt("i", "j")::extra {
+  display: label;
+  value: --NAME + " = " + @;
+  parent: @((--main) "arr" [@ - 1]);
+  vertical-align: outside;
+  vertical-justify: end;
+  horizontal-justify: end;
+  horizontal-align: middle;
+  hat: north;
+}
+
+main "i" {
+  color: green;
+}
+
+main "i"::extra {
+  color: green;
+  hat: south;
+  vertical-justify: start;
+}

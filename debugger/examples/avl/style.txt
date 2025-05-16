@@ -1,0 +1,110 @@
+/**
+ * Stylesheet for the AVL tree example.
+ */
+
+:: {
+  display: graph;
+  layout: layered;
+  --root: @;
+}
+
+:"tree_node" {
+  display: cell;
+  size: 3;
+  order-children: true;
+  parent: --root;
+}
+
+:"tree_node" "key" {
+  display: label;
+  value: @;
+  vertical-justify: start;
+  padding: "0.5";
+}
+
+:"tree_node" "imbalance" {
+  display: label;
+  value: @;
+  vertical-justify: end;
+  color: "#0008";
+  hat: @ < 0 ? "west" : @ > 0 ? "east" : "none";
+}
+
+:"tree_node" .alt("left", "right") .if(!@(ref)) ::extra {
+  display: cell;
+  size: "0.5";
+  fill: "#635";
+  parent: --root;
+}
+
+:"tree_node" .alt("left", "right") {
+  display: connector;
+  target: @(ref) ? @(ref) : @(::extra);
+  end/decoration: arrow;
+}
+
+:"tree_node" "left" {
+  stroke: "#a85";
+  order: 0;
+}
+
+:"tree_node" "right" {
+  stroke: "#56d";
+  order: 1;
+}
+
+.alt(
+  :frame:"tree_put".if(!@(next)) .alt("parent", "newNode"),
+  :frame:"tree_insert_under".if(!@(next)) "parent",
+  :frame:"tree_rebalance".if(!@(next)) "node"
+) {
+  display: label;
+  value: --NAME;
+  parent: @(ref);
+  horizontal-justify: start;
+  horizontal-align: outside;
+  hat: east;
+  color: "#78f";
+}
+
+:frame:"tree_rebalance".if(!@(next)) "node" ref "imbalance" {
+  color: @ <= -2 || @ >= 2 ? "#f55" : "#78f";
+}
+
+:frame:"tree_put".if(!@(next)) "node" ref "value" {
+  color: "#78f";
+}
+
+:frame.if(!@(next)) {
+  display: kvt;
+  title: typename(@);
+}
+
+:frame:"tree_put".if(!@(next)) "key" {
+  display: cell;
+  value: @;
+  key: "inserting:";
+  fill: "#fd8";
+}
+
+"init":"tree_node" {
+  display: none;
+}
+
+"init":"tree_node" .alt("left", "right") ::extra {
+  display: none;
+}
+
+:frame.alt(:"tree_left_rotate", :"tree_right_rotate") .alt("a", "b", "c", "p") {
+  display: label;
+  value: --NAME;
+  parent: @(ref);
+  vertical-align: outside;
+  vertical-justify: start;
+  horizontal-justify: start;
+  color: "#78f";
+}
+
+:frame:"tree_put".if(@("key") == @("parent" ref "key")) "parent" ref "key" {
+  color: "#f55";
+}

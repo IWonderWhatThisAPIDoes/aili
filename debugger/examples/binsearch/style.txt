@@ -1,0 +1,70 @@
+/**
+ * Stylesheet for the binary search example.
+ */
+
+:: {
+  display: graph;
+  --root: @;
+}
+
+:main {
+  --arr: @("array");
+  --min: @("min");
+  --max: @("max");
+  --mid: @("mid");
+  --find: @("find");
+}
+
+:main "array" {
+  display: row;
+}
+
+:main "array" [] {
+  display: cell;
+  value: @;
+  order: --INDEX;
+  fill: "#d0cdcd";
+}
+
+:main "array" [--mid] {
+  fill: "#8d0";
+}
+
+:main "array" [].if(--INDEX == --mid && @ < --find || --INDEX < --min) {
+  fill: "#f55";
+}
+
+:main "array" [].if(--INDEX == --mid && @ > --find || --INDEX >= --max) {
+  fill: "#78f";
+}
+
+:main .alt("min", "max", "mid") {
+  display: label;
+  value: --NAME;
+  parent: @((--arr) [@]);
+  vertical-justify: start;
+  vertical-align: outside;
+  horizontal-justify: start;
+  horizontal-align: middle;
+  hat: south;
+}
+
+:main "min" {
+  color: "#f55";
+}
+
+:main "max" {
+  color: "#78f";
+}
+
+:main .alt("min", "max", "mid").if(@ == @((--arr) len)) {
+  parent: @((--arr) [@ - 1]);
+  horizontal-justify: end;
+}
+
+:main "mid" {
+  vertical-justify: end;
+  horizontal-justify: center;
+  hat: north;
+  color: "#5a0";
+}

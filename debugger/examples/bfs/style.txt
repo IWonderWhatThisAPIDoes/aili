@@ -1,0 +1,75 @@
+/**
+ * Stylesheet for the breadth-first traversal example.
+ */
+
+:: {
+  display: graph;
+  layout: layered;
+  direction: east;
+  --root: @;
+}
+
+main {
+  display: graph;
+  padding: 0;
+  --main: @;
+}
+
+:bfs {
+  --qstart: @("qstart");
+  --qend: @("qend");
+  --q: @("q" ref);
+  --current: @("current");
+}
+
+:bfs .alt("qstart", "qend") {
+  display: label;
+  hat: east;
+  parent: --q;
+  horizontal-justify: start;
+  horizontal-align: outside;
+  padding: "0.5"
+}
+
+:bfs "qend" {
+  horizontal-justify: end;
+}
+
+:bfs "q" ref {
+  display: row;
+  parent: --root;
+  stroke-width: 1;
+}
+
+:bfs "q" ref [].if(--INDEX < --qstart && --INDEX >= --qend) {
+  display: cell;
+  value: @;
+  order: - --INDEX;
+  fill: @ == --current ? "#78f" : "#f55";
+}
+
+main "graph" [] {
+  display: cell;
+  value: --INDEX;
+  // State of this node
+  --s: @("state");
+  fill: --s == 0 ? "#d0cdcd" : --s == 1 ? "#f55" : "yellow" ;
+  stroke: --s == 1 ? "#a00" : "black";
+  parent: --main;
+}
+
+main "graph" [] "outEdges" ref [] {
+  display: connector;
+  target: @((--main) "graph" [@]);
+  end/decoration: arrow;
+}
+
+:bfs.if(!@(next)) {
+  --origin: @("current");
+  --i: @("i");
+}
+
+:bfs.if(!@(next)) "graph" ref [--origin] .alt(, "outEdges" ref [--i]) {
+  stroke: "#78f";
+  stroke-width: 3;
+}

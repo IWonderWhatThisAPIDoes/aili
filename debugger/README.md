@@ -27,6 +27,26 @@ must be built with the GDBState feature.
 npm run start
 ```
 
+## Examples
+
+The `examples` directory contains an assortment of small programs
+that can be visualized with the Aili debugger.
+Stylesheets and (if needed) memory hint sheets created for the specific
+programs are also included.
+
+The following examples are present:
+
+- AVL tree insertion
+- Breadth-first traversal of a graph structure
+- Binary search over an array
+- Bubble sort over an array
+- Depth-first traversal of a graph structure
+- Construction and traversal of a linked list
+- Dynamically-sized array container
+
+A general-purpose (non-semantic) stylesheet is also included
+that can be used with all of the programs.
+
 ## Documentation
 
 The following command generates documentation and saves it to the `doc` directory.

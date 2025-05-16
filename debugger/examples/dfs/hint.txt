@@ -1,0 +1,11 @@
+/**
+ * Memory hint sheet for the depth-first traversal example.
+ */
+
+:node {
+  --n: @("nOutEdges");
+}
+
+:node "outEdges" {
+  length: --n;
+}

@@ -1,0 +1,66 @@
+/**
+ * Stylesheet for the vector example.
+ */
+
+:: {
+  display: graph;
+}
+
+:vector {
+  --v: @;
+  --ptr: @("ptr" ref);
+  --len: @("len");
+}
+
+:"vector_reserve" {
+  --i: @("i");
+  --len: @("v" ref "len");
+}
+
+.alt(:vector "ptr", :"vector_reserve" "p") {
+  display: row;
+  stroke-width: 1;
+  fill: "#635";
+}
+
+.alt(:vector "ptr", :"vector_reserve" "p") ::extra {
+  display: label;
+  value: --NAME;
+  horizontal-justify: start;
+  horizontal-align: outside;
+  vertical-justify: start;
+  vertical-align: middle;
+  hat: east;
+}
+
+.alt(:vector "ptr", :"vector_reserve" "p") ref [] {
+  --out-of-range: --INDEX >= --len;
+  display: cell;
+  value: --out-of-range ? "X" : @;
+  order: --INDEX;
+  fill: --out-of-range ? "#d0cdcd" : "#b5d2ee";
+}
+
+:vector .alt("len", "cap") {
+  display: label;
+  value: --NAME + " = " + @;
+  vertical-justify: start;
+  vertical-align: outside;
+  horizontal-justify: @ == 0 ? "start" : "end";
+  horizontal-align: middle;
+  parent: @ == 0 ? --v : @((--ptr) [@ - 1]);
+  hat: south;
+}
+
+:vector "cap" {
+  vertical-justify: end;
+  hat: north;
+}
+
+:"vector_reserve" "v" ref "ptr" ref [--i] {
+  fill: "#f55";
+}
+
+:"vector_reserve" "p" ref [--i] {
+  fill: "#f55";
+}

@@ -1,0 +1,67 @@
+/**
+ * Stylesheet for the depth-first traversal example.
+ */
+
+:: {
+  display: graph;
+  layout: layered;
+  --root: @;
+}
+
+main {
+  display: graph;
+  padding: 0;
+  --main: @;
+  --trace: @(::extra);
+}
+
+main::extra {
+  display: kvt;
+  title: "Stack Trace";
+  parent: --root;
+}
+
+:frame:dfs {
+  --depth: isset(--depth) ? --depth + 1 : 0;
+  display: kvt;
+  parent: --trace;
+  order: --depth;
+  key: --depth;
+}
+
+:frame:dfs .alt("origin", "i") {
+  display: text;
+  value: @;
+  key: --NAME;
+  color: "#f55";
+}
+
+:frame:dfs.if(!@(next)) .alt("origin", "i") {
+  color: "#78f";
+}
+
+main "graph" [] {
+  display: cell;
+  value: --INDEX;
+  // State of this node
+  --s: @("state");
+  fill: --s == 0 ? "#d0cdcd" : --s == 1 ? "#f55" : "yellow" ;
+  stroke: --s == 1 ? "#a00" : "black";
+  parent: --main;
+}
+
+main "graph" [] "outEdges" ref [] {
+  display: connector;
+  target: @((--main) "graph" [@]);
+  end/decoration: arrow;
+}
+
+:frame:dfs.if(!@(next)) {
+  --origin: @("origin");
+  --i: @("i");
+}
+
+:frame:dfs.if(!@(next)) "graph" ref [--origin] .alt(, "outEdges" ref [--i]) {
+  stroke: "#78f";
+  stroke-width: 3;
+}

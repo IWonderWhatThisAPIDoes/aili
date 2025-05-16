@@ -1,0 +1,11 @@
+/**
+ * Memory hint sheet for the vector example.
+ */
+
+.alt(:vector, :"vector_reserve") {
+  --cap: @("cap");
+}
+
+.alt(:vector "ptr", :"vector_reserve" "p") {
+  length: --cap;
+}

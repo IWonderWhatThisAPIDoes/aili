@@ -1,0 +1,97 @@
+/**
+ * Stylesheet that can render any program as a graph
+ * of objects.
+ *
+ * Unlike the stylesheets included with individual examples,
+ * this stylesheet is not hand-tailored to a specific
+ * program and can render anything.
+ * 
+ * At the same time, it loses the semantic aspect of Aili visualizations.
+ * Outputs of this stylesheet resemble more messy versions
+ * of the visualizations produced by
+ * [Online Python Tutor](https://pythontutor.com/)
+ * and other non-semantic visualization software.
+ */
+
+:: {
+  display: graph;
+  layout: layered;
+  direction: east;
+  --root: @;
+  --trace: @(::extra(stack));
+  --sp: 0;
+}
+
+:: ::extra(stack) {
+  display: row;
+  gap: 1;
+  padding: "0.5";
+  stroke-width: 1;
+  direction: column;
+  align-items: start;
+}
+
+:: ::extra(stack-label) {
+  display: label;
+  parent: --trace;
+  value: "stack";
+  vertical-justify: start;
+  vertical-align: outside;
+}
+
+* {
+  parent: --root;
+}
+
+:: main .many(next) {
+  --sp: --sp + 1;
+  order: --sp;
+  parent: --trace;
+  key: --sp;
+}
+
+.alt(%, []) {
+  parent: --parent;
+  key: --NAME;
+  order: --INDEX;
+}
+
+:val {
+  display: cell;
+  value: @;
+  fill: "#b5d2ee";
+}
+
+.alt(:struct, :frame) {
+  display: kvt;
+  title: typename(@);
+  --parent: @;
+}
+
+:arr {
+  display: row;
+  --parent: @;
+}
+
+.alt(:ref, :nullptr) {
+  display: cell;
+  size: "0.5";
+  shape: circle;
+  fill: "#536";
+}
+
+len {
+  display: label;
+  value: "length: " + @;
+  parent: --parent;
+  vertical-justify: start;
+  horizontal-justify: start;
+  vertical-align: outside;
+}
+
+ref::edge {
+  shape: quadratic;
+  stroke: "#536";
+  end/decoration: arrow;
+  end/anchor: northwest;
+}

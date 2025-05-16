@@ -1,0 +1,49 @@
+/**
+ * Stylesheet for the linked list example.
+ */
+
+:: {
+  display: graph;
+  layout: layered;
+  direction: east;
+  --root: @;
+}
+
+:node {
+  display: cell;
+  --v: @("value");
+  parent: --root;
+  value: --v;
+  fill: "#f" + (--v + 2) + (10 - --v);
+}
+
+:node "next" {
+  display: connector;
+  target: @(ref) ? @(ref) : @(::extra);
+  end/decoration: arrow;
+}
+
+:node "next".if(!@(ref))::extra {
+  display: cell;
+  parent: --root;
+  fill: "#536";
+  size: "0.5";
+}
+
+:frame %:ref {
+  display: label;
+  value: --NAME;
+  parent: @(ref);
+  hat: south;
+  vertical-justify: start;
+  vertical-align: outside;
+}
+
+:frame.if(@(next)) %:ref {
+  color: grey;
+}
+
+.alt(:main, :"create_node") %:ref {
+  vertical-justify: end;
+  hat: north;
+}
