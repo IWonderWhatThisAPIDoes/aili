@@ -19,7 +19,7 @@ a user who is familiar with CSS, but they also differ in many aspects.
 
 ![Overview of modules in the repository](./assets/overview.png)
 
-| Module                          | Description                                                     |
+| Language + Module               | Description                                                     |
 |---------------------------------|-----------------------------------------------------------------|
 | [:yellow_square: Debugger](./debugger) | Demo application that showcases the whole debugger pipeline. |
 | [:yellow_square: Demo](./demo)  | Demo application that showcases Vis and Translate modules.      |
