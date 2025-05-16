@@ -89,6 +89,12 @@
             GDB>
             <input v-model="inputToDebugger" @keyup.enter.self="sendInputToDebugger" :disabled="!isAcceptingInput">
         </label>
+        <span>
+            Send commands manually to the underlying GDB session.
+            The debugger is in
+            <a href="https://sourceware.org/gdb/current/onlinedocs/gdb.html/GDB_002fMI.html">GDB/MI</a>
+            input mode. Classic GDB CLI commands are also accepted.
+        </span>
     </div>
 </template>
 
