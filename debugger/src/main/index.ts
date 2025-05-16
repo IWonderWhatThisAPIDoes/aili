@@ -7,7 +7,7 @@
  * @module
  */
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import { is } from '@electron-toolkit/utils';
 import path from 'path';
 import { setupIpcApi, setupIpcEvents } from './ipcapi';
@@ -30,6 +30,19 @@ function setupMainWindow(): BrowserWindow {
 
     mainWindow.on('ready-to-show', () => mainWindow.maximize());
     mainWindow.on('close', () => app.quit());
+
+    // The window's JS context has access to very powerful API,
+    // so it is quite unsafe if a random web page were loaded through it.
+    // This will force URLs to be opened in an actual browser instead
+    // https://stackoverflow.com/a/67409223/15075450
+    mainWindow.webContents.on('will-frame-navigate', e => {
+        shell.openExternal(e.url);
+        e.preventDefault();
+    });
+    mainWindow.webContents.setWindowOpenHandler(e => {
+        shell.openExternal(e.url);
+        return { action: 'deny' };
+    });
 
     // https://github.com/alex8088/quick-start/blob/master/packages/create-electron/playground/vanilla-ts/src/main/index.ts
     // Electron-Vite supports hot reloading (like a Vite dev server)
