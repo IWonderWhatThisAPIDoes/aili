@@ -24,7 +24,7 @@ use aili_style::{
 };
 use aili_translate::{
     cascade::apply_stylesheet,
-    forward::Renderer,
+    forward::VisTreeWriter,
     property::PropertyKey,
 };
 
@@ -40,20 +40,20 @@ fn translate(
     // to determine the desired appearence of the Vis tree
     let mapping = apply_stylesheet(&compiled_stylesheet, &state);
 
-    // Create a renderer that will paste the desired properties
+    // Create a writer that will paste the desired properties
     // into the Vis tree
-    let mut renderer = Renderer::new(vis);
+    let mut writer = VisTreeWriter::new(vis);
 
-    // First let the renderer know which node maps
+    // First let the writer know which node maps
     // to the root of the Vis tree
-    renderer.update_root(Some(Selectable::node(state.root())));
+    writer.update_root(Some(Selectable::node(state.root())));
 
     // Fill in the Vis tree and style it according to the stylesheet
     //
     // This creates new Vis entities that correspond to visible
-    // State entities. The renderer is stateful so this can be called
+    // State entities. The writer is stateful so this can be called
     // multiple times without recreating the entire Vis tree.
-    renderer.update(mapping);
+    writer.update(mapping);
 }
 ```
 
