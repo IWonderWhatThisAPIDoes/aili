@@ -158,17 +158,20 @@ export class GraphSlotManager {
         for (const nodeId in this.slots) {
             const { html } = this.slots[nodeId];
             const node = this.layout.getNodeById(nodeId);
-            html.style.left = String(node.left) + 'px';
-            html.style.top = String(node.top) + 'px';
+            if (node) {
+                html.style.left = String(node.left) + 'px';
+                html.style.top = String(node.top) + 'px';
+            }
         }
         // Connectors will need to be recalculated too
         this.context.jsplumb.repaintEverything();
     }
     private getOrAddElementToLayout(element: ReadonlyVisElement): { node: LayoutNode, created: boolean } {
         const existingNodeId = this.slotAssignments.get(element);
-        if (existingNodeId) {
+        const existingNode = existingNodeId && this.layout.getNodeById(existingNodeId);
+        if (existingNode) {
             return {
-                node: this.layout.getNodeById(existingNodeId),
+                node: existingNode,
                 created: false,
             };
         }
@@ -184,8 +187,8 @@ export class GraphSlotManager {
             return false;
         }
 
-        const startSlotId = this.slotAssignments.get(connector.start.projectedTarget);
-        const endSlotId = this.slotAssignments.get(connector.end.projectedTarget);
+        const startSlotId = connector.start.projectedTarget && this.slotAssignments.get(connector.start.projectedTarget);
+        const endSlotId = connector.end.projectedTarget && this.slotAssignments.get(connector.end.projectedTarget);
         if (startSlotId === undefined || endSlotId === undefined) {
             // The connector's endpoints are not actually in the layout,
             // so we can skip it
@@ -194,6 +197,10 @@ export class GraphSlotManager {
 
         // Add the connector to the layout
         const layoutEdge = this.layout.addEdge(startSlotId, endSlotId);
+        if (!layoutEdge) {
+            // This means either endpoint node is not present
+            return false;
+        }
 
         // Drop the connector when it moves
         const dropCallback = () => this.removeConnectorFromLayout(connector);
@@ -204,7 +211,7 @@ export class GraphSlotManager {
         // Listen for attribute updates
         const attributeBindings = setAttributeBindings(connector.attributes, {
             order: value => {
-                layoutEdge.order = bind.getNumeric(bind.integer, value);
+                layoutEdge.order = value === undefined ? undefined : bind.getNumeric(bind.integer, value);
                 this.updateLayout();
             },
         });
@@ -241,7 +248,7 @@ export class GraphSlotManager {
     private slotsResized(entries: readonly ResizeObserverEntry[]): void {
         for (const entry of entries) {
             const slotId = (entry.target as HTMLElement).dataset.graphSlotId;
-            const slot = this.layout.getNodeById(slotId);
+            const slot = slotId && this.layout.getNodeById(slotId);
             if (!slot) {
                 continue;
             }

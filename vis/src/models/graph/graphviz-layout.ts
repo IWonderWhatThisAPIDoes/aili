@@ -30,12 +30,15 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
         this.gap = GRAPH_DEFAULT_GAP;
     }
     set layoutModel(layout: GraphLayoutModel) {
+        this.graph.graphAttributes ??= {};
         this.graph.graphAttributes.layout = LAYOUT_MODEL_TO_GRAPHVIZ[layout];
     }
     set layoutDirection(direction: GraphLayoutDirection) {
+        this.graph.graphAttributes ??= {};
         this.graph.graphAttributes.rankdir = LAYOUT_DIRECTION_TO_GRAPHVIZ[direction];
     }
     set gap(gap: number) {
+        this.graph.graphAttributes ??= {};
         // For DOT and TWOPI layout
         this.graph.graphAttributes.nodesep = gap / POINTS_PER_INCH;
         this.graph.graphAttributes.ranksep = gap / POINTS_PER_INCH;
@@ -49,6 +52,7 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
         const nodeId = String(this.nextNodeId++);
         const node = new GraphvizLayoutNode(nodeId);
         this.nodes[nodeId] = node;
+        this.graph.nodes ??= [];
         node.index = this.graph.nodes.length;
         this.graph.nodes.push(node.node);
         return node;
@@ -62,12 +66,15 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
             return;
         }
         // Remove node from layout
-        delete this.graph.nodes[node.index];
+        if (this.graph.nodes) {
+            delete this.graph.nodes[node.index];
+        }
         // Forget the slot data to make it eligible for GC
         delete this.nodes[nodeId];
     }
     addEdge(startId: string, endId: string): LayoutEdge {
         const layoutEdge = { tail: startId, head: endId, attributes: {} };
+        this.graph.edges ??= [];
         const index = this.graph.edges.push(layoutEdge) - 1;
         const edgeId = String(this.nextEdgeId++);
         const edge = new GraphvizLayoutEdge(edgeId);
@@ -84,7 +91,9 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
         if (!edge) {
             return;
         }
-        delete this.graph.edges[edge.index];
+        if (this.graph.edges) {
+            delete this.graph.edges[edge.index];
+        }
         delete this.edges[id];
     }
     async recalculateLayout(): Promise<void> {
@@ -117,7 +126,7 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
         // function to be consistent, so they are assigned an order of zero.
         const sortedEdges = Object.values(this.edges).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         // Get the edges as they are currently in the graph
-        const oldEdges = this.graph.edges;
+        const oldEdges = this.graph.edges ??= [];
         // Place edges into the graph in the new order
         // and reassign indices to edge handles
         this.graph.edges = sortedEdges.map((edge, i) => {

@@ -160,17 +160,17 @@ export class GraphViewModel extends FlowViewModel {
             'stroke-style': bind.css(html, 'border-style', bind.whitelist(['solid', 'dashed', 'dotted'])),
             padding: bind.css(html, 'padding', bind.numeric(bind.positive, 'em')),
             layout: value => {
-                value = bind.whitelist(Object.values(GraphLayoutModel))(value) ?? GraphLayoutModel.DEFAULT;
+                value = (value && bind.whitelist(Object.values(GraphLayoutModel))(value)) ?? GraphLayoutModel.DEFAULT;
                 layout.layoutModel = value as GraphLayoutModel;
                 this.slotManager.updateLayout();
             },
             direction: value => {
-                value = bind.whitelist(Object.values(GraphLayoutDirection))(value) ?? GraphLayoutDirection.DEFAULT;
+                value = (value && bind.whitelist(Object.values(GraphLayoutDirection))(value)) ?? GraphLayoutDirection.DEFAULT;
                 layout.layoutDirection = value as GraphLayoutDirection;
                 this.slotManager.updateLayout();
             },
             gap: value => {
-                let numValue = bind.getNumeric(bind.positiveOrZero, value) ?? GRAPH_DEFAULT_GAP;
+                let numValue = value === undefined ? GRAPH_DEFAULT_GAP : bind.getNumeric(bind.positiveOrZero, value) ?? GRAPH_DEFAULT_GAP;
                 layout.gap = numValue;
                 this.slotManager.updateLayout();
             },
