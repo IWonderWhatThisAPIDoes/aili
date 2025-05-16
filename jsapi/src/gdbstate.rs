@@ -50,10 +50,7 @@ impl StringGdbMiStream for &GdbMi {
                     "Command did not return a string",
                 )
             }),
-            Err(err) => Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                js_error_description(&err),
-            )),
+            Err(err) => Err(std::io::Error::other(js_error_description(&err))),
         }
     }
 }
