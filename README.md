@@ -1,7 +1,7 @@
 <img src="./assets/logo.png" width="400" alt="Aili" />
 
 Prototype semantic visual debugger developed at the
-[Faculty of Information Technology Czech Technical University in Prague](https://fit.cvut.cz/en).
+[Faculty of Information Technology, Czech Technical University in Prague](https://fit.cvut.cz/en).
 
 ## How It Works
 
@@ -32,3 +32,10 @@ See the [stylesheet authors' manual](./doc/stylesheets.md) for more information.
 | [:crab: Style](./style)         | Stylesheets that assign properties to State entities.           |
 | [:crab: Translate](./translate) | Translator for converting between Program state and Visualization models based on a stylesheet that describes the mapping. |
 | [:yellow_square: Vis](./vis)    | Browser-based renderer of Visualization model, written in Typescript. |
+
+## Acknowledgements
+
+This software was developed with the support of the Faculty of Information Technology,
+Czech Technical University in Prague, [fit.cvut.cz](https://fit.cvut.cz)
+
+<img src="https://fit.cvut.cz/media-a-pr/corporate-identity/logo-fit-en-modra.svg" alt="Faculty of Information Technology, Czech Technical University in Prague" />
