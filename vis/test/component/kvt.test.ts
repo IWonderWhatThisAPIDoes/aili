@@ -105,7 +105,7 @@ describe(vis.KeyValueTableViewModel, () => {
             child2.parent = root;
         });
         const children = await t.appContainer.$$(childSelector);
-        const childBounds = await Promise.all(children.map(c => c.boundingBox()));
+        const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
         expect(children).toHaveLength(2);
         // Right edges should align
         expect(childBounds[0].x + childBounds[0].width).toBeCloseTo(childBounds[1].x + childBounds[1].width);

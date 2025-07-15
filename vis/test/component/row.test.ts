@@ -40,14 +40,14 @@ describe(vis.RowViewModel, () => {
     async function boundingBoxes(): Promise<{ rowBounds: BoundingBox, childBounds: BoundingBox[] }> {
         const rowBounds = await t.boundingBox();
         const children = await t.appContainer.$$(childSelector);
-        const childBounds = await Promise.all(children.map(c => c.boundingBox()));
+        const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
         return { rowBounds, childBounds };
     }
 
     async function childTextsInPositionOrder(): Promise<string[]> {
         const children = await t.appContainer.$$(childSelector);
-        const childBounds = await Promise.all(children.map(c => c.boundingBox()));
-        const childTexts = await Promise.all(children.map(c => c.getProperty('textContent').then(t => t.jsonValue())));
+        const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
+        const childTexts = await Promise.all(children.map(c => c.getProperty('textContent').then(t => t.jsonValue()).then(t => t ?? '')));
         const childBoundsAndTexts: [BoundingBox, string][] = childBounds.map((b, i) => [b, childTexts[i]]);
         return childBoundsAndTexts.sort((a, b) => a[0].x - b[0].x).map(([_, text]) => text);
     }

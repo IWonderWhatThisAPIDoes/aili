@@ -88,7 +88,7 @@ describe(vis.GraphViewModel, () => {
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
         const graphBounds = await t.boundingBox();
         const children = await t.appContainer.$$(childSelector);
-        const childBounds = await Promise.all(children.map(c => c.boundingBox()));
+        const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
         const minLeft = Math.min(...childBounds.map(c => c.x));
         const minTop = Math.min(...childBounds.map(c => c.y))
         const maxRight = Math.max(...childBounds.map(c => c.x + c.width));

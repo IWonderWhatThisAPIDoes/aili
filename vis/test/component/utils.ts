@@ -4,7 +4,7 @@
  * @module
  */
 
-import { BoundingBox, ElementHandle, EvaluateFunc, JSHandle } from "puppeteer";
+import { BoundingBox, ElementHandle, EvaluateFunc, JSHandle } from 'puppeteer';
 import * as vis from '../../src';
 import * as path from 'path';
 import 'jest-puppeteer';
@@ -47,6 +47,19 @@ export const WHITE: ColorChannels = {
 export const EM_TOLERANCE: number = -1;
 
 /**
+ * Regex that matches a CSS RGBA color specification.
+ */
+const RGBA_PATTERN: RegExp = /^rgba\(((?:\s*\d+\s*,){3}\s*\d+\s*)\)$/;
+/**
+ * Regex that matches a CSS RGB color specification.
+ */
+const RGB_PATTERN: RegExp = /^rgb\(((?:\s*\d+\s*,){2}\s*\d+\s*)\)$/;
+/**
+ * Regex that matches a CSS pixel length.
+ */
+const PIXEL_PATTERN: RegExp = /^(\d+(?:\.\d+)?)px$/;
+
+/**
  * Deserializes a CSS color in order to properly assert its value.
  * 
  * @param color CSS color specification, in `rgb` or `rgba` format.
@@ -55,9 +68,8 @@ export const EM_TOLERANCE: number = -1;
  */
 export function parseResolvedColor(color: string): ColorChannels {
     color = color.trim();
-    if (color.startsWith('rgba')) {
-        const pattern = /^rgba\(((?:\s*\d+\s*,){3}\s*\d+\s*)\)$/;
-        const match = pattern.exec(color)[1];
+    var match: string | undefined;
+    if (match = RGBA_PATTERN.exec(color)?.[1]) {
         const channels = match.split(',').map(c => Number.parseInt(c.trim()));
         return {
             r: channels[0],
@@ -65,9 +77,7 @@ export function parseResolvedColor(color: string): ColorChannels {
             b: channels[2],
             a: channels[3],
         };
-    } else if (color.startsWith('rgb')) {
-        const pattern = /^rgb\(((?:\s*\d+\s*,){2}\s*\d+\s*)\)$/;
-        const match = pattern.exec(color)[1];
+    } else if (match = RGB_PATTERN.exec(color)?.[1]) {
         const channels = match.split(',').map(c => Number.parseInt(c.trim()));
         return {
             r: channels[0],
@@ -85,10 +95,13 @@ export function parseResolvedColor(color: string): ColorChannels {
  * 
  * @param length CSS length specification, expected to be in pixels.
  * @returns The same length, as a number in pixels.
+ * @throws {Error} `length` is not a pixel length specification.
  */
 export function parsePixels(length: string): number {
-    const pattern = /^(\d+(?:\.\d+)?)px$/;
-    const match = pattern.exec(length)[1];
+    const match = PIXEL_PATTERN.exec(length)?.[1];
+    if (!match) {
+        throw new Error('Found value is not a pixel length');
+    }
     return Number.parseFloat(match);
 }
 
@@ -137,9 +150,14 @@ export class Testbed {
      * @param selector Selector that identifies the target element.
      *                 If not provided, {@link theElementSelector} will be used.
      * @returns The element that represents the visual's rendering.
+     * @throws {Error} The element does not exist.
      */
-    theElement(selector?: string): Promise<ElementHandle<Element>> {
-        return this.appContainer.$(selector ?? this.theElementSelector);
+    async theElement(selector?: string): Promise<ElementHandle<Element>> {
+        const elem = await this.appContainer.$(selector ?? this.theElementSelector);
+        if (!elem) {
+            throw new Error('Queried element does not exist');
+        }
+        return elem;
     }
     /**
      * Gets the bounding box of a DOM element.
@@ -147,10 +165,11 @@ export class Testbed {
      * @param selector Selector that identifies the target element.
      *                 If not provided, {@link theElementSelector} will be used.
      * @returns Bounding box of the target element.
+     * @throws {Error} The element does not exist or it is not included in layout.
      */
     async boundingBox(selector?: string): Promise<BoundingBox> {
         const element = await this.theElement(selector);
-        return await element.boundingBox();
+        return await Testbed.boundingBoxOf(element);
     }
     /**
      * Gets the text content of a DOM element.
@@ -162,7 +181,7 @@ export class Testbed {
     async textContent(selector?: string): Promise<string> {
         const element = await this.theElement(selector);
         const text = await element.getProperty('textContent');
-        return await text.jsonValue();
+        return await text.jsonValue() ?? '';
     }
     /**
      * Reads a CSS property of the visual's rendering element.
@@ -176,6 +195,20 @@ export class Testbed {
             await this.theElement(),
             property
         );
+    }
+    /**
+     * Gets the bounding box of an element, and fails if it does not have one
+     * 
+     * @param handle Handle to the examined element.
+     * @returns Bounding box of the element.
+     * @throws {Error} The element is not included in layout.
+     */
+    static async boundingBoxOf(handle: ElementHandle): Promise<BoundingBox> {
+        const bb = await handle.boundingBox();
+        if (!bb) {
+            throw new Error('Requested bounding box of an element that is not included in layout');
+        }
+        return bb;
     }
     /**
      * The element that is the designated container for the app.

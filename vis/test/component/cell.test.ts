@@ -142,7 +142,7 @@ describe(vis.CellViewModel, () => {
         await t.rootElement(root => root.attributes.size.value = '4');
         await t.setupViewport();
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
-        const boundingBox = await t.theElement().then(h => h.boundingBox());
+        const boundingBox = await t.boundingBox();
         // This is a very rough estimate, approximating em units with font size
         expect(boundingBox.width).toBeCloseTo(fontSize * 4, EM_TOLERANCE);
         expect(boundingBox.height).toBeCloseTo(fontSize * 4, EM_TOLERANCE);
@@ -152,7 +152,7 @@ describe(vis.CellViewModel, () => {
         await t.setupViewport();
         await t.rootElement(root => root.attributes.size.value = '1');
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
-        const boundingBox = await t.theElement().then(h => h.boundingBox());
+        const boundingBox = await t.boundingBox();
         // This is a very rough estimate, approximating em units with font size
         expect(boundingBox.width).toBeCloseTo(fontSize, EM_TOLERANCE);
         expect(boundingBox.height).toBeCloseTo(fontSize, EM_TOLERANCE);

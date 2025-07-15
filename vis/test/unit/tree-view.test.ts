@@ -8,15 +8,18 @@ import { ViewModel } from '../../src/model';
 
 const ELEMENT_TAG_NAME = 'foo';
 
-class TestViewContainer<T, R extends ViewBase> extends ViewContainer<T, R> {
-    createNew(tag: T) {
-        // The requested value must be present
-        expect(this.expectedCalls.has(tag)).toBeTruthy();
+class TestViewContainer<T extends Object, R extends ViewBase> extends ViewContainer<T, R> {
+    createNew(tag: T): R {
+        // Find the views associated with the tag
         const views = this.expectedCalls.get(tag);
         // Remove the view, only expect it to be called once
-        const view = views.shift();
+        const view = views?.shift();
+        // The requested view must be present
+        if (!view) {
+            throw new Error('Container has requested construction of an unexpected view');
+        }
         // Drop the entry if no more views are available for it
-        if (views.length === 0) {
+        if (views && views.length === 0) {
             this.expectedCalls.delete(tag);
         }
         // Return the view
