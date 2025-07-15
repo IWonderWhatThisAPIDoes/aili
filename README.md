@@ -33,6 +33,14 @@ See the [stylesheet authors' manual](./doc/stylesheets.md) for more information.
 | [:crab: Translate](./translate) | Translator for converting between Program state and Visualization models based on a stylesheet that describes the mapping. |
 | [:yellow_square: Vis](./vis)    | Browser-based renderer of Visualization model, written in Typescript. |
 
+## References
+
+[Companion paper of version 0.1.0]
+
+Čajan Tomáš. *Interactive debugger with semantic visualization*.
+Bachelor’s thesis. Czech Technical University in Prague, Faculty of Information
+Technology, 2025. URL: http://hdl.handle.net/10467/123265.
+
 ## Acknowledgements
 
 This software was developed with the support of the Faculty of Information Technology,
