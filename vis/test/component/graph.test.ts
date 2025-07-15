@@ -41,6 +41,10 @@ describe(vis.GraphViewModel, () => {
         return Object.fromEntries(childTexts.map((k, i) => [k, childBounds[i]]));
     }
 
+    async function nextAnimationFrame(): Promise<void> {
+        await t.appContainer.evaluate(() => new Promise(requestAnimationFrame));
+    }
+
     it('renders as an element with the correct class', async () => {
         await t.setupViewport();
         expect(await t.appContainer.$$(t.theElementSelector)).toHaveLength(1);
@@ -80,6 +84,7 @@ describe(vis.GraphViewModel, () => {
         await t.rootElement((root, padding) => root.attributes.padding.value = padding, String(PADDING));
         await insertChildren(CHILD_COUNT);
         await t.setupViewport();
+        await nextAnimationFrame();
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
         const graphBounds = await t.boundingBox();
         const children = await t.appContainer.$$(childSelector);
