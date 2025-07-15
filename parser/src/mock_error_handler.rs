@@ -63,8 +63,7 @@ impl<T: Eq + std::fmt::Debug> Drop for ExpectErrors<T> {
             ExpectErrorsKind::Exact(expected) => {
                 assert!(
                     expected.is_empty(),
-                    "Expected errors were not emited: {:?}",
-                    expected
+                    "Expected errors were not emited: {expected:?}",
                 );
             }
             ExpectErrorsKind::Some => {

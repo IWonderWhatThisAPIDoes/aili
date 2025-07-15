@@ -77,7 +77,7 @@ impl<T: NodeId> std::fmt::Debug for Selectable<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.node_id)?;
         if let Some(edge) = &self.edge_label {
-            write!(f, " {:?}::edge", edge)?;
+            write!(f, " {edge:?}::edge")?;
         }
         if let Some(extra) = &self.extra_label {
             if extra.is_empty() {
