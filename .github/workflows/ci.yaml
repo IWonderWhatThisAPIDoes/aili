@@ -270,8 +270,6 @@ jobs:
           restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustdoc
       - name: Check documentation
         run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --document-private-items --no-deps --all-features
 
