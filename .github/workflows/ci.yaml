@@ -23,6 +23,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-crates-
       - name: Load cached build outputs
         uses: actions/cache@v4
         with:
@@ -172,6 +173,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests, except GDBState
@@ -194,6 +196,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Update package manager
@@ -218,6 +221,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -240,6 +244,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -262,6 +267,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
