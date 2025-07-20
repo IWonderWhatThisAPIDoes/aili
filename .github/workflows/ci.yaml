@@ -8,20 +8,9 @@ on:
 
 jobs:
 
-  cache-key:
-    runs-on: ubuntu-latest
-    name: Create cache key suffix
-    outputs:
-      suffix: ${{ steps.generate.outputs.suffix }}
-    steps:
-      - id: generate
-        name: Generate suffix
-        run: echo "suffix=$RANDOM" >> $GITHUB_OUTPUT
-
   build-jsapi:
     runs-on: ubuntu-latest
     name: Build JSAPI
-    needs: cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,137 +21,124 @@ jobs:
       - name: Build
         run: wasm-pack build jsapi --target bundler --features gdbstate
       - name: Save build outputs
-        uses: actions/cache/save@v3
+        uses: actions/upload-artifact@v4
         with:
-          path: jsapi/pkg
-          key: jsapi-package-${{ needs.cache-key.outputs.suffix }}
-  
-  npm-install:
-    runs-on: ubuntu-latest
-    name: Install Node packages
-    needs:
-      - build-jsapi
-      - cache-key
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Load JSAPI package
-        uses: actions/cache/restore@v3
-        with:
-          path: jsapi/pkg
-          key: jsapi-package-${{ needs.cache-key.outputs.suffix }}
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-      - name: Install Node packages
-        run: npm ci
-      - name: Cache installed packages
-        uses: actions/cache/save@v3
-        with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
-      - name: Cache Puppeteer cache
-        uses: actions/cache/save@v3
-        with:
-          path: ~/.cache/puppeteer
-          key: puppeteer-cache-${{ needs.cache-key.outputs.suffix }}
+          name: jsapi
+          path: jsapi/pkg/
+          overwrite: true
 
   test-hooligan:
     runs-on: ubuntu-latest
     name: Tests (hooligan)
-    needs:
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Run tests
         run: npm test -w hooligan
 
   doc-hooligan:
     runs-on: ubuntu-latest
     name: Docs (hooligan)
-    needs:
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Check documentation
         run: npm run doc -w hooligan
 
   test-vis:
     runs-on: ubuntu-latest
     name: Tests (vis)
-    needs:
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
-      - name: Load Puppeteer cache
-        uses: actions/cache/restore@v3
-        with:
-          path: ~/.cache/puppeteer
-          key: puppeteer-cache-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Run tests
         run: npm test -w vis
 
   doc-vis:
     runs-on: ubuntu-latest
     name: Docs (vis)
-    needs:
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Check documentation
         run: npm run doc -w vis
 
   examples-vis:
     runs-on: ubuntu-latest
     name: Examples (vis)
-    needs:
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Check examples
         run: npm run examples -w vis
 
@@ -238,42 +214,51 @@ jobs:
     name: Build Demo
     needs:
       - build-jsapi
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Load JSAPI
-        uses: actions/cache/restore@v3
+        uses: actions/download-artifact@v4
         with:
+          name: jsapi
           path: jsapi/pkg
-          key: jsapi-package-${{ needs.cache-key.outputs.suffix }}
       - name: Build Demo
         run: npm run build -w demo
 
   doc-debugger:
     runs-on: ubuntu-latest
     name: Docs (debugger)
-    needs:
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Check documentation
         run: npm run doc -w debugger
 
@@ -282,23 +267,28 @@ jobs:
     name: Build Debugger
     needs:
       - build-jsapi
-      - npm-install
-      - cache-key
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install Node.js
         uses: actions/setup-node@v4
       - name: Load Node packages
-        uses: actions/cache/restore@v3
+        id: cache-npm
+        uses: actions/cache@v4
         with:
-          path: node_modules
-          key: node-modules-${{ needs.cache-key.outputs.suffix }}
+          path: |
+            node_modules
+            ~/.cache/puppeteer
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node-modules-
+      - name: Install Node packages
+        if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
+        run: npm ci
       - name: Load JSAPI
-        uses: actions/cache/restore@v3
+        uses: actions/download-artifact@v4
         with:
+          name: jsapi
           path: jsapi/pkg
-          key: jsapi-package-${{ needs.cache-key.outputs.suffix }}
       - name: Build Debugger
         run: npm run build -w debugger
       - name: Upload artifact
