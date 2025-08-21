@@ -176,6 +176,13 @@ jobs:
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
           restore-keys: cargo-crates-
+      - name: Load cached build outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/debug
+          key: target-debug-${{ hashFiles('Cargo.lock') }}
+          restore-keys: target-debug-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests, except GDBState
@@ -199,6 +206,15 @@ jobs:
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
           restore-keys: cargo-crates-
+      - name: Load cached build outputs
+        # Never save the cache from this job, as it does not
+        # generate all the build outputs (let some other job save it)
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            target/debug
+          key: target-debug-${{ hashFiles('Cargo.lock') }}
+          restore-keys: target-debug-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Update package manager
@@ -224,6 +240,13 @@ jobs:
             ~/.cargo/git/db/
           key: cargo-crates-${{ hashFiles('Cargo.lock') }}
           restore-keys: cargo-crates-
+      - name: Load cached build outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            target/debug
+          key: target-debug-${{ hashFiles('Cargo.lock') }}
+          restore-keys: target-debug-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
