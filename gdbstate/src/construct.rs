@@ -839,13 +839,12 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         // We do not want that to be included, so we drop it if possible
         // But only if the type is actually only the struct - for example,
         // pointer types should keep their full names
-        if let Some(short_name) = name.strip_prefix("struct ") {
-            if short_name
+        if let Some(short_name) = name.strip_prefix("struct ")
+            && short_name
                 .chars()
                 .all(|c| c.is_ascii_alphanumeric() || c == '_')
-            {
-                name = short_name.to_owned();
-            }
+        {
+            name = short_name.to_owned();
         }
         name
     }
