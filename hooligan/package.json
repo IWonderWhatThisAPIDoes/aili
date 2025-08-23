@@ -17,6 +17,7 @@
         "test": "test"
     },
     "scripts": {
+        "typecheck": "tsc --project typecheck.tsconfig.json",
         "test": "jest",
         "doc": "typedoc"
     },

@@ -11,6 +11,7 @@
         "directory": "demo"
     },
     "scripts": {
+        "typecheck": "tsc --project typecheck.tsconfig.json",
         "build": "vite build",
         "start": "vite serve"
     },

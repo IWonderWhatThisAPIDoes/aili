@@ -4,7 +4,7 @@
  * @module
  */
 
-import { Logger, Severity } from 'aili-vis';
+import { Logger, Severity } from 'aili-hooligan';
 
 /**
  * CSS class for a log entry.

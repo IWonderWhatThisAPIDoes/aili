@@ -11,6 +11,7 @@
     },
     "main": "out/main/index.js",
     "scripts": {
+        "typecheck": "vue-tsc --project typecheck.tsconfig.json",
         "build": "npm run build:compile && npm run build:package",
         "build:compile": "electron-vite build",
         "build:package": "npm run build:package:linux && npm run build:package:win",
@@ -33,7 +34,8 @@
         "@vitejs/plugin-vue": "^5.2.3",
         "vite-plugin-wasm": "^3.4.1",
         "vite-plugin-banner": "^0.8.0",
-        "typedoc": "^0.28.2"
+        "typedoc": "^0.28.2",
+        "vue-tsc": "^3.0.6"
     },
     "config": {
         "forge": {

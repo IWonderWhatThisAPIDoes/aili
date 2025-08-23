@@ -1,0 +1,11 @@
+{
+    "$schema": "https://www.schemastore.org/tsconfig.json",
+    "include": ["./src/index.ts", "./examples/*/index.ts", "./test/**/*.test.ts"],
+    "compilerOptions": {
+        "target": "es2024",
+        "moduleResolution": "bundler",
+        "noEmit": true,
+        "downlevelIteration": true,
+        "skipLibCheck": true
+    }
+}
