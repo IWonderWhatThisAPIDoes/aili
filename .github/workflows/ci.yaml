@@ -64,8 +64,10 @@ jobs:
       - name: Install Node packages
         if: ${{ steps.cache-npm.outputs.cache-hit != 'true' }}
         run: npm ci
-      - name: Run tests
-        run: npm test
+      - name: Run tests (Hooligan)
+        run: npm test -w hooligan
+      - name: Run tests (Vis)
+        run: npm test -w vis
 
   npm-fmt:
     runs-on: ubuntu-latest
