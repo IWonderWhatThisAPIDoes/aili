@@ -1,6 +1,6 @@
 /**
  * DOM content of a viewport.
- * 
+ *
  * @module
  */
 
@@ -29,11 +29,11 @@ export interface ViewportContext {
      * Document that owns the viewport DOM, and, by proxy,
      * must own all elements that are going to be rendered in the viewport.
      */
-    ownerDocument: Document,
+    ownerDocument: Document;
     /**
      * Instance of the JSPlumb library for rendering connectors.
      */
-    jsplumb: jsplumb.BrowserJsPlumbInstance,
+    jsplumb: jsplumb.BrowserJsPlumbInstance;
 }
 
 /**
@@ -42,7 +42,7 @@ export interface ViewportContext {
 export class ViewportDOMRoot {
     /**
      * Constructs a viewport root over a provided DOM container.
-     * 
+     *
      * @param container The element that will contain the viewport.
      */
     constructor(container: HTMLElement) {
@@ -56,7 +56,7 @@ export class ViewportDOMRoot {
         this.context = {
             ownerDocument: container.ownerDocument,
             jsplumb: jsplumb.newInstance({ container: inner, elementsDraggable: false }),
-        }
+        };
     }
     /**
      * Special view slot that renders its content into the viewport root.
@@ -73,8 +73,8 @@ class ViewportRootSlot implements ElementViewSlot {
         this.populator = {
             insertFlowHtml(html: HTMLElement) {
                 slotElement.append(html);
-            }
-        }
+            },
+        };
     }
     readonly populator: ViewSlotPopulator;
     destroy(): void {

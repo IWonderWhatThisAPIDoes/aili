@@ -6,14 +6,10 @@ import merge from 'merge';
 import tsPreset from 'ts-jest/jest-preset.js';
 import puppeteer from 'jest-puppeteer/jest-preset.js';
 
-export default merge.recursive(
-    tsPreset,
-    puppeteer,
-    {
-        testMatch: ['<rootDir>/**/*.test.[jt]s'],
-        moduleNameMapper: {
-            // Ignore CSS file imports
-            '\\.css$': 'identity-obj-proxy',
-        },
-    }
-);
+export default merge.recursive(tsPreset, puppeteer, {
+    testMatch: ['<rootDir>/**/*.test.[jt]s'],
+    moduleNameMapper: {
+        // Ignore CSS file imports
+        '\\.css$': 'identity-obj-proxy',
+    },
+});

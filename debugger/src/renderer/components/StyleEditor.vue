@@ -11,8 +11,8 @@
     import LogConsole from './LogConsole.vue';
 
     const { content, compile } = defineProps<{
-        content?: string,
-        compile: (source: string, errorHandler: (e: StylesheetParseError) => void) => T,
+        content?: string;
+        compile: (source: string, errorHandler: (e: StylesheetParseError) => void) => T;
     }>();
     const emit = defineEmits<{ 'style-changed': [source: string, stylesheet: T] }>();
 
@@ -35,7 +35,12 @@
         }
         // Let the user know everything has gone well
         if (!reportedWarning) {
-            logView.value?.addEntry([], Severity.INFO, 'Stylesheet compiled successfully', undefined);
+            logView.value?.addEntry(
+                [],
+                Severity.INFO,
+                'Stylesheet compiled successfully',
+                undefined,
+            );
         }
         // Bubble the compiled stylesheet further up
         emit('style-changed', newSource, compiledStyle);

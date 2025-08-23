@@ -1,11 +1,18 @@
 /**
  * Controller for debugger process.
- * 
+ *
  * @module
  */
 
 import { Hook, Hookable, Logger, Severity, TopicLogger } from 'aili-hooligan';
-import { GdbMiAsyncExecClass, GdbMiAsyncNotifyClass, GdbMiRecordHeader, GdbMiRecordType, parseGdbMiRecord, parseGdbMiRecordHeader } from '../utils/gdbmi-parser';
+import {
+    GdbMiAsyncExecClass,
+    GdbMiAsyncNotifyClass,
+    GdbMiRecordHeader,
+    GdbMiRecordType,
+    parseGdbMiRecord,
+    parseGdbMiRecordHeader,
+} from '../utils/gdbmi-parser';
 import { PromiseContainer } from '../utils/promise-container';
 import '../../ipc';
 
@@ -57,20 +64,22 @@ export enum DebuggerStatus {
 /**
  * Shorthand for checking whether a debugger state corresponds
  * to the debugger running, regardless of the state of the debuggee.
- * 
+ *
  * @param status Debugger status to check.
  * @returns True if `status` corresponds to the debugger running.
  */
 export function isStatusRunning(status: DebuggerStatus): boolean {
-    return status === DebuggerStatus.EXECUTING ||
+    return (
+        status === DebuggerStatus.EXECUTING ||
         status === DebuggerStatus.IDLE ||
         status === DebuggerStatus.PAUSED ||
-        status === DebuggerStatus.LAUNCHING;
+        status === DebuggerStatus.LAUNCHING
+    );
 }
 
 /**
  * Sources that can send input to the debugger.
- * 
+ *
  * Used for logging.
  */
 export enum DebuggerInputSource {
@@ -102,19 +111,19 @@ export interface SourceLocation {
     /**
      * Name of the source file that the current instruction is mapped to.
      */
-    fileName?: string,
+    fileName?: string;
     /**
      * Full path to the source file that the current instruction is mapped to.
      */
-    filePath?: string,
+    filePath?: string;
     /**
      * Number of the line in the source code that the current instruction is mapped to.
      */
-    lineNumber?: number,
+    lineNumber?: number;
     /**
      * Name of the function being executed.
      */
-    functionName?: string,
+    functionName?: string;
 }
 
 /**
@@ -134,7 +143,7 @@ export class Debugger {
     }
     /**
      * Launches the debugger asynchronously.
-     * 
+     *
      * @throws The debugger is already running or it could not be started.
      */
     async start(): Promise<void> {
@@ -151,13 +160,16 @@ export class Debugger {
             this.metaLogger?.log(Severity.ERROR, String(e));
             throw e;
         }
-        this.metaLogger?.log(Severity.INFO, `Debugger has started successfully (PID: ${this._pid})`);
+        this.metaLogger?.log(
+            Severity.INFO,
+            `Debugger has started successfully (PID: ${this._pid})`,
+        );
         this.nextToken = 0;
         this.updateStatus(DebuggerStatus.IDLE);
     }
     /**
      * Terminates the debugger asynchronously.
-     * 
+     *
      * @throws The debugger is not running or it could not be stopped.
      */
     async stop(): Promise<void> {
@@ -184,13 +196,16 @@ export class Debugger {
     }
     /**
      * Sends a raw input line to the debugger.
-     * 
+     *
      * @param input The input to send to the debugger.
      * @param source Type of the source of the command.
-     * 
+     *
      * @throws The debugger is not running or it could not accept input.
      */
-    async sendInputLine(input: string, source: DebuggerInputSource = DebuggerInputSource.UNKNOWN): Promise<void> {
+    async sendInputLine(
+        input: string,
+        source: DebuggerInputSource = DebuggerInputSource.UNKNOWN,
+    ): Promise<void> {
         this.toDebuggerLoggers?.[source]?.log(Severity.DEBUG, `${input}`);
         if (!isStatusRunning(this._status) || this._pid === undefined) {
             this.metaLogger?.log(Severity.ERROR, 'Debugger is not running');
@@ -206,14 +221,17 @@ export class Debugger {
     /**
      * Sends a GDB/MI command to the debugger
      * and awaits the response asynchronously.
-     * 
+     *
      * @param input The input to send to the debugger.
      * @param source Type of the source of the command.
      * @returns Output returned by GDB, as both raw string and parsed header.
-     * 
+     *
      * @throws The debugger is not running or it could not accept input.
      */
-    async sendMiCommand(input: string, source: DebuggerInputSource = DebuggerInputSource.UNKNOWN): Promise<[string, GdbMiRecordHeader]> {
+    async sendMiCommand(
+        input: string,
+        source: DebuggerInputSource = DebuggerInputSource.UNKNOWN,
+    ): Promise<[string, GdbMiRecordHeader]> {
         // TODO: Make sure it is an MI input line,
         // otherwise we would be waiting for the response indefinitely
         const token = String(this.nextToken++);
@@ -222,11 +240,15 @@ export class Debugger {
     }
     /**
      * Creates a promise that resolves when the debuggee stops.
-     * 
+     *
      * @throws The debugger is not running
      */
     async whenDebuggeeStops(): Promise<void> {
-        if (this._status !== DebuggerStatus.EXECUTING && this._status !== DebuggerStatus.PAUSED && this._status !== DebuggerStatus.LAUNCHING) {
+        if (
+            this._status !== DebuggerStatus.EXECUTING &&
+            this._status !== DebuggerStatus.PAUSED &&
+            this._status !== DebuggerStatus.LAUNCHING
+        ) {
             throw new Error('Cannot wait for debuggee because it is not currently executing');
         } else if (this._status === DebuggerStatus.PAUSED) {
             // If the debuggee is currently paused, resolve immediately
@@ -255,10 +277,12 @@ export class Debugger {
     }
     /**
      * Triggers when {@link status} changes.
-     * 
+     *
      * @event
      */
-    get onStatusChanged(): Hookable<[DebuggerStatus, number | undefined, SourceLocation | undefined]> {
+    get onStatusChanged(): Hookable<
+        [DebuggerStatus, number | undefined, SourceLocation | undefined]
+    > {
         return this._onStatusChanged;
     }
     /**
@@ -270,7 +294,8 @@ export class Debugger {
             const toDebuggerMainLogger = logger.createTopic(LOG_TOPIC_TO_DEBUGGER);
             this.toDebuggerLoggers = {
                 [DebuggerInputSource.UNKNOWN]: toDebuggerMainLogger,
-                [DebuggerInputSource.SESSION]: toDebuggerMainLogger.createTopic(LOG_TOPIC_FROM_SESSION),
+                [DebuggerInputSource.SESSION]:
+                    toDebuggerMainLogger.createTopic(LOG_TOPIC_FROM_SESSION),
                 [DebuggerInputSource.STATE]: toDebuggerMainLogger.createTopic(LOG_TOPIC_FROM_STATE),
                 [DebuggerInputSource.USER]: toDebuggerMainLogger.createTopic(LOG_TOPIC_FROM_USER),
             };
@@ -297,7 +322,7 @@ export class Debugger {
     /**
      * Queues a callback to be called when {@link pathToDebugger}
      * becomes available.
-     * 
+     *
      * @param callback Callback to call when {@link pathToDebugger}
      *                 becomes known. It receives the path as an argument.
      */
@@ -308,7 +333,9 @@ export class Debugger {
             callback(this._pathToDebugger);
         } else {
             // Unreachable - we initialize the path as we remove the hook
-            throw new Error('Debugger path initialization hook has been removed, but path is not available');
+            throw new Error(
+                'Debugger path initialization hook has been removed, but path is not available',
+            );
         }
     }
     private updateStatus(status: DebuggerStatus) {
@@ -350,29 +377,45 @@ export class Debugger {
                         this.updateStatus(DebuggerStatus.EXECUTING);
                     } else if (parseResult.class === GdbMiAsyncExecClass.STOPPED) {
                         const frameInfo = parseGdbMiRecord(line)?.results?.frame;
-                        this._sourceLocation = frameInfo === undefined ? undefined : {
-                            functionName: frameInfo?.func,
-                            lineNumber: Number.parseInt(frameInfo?.line),
-                            fileName: frameInfo?.file,
-                            filePath: frameInfo?.fullname,
-                        };
+                        this._sourceLocation =
+                            frameInfo === undefined
+                                ? undefined
+                                : {
+                                      functionName: frameInfo?.func,
+                                      lineNumber: Number.parseInt(frameInfo?.line),
+                                      fileName: frameInfo?.file,
+                                      filePath: frameInfo?.fullname,
+                                  };
                         if (this._status === DebuggerStatus.EXECUTING) {
                             this.updateStatus(DebuggerStatus.PAUSED);
                         }
                         this.ioPromises.resolve(STOP_PROMISE_TOKEN, [line, parseResult]);
                     } else {
-                        this.metaLogger?.log(Severity.WARNING, `Did not recognize class of an async exec record: ${parseResult.class}`);
+                        this.metaLogger?.log(
+                            Severity.WARNING,
+                            `Did not recognize class of an async exec record: ${parseResult.class}`,
+                        );
                     }
                 } else if (parseResult.recordType === GdbMiRecordType.NOTIFY) {
                     if (parseResult.class === GdbMiAsyncNotifyClass.THREAD_GROUP_STARTED) {
                         if (this._status !== DebuggerStatus.IDLE) {
-                            this.metaLogger?.log(Severity.WARNING, 'Received thread group start notification when debugger is not idle');
+                            this.metaLogger?.log(
+                                Severity.WARNING,
+                                'Received thread group start notification when debugger is not idle',
+                            );
                         } else {
                             this.updateStatus(DebuggerStatus.LAUNCHING);
                         }
                     } else if (parseResult.class === GdbMiAsyncNotifyClass.THREAD_GROUP_EXITED) {
-                        if (this._status !== DebuggerStatus.PAUSED && this._status !== DebuggerStatus.EXECUTING && this._status !== DebuggerStatus.LAUNCHING) {
-                            this.metaLogger?.log(Severity.WARNING, 'Received thread group exit notification outside of a debug session');
+                        if (
+                            this._status !== DebuggerStatus.PAUSED &&
+                            this._status !== DebuggerStatus.EXECUTING &&
+                            this._status !== DebuggerStatus.LAUNCHING
+                        ) {
+                            this.metaLogger?.log(
+                                Severity.WARNING,
+                                'Received thread group exit notification outside of a debug session',
+                            );
                         }
                         this._sourceLocation = undefined;
                         this.updateStatus(DebuggerStatus.IDLE);
@@ -384,13 +427,15 @@ export class Debugger {
     private _status = DebuggerStatus.INACTIVE;
     private _pid: number | undefined = undefined;
     private _sourceLocation: SourceLocation | undefined = undefined;
-    private _onStatusChanged: Hook<[DebuggerStatus, number | undefined, SourceLocation | undefined]>;
+    private _onStatusChanged: Hook<
+        [DebuggerStatus, number | undefined, SourceLocation | undefined]
+    >;
     private ioPromises: PromiseContainer<[string, GdbMiRecordHeader]>;
     private nextToken: number = 0;
     private fromDebuggerLogger: Logger | undefined;
     private toDebuggerLoggers: Record<DebuggerInputSource, Logger> | undefined;
     private metaLogger: Logger | undefined;
-    private static _onPathToDebuggerAvailable? = new Hook<[string]>;
+    private static _onPathToDebuggerAvailable? = new Hook<[string]>();
     private static _pathToDebugger: string | undefined = (() => {
         ipc.getPathToDebugger().then(path => {
             this._pathToDebugger = path;
@@ -404,7 +449,7 @@ export class Debugger {
 /**
  * Sentinel token for identifying a stop event
  * in {@link Debugger.ioPromises}.
- * 
+ *
  * No other promises in the container are identified by this key.
  */
 const STOP_PROMISE_TOKEN: string = '*';

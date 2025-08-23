@@ -1,6 +1,6 @@
 /**
  * Settings that affect graph layouts.
- * 
+ *
  * @module
  */
 
@@ -55,51 +55,51 @@ export enum GraphLayoutModel {
     /**
      * Forces the [Dot](https://graphviz.org/docs/layouts/dot)
      * layout model if the backend is Graphviz.
-     * 
+     *
      * Dot is a layered or hierarchical model best suited for
      * directed acyclical graphs.
-     * 
+     *
      * Falls back to {@link LAYERED}.
      */
     GRAPHVIZ_DOT = 'gv-dot',
     /**
      * Forces the [Neato](https://graphviz.org/docs/layouts/neato)
      * layout model if the backend is Graphviz.
-     * 
+     *
      * Neato is a spring model intended for small graphs.
-     * 
+     *
      * Falls back to {@link UNORIENTED}.
      */
     GRAPHVIZ_NEATO = 'gv-neato',
     /**
      * Forces the [Circo](https://graphviz.org/docs/layouts/circo)
      * layout model if the backend is Graphviz.
-     * 
+     *
      * Circo lays out each individual
      * [block](https://en.wikipedia.org/wiki/Glossary_of_graph_theory#block)
      * of the graph on the perimeter of a circle.
      * Best suited for graphs with many distinct blocks.
-     * 
+     *
      * Falls back to {@link UNORIENTED}.
      */
     GRAPHVIZ_CIRCO = 'gv-circo',
     /**
      * Forces the [Twopi](https://graphviz.org/docs/layouts/twopi)
      * layout model if the backend is Graphviz.
-     * 
+     *
      * Twopi lays out nodes in concentric circles whose radii
      * roughly correspond to the distance to a root element.
      * Best suited for general trees.
-     * 
+     *
      * Falls back to {@link UNORIENTED}.
      */
     GRAPHVIZ_TWOPI = 'gv-twopi',
     /**
      * Forces the [FDP](https://graphviz.org/docs/layouts/fdp)
      * layout model if the backend is Graphviz.
-     * 
+     *
      * FDP stands for force-directed placement.
-     * 
+     *
      * Falls back to {@link UNORIENTED}.
      */
     GRAPHVIZ_FDP = 'gv-fdp',

@@ -41,12 +41,19 @@
     const showRaw = ref(false);
     const showSource = ref(false);
     const showHelp = ref(true);
-    const allPanelsHidden = computed(() => {
-        return !showDebugger.value && !showLog.value && !showStylesheet.value &&
-            !showStyle.value && !showVis.value && !showViewport.value &&
-            !showRaw.value && !showSource.value && !showDebuggee.value &&
-            !showHelp.value;
-    });
+    const allPanelsHidden = computed(
+        () =>
+            !showDebugger.value &&
+            !showLog.value &&
+            !showStylesheet.value &&
+            !showStyle.value &&
+            !showVis.value &&
+            !showViewport.value &&
+            !showRaw.value &&
+            !showSource.value &&
+            !showDebuggee.value &&
+            !showHelp.value,
+    );
 
     const mainViewport = useTemplateRef('main-viewport');
     const rawViewport = useTemplateRef('raw-viewport');
@@ -111,7 +118,8 @@
                 <StyleEditor
                     :content="DEFAULT_HINT_SHEET"
                     :compile="LengthHintSheet.parse"
-                    @style-changed="hintSheetChanged" />
+                    @style-changed="hintSheetChanged"
+                />
             </Panel>
             <Panel class="panel" title="Source" v-show="showSource">
                 <SourceView :debug="debuggerContainer" :sourceViewer="sourceViewer" />
@@ -120,7 +128,8 @@
                 <StyleEditor
                     :content="DEFAULT_STYLESHEET"
                     :compile="Stylesheet.parse"
-                    @style-changed="stylesheetChanged" />
+                    @style-changed="stylesheetChanged"
+                />
             </Panel>
             <Panel class="panel" title="Resolved Style" v-show="showStyle">
                 <ScrollBox>
@@ -155,43 +164,43 @@
             <div class="display-settings">
                 <span class="display-settings-label">Show:</span>
                 <label>
-                    <input type="checkbox" v-model="showDebugger">
+                    <input type="checkbox" v-model="showDebugger" />
                     Debugger
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showDebuggee">
+                    <input type="checkbox" v-model="showDebuggee" />
                     Debuggee
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showSource">
+                    <input type="checkbox" v-model="showSource" />
                     Source
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showStylesheet">
+                    <input type="checkbox" v-model="showStylesheet" />
                     Stylesheet
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showStyle">
+                    <input type="checkbox" v-model="showStyle" />
                     Resolved Style
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showVis">
+                    <input type="checkbox" v-model="showVis" />
                     Vis Tree
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showViewport">
+                    <input type="checkbox" v-model="showViewport" />
                     Viewport
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showRaw">
+                    <input type="checkbox" v-model="showRaw" />
                     Raw View
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showLog">
+                    <input type="checkbox" v-model="showLog" />
                     Log
                 </label>
                 <label>
-                    <input type="checkbox" v-model="showHelp">
+                    <input type="checkbox" v-model="showHelp" />
                     Help
                 </label>
             </div>
@@ -229,7 +238,8 @@
         background-position: bottom;
     }
 
-    .app > .main > .panel, .app > .main > .placeholder {
+    .app > .main > .panel,
+    .app > .main > .placeholder {
         /* Fill the screen horizontally */
         flex-grow: 1;
     }
@@ -259,7 +269,7 @@
         gap: 0.25em;
     }
 
-    .display-settings input[type="checkbox"] {
+    .display-settings input[type='checkbox'] {
         margin: 0;
     }
 

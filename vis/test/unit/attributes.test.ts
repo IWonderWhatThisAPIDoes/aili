@@ -6,7 +6,7 @@ const OTHER_ATTRIBUTE_VALUE = 'hello';
 
 describe(AttributeEntry, () => {
     let entry: AttributeEntry;
-    let mockObserver = jest.fn().mockName('changeObserver');
+    const mockObserver = jest.fn().mockName('changeObserver');
 
     beforeEach(() => {
         mockObserver.mockClear();

@@ -34,7 +34,7 @@
     import Console from './Console.vue';
     import ScrollBox from './ScrollBox.vue';
 
-    const { debug, sourceViewer } = defineProps<{ debug: Debugger, sourceViewer: SourceViewer }>();
+    const { debug, sourceViewer } = defineProps<{ debug: Debugger; sourceViewer: SourceViewer }>();
     const source = ref<readonly string[]>([]);
     const lineNumber = ref<number | undefined>(undefined);
     const status = ref(SourceViewStatus.UNINITIALIZED);
@@ -82,28 +82,34 @@
             <template v-if="status === SourceViewStatus.VIEWING">
                 <!-- Column with line numbers -->
                 <div class="source-line-numbers">
-                    <div v-for="(_, i) in source"
+                    <div
+                        v-for="(_, i) in source"
                         class="source-line-number"
-                        :class="{ 'current-line': i + 1 === lineNumber }">
+                        :class="{ 'current-line': i + 1 === lineNumber }"
+                    >
                         {{ i + 1 }}
                     </div>
                 </div>
                 <!-- Column with the source code -->
                 <div class="source-code">
-                    <div v-for="(line, i) in source"
+                    <div
+                        v-for="(line, i) in source"
                         class="source-line"
-                        :class="{ 'current-line': i + 1 === lineNumber }">
+                        :class="{ 'current-line': i + 1 === lineNumber }"
+                    >
                         {{ line }}
                     </div>
                 </div>
             </template>
             <!-- If we are not seeing any code, show a message explaining why -->
-            <div v-else
+            <div
+                v-else
                 class="source-view-hint"
                 :class="{
                     'source-view-uninit': status === SourceViewStatus.UNINITIALIZED,
                     'source-view-error': status !== SourceViewStatus.UNINITIALIZED,
-                }">
+                }"
+            >
                 <template v-if="status === SourceViewStatus.UNINITIALIZED">
                     <span>Start a debug session to view the source code</span>
                 </template>

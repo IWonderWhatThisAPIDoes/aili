@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as bind from '../../src/attribute-binds';
 
 describe(bind.textContent, () => {
@@ -32,7 +32,9 @@ describe(bind.css, () => {
     const OTHER_PROPERTY_NAME = 'border-color';
     const PROPERTY_VALUE = 'red';
     const ATTRIBUTE_VALUE = 'not red';
-    const mockFilter = jest.fn<(_: string) => string | undefined>(_ => PROPERTY_VALUE).mockName('filter');
+    const mockFilter = jest
+        .fn<(_: string) => string | undefined>(_ => PROPERTY_VALUE)
+        .mockName('filter');
     let html: HTMLElement;
 
     beforeEach(() => {
@@ -71,8 +73,10 @@ describe(bind.css, () => {
 describe(bind.getNumeric, () => {
     const ATTRIBUTE_VALUE = '4.2';
     const NUMERIC_VALUE = 4.2;
-    const PROPERTY_VALUE = 42;;
-    const mockFilter = jest.fn<(_: number) => number | undefined>(_ => PROPERTY_VALUE).mockName('filter');
+    const PROPERTY_VALUE = 42;
+    const mockFilter = jest
+        .fn<(_: number) => number | undefined>(_ => PROPERTY_VALUE)
+        .mockName('filter');
 
     beforeEach(() => {
         mockFilter.mockClear();
@@ -111,7 +115,9 @@ describe(bind.numeric, () => {
     const PROPERTY_VALUE = '42';
     const UNIT = 'px';
     const PROPERTY_WITH_UNIT = '42px';
-    const mockFilter = jest.fn<(_: number) => number | undefined>(_ => NUMERIC_PROPERTY_VALUE).mockName('filter');
+    const mockFilter = jest
+        .fn<(_: number) => number | undefined>(_ => NUMERIC_PROPERTY_VALUE)
+        .mockName('filter');
 
     beforeEach(() => {
         mockFilter.mockClear();

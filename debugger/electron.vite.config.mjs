@@ -7,14 +7,10 @@ import bannerAllDeps from './assets/banners/all-deps.txt';
 
 export default defineConfig({
     main: {
-        plugins: [
-            banner(bannerNoDeps),
-        ],
+        plugins: [banner(bannerNoDeps)],
     },
     preload: {
-        plugins: [
-            banner(bannerNoDeps),
-        ],
+        plugins: [banner(bannerNoDeps)],
     },
     renderer: {
         plugins: [

@@ -1,6 +1,6 @@
 /**
  * The graph view model.
- * 
+ *
  * @module
  */
 
@@ -34,7 +34,7 @@ export const CLASS_GRAPH_SLOT: string = 'aili-graph-slot';
 /**
  * {@link ViewModel} that represents an element as a graph (as in graph theory, not plot),
  * constructing its layout based on projected connectors.
- * 
+ *
  * ```text
  *   o     o
  *  / \    |
@@ -44,17 +44,17 @@ export const CLASS_GRAPH_SLOT: string = 'aili-graph-slot';
  *   |
  *   o
  * ```
- * 
+ *
  * ## Permitted Parents
  * Any {@link ViewModel} that permits a {@link ViewLayoutMode.INLINE} child.
- * 
+ *
  * ## Permitted Children
  * Any {@link ViewModel}.
- * 
+ *
  * If a child has {@link ViewLayoutMode.INLINE},
  * the following attributes of {@link ReadonlyVisElement.attributes}
  * of the child affect the layout of this container.
- * 
+ *
  * ### order-children
  * ```text
  * order-children: false
@@ -62,13 +62,13 @@ export const CLASS_GRAPH_SLOT: string = 'aili-graph-slot';
  * Used with {@link GraphLayoutModel.LAYERED}. Indicates that outgoing connectors
  * of this child are ordered, and should be laid out in order of increasing `order`
  * (see below).
- * 
+ *
  * ## Connectors
  * This view model builds its layout based on projected connectors
  * that connects its {@link ViewLayoutMode.INLINE} children.
  * The following attributes of {@link ReadonlyVisConnector.attributes}
  * of the projected connectors affect the layout of this container.
- * 
+ *
  * ### order
  * ```
  * order: none
@@ -78,19 +78,19 @@ export const CLASS_GRAPH_SLOT: string = 'aili-graph-slot';
  * outgoing connectors of its {@link ReadonlyVisConnector.start}.
  * Only applicable if {@link ReadonlyVisConnector.start} has `order-children`
  * set. A value of `none` means the order is unspecified.
- * 
+ *
  * ## Model Attributes
  * The following attributes of {@link ReadonlyVisElement.attributes}
  * affect the appearence of the visual.
- * 
+ *
  * ### layout
  * ```text
  * layout: unoriented
  * ```
  * Layout model that should be used to layout the graph.
- * 
+ *
  * For permitted values, see {@link GraphLayoutModel}.
- * 
+ *
  * ### stroke-style
  * ```text
  * stroke-style: solid
@@ -99,37 +99,37 @@ export const CLASS_GRAPH_SLOT: string = 'aili-graph-slot';
  * - `solid`
  * - `dashed`
  * - `dotted`
- * 
+ *
  * ### stroke-width
  * ```text
  * stroke-width: 0
  * ```
  * Width of the outline in pixels.
- * 
+ *
  * ### stroke
  * ```text
  * stroke: black
  * ```
  * Color of the outline.
- * 
+ *
  * ### fill
  * ```text
  * fill: transparent
  * ```
  * Color of the cell backdrop.
- * 
+ *
  * ### padding
  * ```text
  * padding: 1
  * ```
  * Padding between the outer edge of the container and its children, in em units.
- * 
+ *
  * ### gap
  * ```text
  * gap: 50
  * ```
  * Approximate preferred spacing between individual children, in pixels.
- * 
+ *
  * ### direction
  * ```text
  * direction: south
@@ -137,7 +137,7 @@ export const CLASS_GRAPH_SLOT: string = 'aili-graph-slot';
  * Used with {@link GraphLayoutModel.LAYERED}. Determines the direction
  * along which the graph is laid out. Corresponds to the `rankdir`
  * attribute in Graphviz.
- * 
+ *
  * For permitted values, see {@link GraphLayoutDirection}.
  */
 export class GraphViewModel extends FlowViewModel {
@@ -153,28 +153,45 @@ export class GraphViewModel extends FlowViewModel {
         this.slotManager = new GraphSlotManager(htmlInner, layout, context);
         this.context = context;
 
-        this.unhookOnDestroy(setAttributeBindings(element.attributes, {
-            fill: bind.css(html, 'background-color', bind.color),
-            stroke: bind.css(html, 'border-color', bind.color),
-            'stroke-width': bind.css(html, 'border-width', bind.numeric(bind.positiveOrZero, 'px')),
-            'stroke-style': bind.css(html, 'border-style', bind.whitelist(['solid', 'dashed', 'dotted'])),
-            padding: bind.css(html, 'padding', bind.numeric(bind.positive, 'em')),
-            layout: value => {
-                value = (value && bind.whitelist(Object.values(GraphLayoutModel))(value)) ?? GraphLayoutModel.DEFAULT;
-                layout.layoutModel = value as GraphLayoutModel;
-                this.slotManager.updateLayout();
-            },
-            direction: value => {
-                value = (value && bind.whitelist(Object.values(GraphLayoutDirection))(value)) ?? GraphLayoutDirection.DEFAULT;
-                layout.layoutDirection = value as GraphLayoutDirection;
-                this.slotManager.updateLayout();
-            },
-            gap: value => {
-                let numValue = value === undefined ? GRAPH_DEFAULT_GAP : bind.getNumeric(bind.positiveOrZero, value) ?? GRAPH_DEFAULT_GAP;
-                layout.gap = numValue;
-                this.slotManager.updateLayout();
-            },
-        }));
+        this.unhookOnDestroy(
+            setAttributeBindings(element.attributes, {
+                fill: bind.css(html, 'background-color', bind.color),
+                stroke: bind.css(html, 'border-color', bind.color),
+                'stroke-width': bind.css(
+                    html,
+                    'border-width',
+                    bind.numeric(bind.positiveOrZero, 'px'),
+                ),
+                'stroke-style': bind.css(
+                    html,
+                    'border-style',
+                    bind.whitelist(['solid', 'dashed', 'dotted']),
+                ),
+                padding: bind.css(html, 'padding', bind.numeric(bind.positive, 'em')),
+                layout: value => {
+                    value =
+                        (value && bind.whitelist(Object.values(GraphLayoutModel))(value)) ??
+                        GraphLayoutModel.DEFAULT;
+                    layout.layoutModel = value as GraphLayoutModel;
+                    this.slotManager.updateLayout();
+                },
+                direction: value => {
+                    value =
+                        (value && bind.whitelist(Object.values(GraphLayoutDirection))(value)) ??
+                        GraphLayoutDirection.DEFAULT;
+                    layout.layoutDirection = value as GraphLayoutDirection;
+                    this.slotManager.updateLayout();
+                },
+                gap: value => {
+                    const numValue =
+                        value === undefined
+                            ? GRAPH_DEFAULT_GAP
+                            : (bind.getNumeric(bind.positiveOrZero, value) ?? GRAPH_DEFAULT_GAP);
+                    layout.gap = numValue;
+                    this.slotManager.updateLayout();
+                },
+            }),
+        );
     }
     createInlineSlot(child: ReadonlyVisElement): ElementViewSlot {
         const slotHtml = this.context.ownerDocument.createElement('div');
@@ -187,8 +204,8 @@ export class GraphViewModel extends FlowViewModel {
             populator: {
                 insertFlowHtml(inner) {
                     slotHtml.append(inner);
-                }
-            }
+                },
+            },
         };
     }
     destroy(): void {

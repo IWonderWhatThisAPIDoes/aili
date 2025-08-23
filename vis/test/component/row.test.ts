@@ -26,18 +26,28 @@ describe(vis.RowViewModel, () => {
     beforeEach(() => t.beforeEach());
 
     function insertChildren(children: [number, string][]): Promise<JSHandle<vis.VisElement>[]> {
-        return Promise.all(children.map(([size, value]) => {
-            return page.evaluateHandle((root, size, value) => {
-                const child = new vis.VisElement(vis.TAG_CELL);
-                child.attributes.size.value = String(size);
-                child.attributes.value.value = value;
-                child.parent = root;
-                return child;
-            }, t.rootElementHandle, size, value);
-        }));
+        return Promise.all(
+            children.map(([size, value]) => {
+                return page.evaluateHandle(
+                    (root, size, value) => {
+                        const child = new vis.VisElement(vis.TAG_CELL);
+                        child.attributes.size.value = String(size);
+                        child.attributes.value.value = value;
+                        child.parent = root;
+                        return child;
+                    },
+                    t.rootElementHandle,
+                    size,
+                    value,
+                );
+            }),
+        );
     }
 
-    async function boundingBoxes(): Promise<{ rowBounds: BoundingBox, childBounds: BoundingBox[] }> {
+    async function boundingBoxes(): Promise<{
+        rowBounds: BoundingBox;
+        childBounds: BoundingBox[];
+    }> {
         const rowBounds = await t.boundingBox();
         const children = await t.appContainer.$$(childSelector);
         const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
@@ -47,8 +57,18 @@ describe(vis.RowViewModel, () => {
     async function childTextsInPositionOrder(): Promise<string[]> {
         const children = await t.appContainer.$$(childSelector);
         const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
-        const childTexts = await Promise.all(children.map(c => c.getProperty('textContent').then(t => t.jsonValue()).then(t => t ?? '')));
-        const childBoundsAndTexts: [BoundingBox, string][] = childBounds.map((b, i) => [b, childTexts[i]]);
+        const childTexts = await Promise.all(
+            children.map(c =>
+                c
+                    .getProperty('textContent')
+                    .then(t => t.jsonValue())
+                    .then(t => t ?? ''),
+            ),
+        );
+        const childBoundsAndTexts: [BoundingBox, string][] = childBounds.map((b, i) => [
+            b,
+            childTexts[i],
+        ]);
         return childBoundsAndTexts.sort((a, b) => a[0].x - b[0].x).map(([_, text]) => text);
     }
 
@@ -98,7 +118,7 @@ describe(vis.RowViewModel, () => {
     it('lays out its children in a column if set', async () => {
         await t.setupViewport();
         await insertChildren(UNIFORM_CHILDREN);
-        await t.rootElement(root => root.attributes.direction.value = 'column');
+        await t.rootElement(root => (root.attributes.direction.value = 'column'));
         const { rowBounds, childBounds } = await boundingBoxes();
         // Get bounding boxes in vertical position order
         childBounds.sort((a, b) => a.y - b.y);
@@ -106,7 +126,9 @@ describe(vis.RowViewModel, () => {
         expect(childBounds[0].y).toBeCloseTo(rowBounds.y);
         expect(childBounds[0].y + childBounds[0].height).toBeCloseTo(childBounds[1].y);
         expect(childBounds[1].y + childBounds[1].height).toBeCloseTo(childBounds[2].y);
-        expect(childBounds[2].y + childBounds[2].height).toBeCloseTo(rowBounds.y + rowBounds.height);
+        expect(childBounds[2].y + childBounds[2].height).toBeCloseTo(
+            rowBounds.y + rowBounds.height,
+        );
         // All children should have the same position along secondary axis
         expect(childBounds[0].x).toBeCloseTo(rowBounds.x);
         expect(childBounds[1].x).toBeCloseTo(rowBounds.x);
@@ -116,8 +138,8 @@ describe(vis.RowViewModel, () => {
     it('lays out its children in order if specified', async () => {
         const childVisElements = await insertChildren(UNIFORM_CHILDREN);
         // Set order for children
-        await page.evaluate(child => child.attributes.order.value = '1', childVisElements[0]);
-        await page.evaluate(child => child.attributes.order.value = '2', childVisElements[1]);
+        await page.evaluate(child => (child.attributes.order.value = '1'), childVisElements[0]);
+        await page.evaluate(child => (child.attributes.order.value = '2'), childVisElements[1]);
         await t.setupViewport();
         const EXPECTED_ORDER = [
             UNIFORM_CHILDREN[2][1],
@@ -131,8 +153,8 @@ describe(vis.RowViewModel, () => {
         await t.setupViewport();
         const childVisElements = await insertChildren(UNIFORM_CHILDREN);
         // Set order for children
-        await page.evaluate(child => child.attributes.order.value = '-1', childVisElements[1]);
-        await page.evaluate(child => child.attributes.order.value = '1', childVisElements[2]);
+        await page.evaluate(child => (child.attributes.order.value = '-1'), childVisElements[1]);
+        await page.evaluate(child => (child.attributes.order.value = '1'), childVisElements[2]);
         const EXPECTED_ORDER = [
             UNIFORM_CHILDREN[1][1],
             UNIFORM_CHILDREN[0][1],
@@ -153,7 +175,7 @@ describe(vis.RowViewModel, () => {
     it('aligns children to the start if requested', async () => {
         await t.setupViewport();
         await insertChildren(NONUNIFORM_CHILDREN);
-        await t.rootElement(root => root.attributes['align-items'].value = 'start');
+        await t.rootElement(root => (root.attributes['align-items'].value = 'start'));
         const { rowBounds, childBounds } = await boundingBoxes();
         for (const bounds of childBounds) {
             expect(bounds.y).toBeCloseTo(rowBounds.y);
@@ -176,24 +198,36 @@ describe(vis.RowViewModel, () => {
     it('adds spacing between children if requested', async () => {
         await t.setupViewport();
         await insertChildren(NONUNIFORM_CHILDREN);
-        await t.rootElement((root, padding) => root.attributes.gap.value = padding, String(PADDING));
+        await t.rootElement(
+            (root, padding) => (root.attributes.gap.value = padding),
+            String(PADDING),
+        );
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
         const { rowBounds, childBounds } = await boundingBoxes();
         childBounds.sort((a, b) => a.x - b.x);
         // Children should be spaced accordingly
-        expect(childBounds[1].x).toBeCloseTo(childBounds[0].x + childBounds[0].width + PADDING * fontSize);
-        expect(childBounds[2].x).toBeCloseTo(childBounds[1].x + childBounds[1].width + PADDING * fontSize);
+        expect(childBounds[1].x).toBeCloseTo(
+            childBounds[0].x + childBounds[0].width + PADDING * fontSize,
+        );
+        expect(childBounds[2].x).toBeCloseTo(
+            childBounds[1].x + childBounds[1].width + PADDING * fontSize,
+        );
         // There should be no padding around the row as a whole
         expect(childBounds[0].x).toBeCloseTo(rowBounds.x);
         expect(childBounds[2].x + childBounds[2].width).toBeCloseTo(rowBounds.x + rowBounds.width);
         expect(Math.min(...childBounds.map(b => b.y))).toBeCloseTo(rowBounds.y);
-        expect(Math.max(...childBounds.map(b => b.y + b.height))).toBeCloseTo(rowBounds.y + rowBounds.height);
+        expect(Math.max(...childBounds.map(b => b.y + b.height))).toBeCloseTo(
+            rowBounds.y + rowBounds.height,
+        );
     });
 
     it('adds padding around the whole row if requested', async () => {
         await t.setupViewport();
         await insertChildren(NONUNIFORM_CHILDREN);
-        await t.rootElement((root, padding) => root.attributes.padding.value = padding, String(PADDING));
+        await t.rootElement(
+            (root, padding) => (root.attributes.padding.value = padding),
+            String(PADDING),
+        );
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
         const { rowBounds, childBounds } = await boundingBoxes();
         childBounds.sort((a, b) => a.x - b.x);
@@ -202,9 +236,15 @@ describe(vis.RowViewModel, () => {
         expect(childBounds[2].x).toBeCloseTo(childBounds[1].x + childBounds[1].width);
         // Whole row should be padded
         expect(childBounds[0].x).toBeCloseTo(rowBounds.x + PADDING * fontSize);
-        expect(childBounds[2].x + childBounds[2].width).toBeCloseTo(rowBounds.x + rowBounds.width - PADDING * fontSize);
-        expect(Math.min(...childBounds.map(b => b.y))).toBeCloseTo(rowBounds.y + PADDING * fontSize);
-        expect(Math.max(...childBounds.map(b => b.y + b.height))).toBeCloseTo(rowBounds.y + rowBounds.height - PADDING * fontSize);
+        expect(childBounds[2].x + childBounds[2].width).toBeCloseTo(
+            rowBounds.x + rowBounds.width - PADDING * fontSize,
+        );
+        expect(Math.min(...childBounds.map(b => b.y))).toBeCloseTo(
+            rowBounds.y + PADDING * fontSize,
+        );
+        expect(Math.max(...childBounds.map(b => b.y + b.height))).toBeCloseTo(
+            rowBounds.y + rowBounds.height - PADDING * fontSize,
+        );
     });
 
     it('adds padding both between and around children if requested', async () => {
@@ -220,12 +260,22 @@ describe(vis.RowViewModel, () => {
         const { rowBounds, childBounds } = await boundingBoxes();
         childBounds.sort((a, b) => a.y - b.y);
         // Children should be spaced accordingly
-        expect(childBounds[1].y).toBeCloseTo(childBounds[0].y + childBounds[0].height + PADDING * fontSize);
-        expect(childBounds[2].y).toBeCloseTo(childBounds[1].y + childBounds[1].height + PADDING * fontSize);
+        expect(childBounds[1].y).toBeCloseTo(
+            childBounds[0].y + childBounds[0].height + PADDING * fontSize,
+        );
+        expect(childBounds[2].y).toBeCloseTo(
+            childBounds[1].y + childBounds[1].height + PADDING * fontSize,
+        );
         // Whole row should be padded
         expect(childBounds[0].y).toBeCloseTo(rowBounds.y + PADDING * fontSize);
-        expect(childBounds[2].y + childBounds[2].width).toBeCloseTo(rowBounds.y + rowBounds.height - PADDING * fontSize);
-        expect(Math.min(...childBounds.map(b => b.x))).toBeCloseTo(rowBounds.x + PADDING * fontSize);
-        expect(Math.max(...childBounds.map(b => b.x + b.width))).toBeCloseTo(rowBounds.x + rowBounds.width - PADDING * fontSize);
+        expect(childBounds[2].y + childBounds[2].width).toBeCloseTo(
+            rowBounds.y + rowBounds.height - PADDING * fontSize,
+        );
+        expect(Math.min(...childBounds.map(b => b.x))).toBeCloseTo(
+            rowBounds.x + PADDING * fontSize,
+        );
+        expect(Math.max(...childBounds.map(b => b.x + b.width))).toBeCloseTo(
+            rowBounds.x + rowBounds.width - PADDING * fontSize,
+        );
     });
 });

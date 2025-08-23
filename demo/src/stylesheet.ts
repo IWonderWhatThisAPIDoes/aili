@@ -1,6 +1,6 @@
 /**
  * Taking stylesheets as inputs from the user.
- * 
+ *
  * @module
  */
 

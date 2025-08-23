@@ -1,6 +1,6 @@
 /**
  * Displaying logs to the user.
- * 
+ *
  * @module
  */
 
@@ -21,7 +21,7 @@ export const CLASS_SEVERITY_PREFIX: string = 'severity';
 export class DisplayLogger implements Logger {
     /**
      * Constructs a new logger and binds it to an HTML element.
-     * 
+     *
      * @param panelElement The HTML element that will display the logs.
      */
     constructor(panelElement: HTMLElement) {
@@ -29,7 +29,7 @@ export class DisplayLogger implements Logger {
     }
     /**
      * Logs a new message.
-     * 
+     *
      * @param severity Message severity.
      * @param message Message text.
      */

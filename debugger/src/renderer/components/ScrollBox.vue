@@ -17,14 +17,18 @@
     const scrollBox = useTemplateRef('scroll-box');
     /**
      * Scrolls the scroll box to a specified position vertically.
-     * 
+     *
      * @param pos Relative scroll position, [0, 1].
      */
     function scrollToY(pos: number): void {
         if (scrollBox.value) {
-            var adjpos = (pos - 0.5) / (1 - scrollBox.value.clientHeight / scrollBox.value.scrollHeight) + 0.5;
+            var adjpos =
+                (pos - 0.5) / (1 - scrollBox.value.clientHeight / scrollBox.value.scrollHeight) +
+                0.5;
             adjpos = Math.max(Math.min(adjpos, 1), 0);
-            scrollBox.value.scrollTo({ top: (scrollBox.value.scrollHeight - scrollBox.value.clientHeight) * adjpos });
+            scrollBox.value.scrollTo({
+                top: (scrollBox.value.scrollHeight - scrollBox.value.clientHeight) * adjpos,
+            });
         }
     }
     /**

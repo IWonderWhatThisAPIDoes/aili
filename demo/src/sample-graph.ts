@@ -1,7 +1,7 @@
 /**
  * Definition of the default sample graph
  * on which stylesheets are showcased.
- * 
+ *
  * @module
  */
 
@@ -32,11 +32,11 @@ export enum SampleGraph {
 export const SAMPLE_GRAPH_NAMES: Record<SampleGraph, string> = {
     [SampleGraph.VECTOR_APP]: 'Vector',
     [SampleGraph.LIST_SPLIT]: 'Linked list',
-}
+};
 
 /**
  * Constructs a sample graph by its key.
- * 
+ *
  * @param key Identifier of the graph to construct.
  */
 export function createSampleGraph(key: SampleGraph): StateGraph {
@@ -45,7 +45,7 @@ export function createSampleGraph(key: SampleGraph): StateGraph {
 
 /**
  * Constructs the graph of a sample application with a vector.
- * 
+ *
  * @returns New sample graph.
  */
 function vectorApp(): StateGraph {
@@ -69,7 +69,7 @@ function vectorApp(): StateGraph {
                                             typeKind: NodeTypeClass.Atom,
                                             typeName: 'int',
                                             value: BigInt(8),
-                                        }
+                                        },
                                     },
                                     ...[2, 3, 5, 8, 13, 0xffff, 0xffff, 0xffff].map((a, i) => {
                                         return {
@@ -78,14 +78,14 @@ function vectorApp(): StateGraph {
                                                 typeKind: NodeTypeClass.Atom,
                                                 typeName: 'int',
                                                 value: BigInt(a),
-                                            }
+                                            },
                                         };
-                                    })
-                                ]
-                            }
-                        }
-                    ]
-                }
+                                    }),
+                                ],
+                            },
+                        },
+                    ],
+                },
             },
             {
                 edgeLabel: EdgeLabel.named('len'),
@@ -93,7 +93,7 @@ function vectorApp(): StateGraph {
                     typeKind: NodeTypeClass.Atom,
                     typeName: 'int',
                     value: BigInt(5),
-                }
+                },
             },
             {
                 edgeLabel: EdgeLabel.named('cap'),
@@ -101,9 +101,9 @@ function vectorApp(): StateGraph {
                     typeKind: NodeTypeClass.Atom,
                     typeName: 'int',
                     value: BigInt(8),
-                }
-            }
-        ]
+                },
+            },
+        ],
     };
     return new StateGraph({
         typeKind: NodeTypeClass.Root,
@@ -128,8 +128,8 @@ function vectorApp(): StateGraph {
                                                 {
                                                     edgeLabel: EdgeLabel.DEREF,
                                                     node: v,
-                                                }
-                                            ]
+                                                },
+                                            ],
                                         },
                                     },
                                     {
@@ -137,15 +137,15 @@ function vectorApp(): StateGraph {
                                         node: {
                                             typeKind: NodeTypeClass.Atom,
                                             typeName: 'int',
-                                            value: BigInt(42)
-                                        }
+                                            value: BigInt(42),
+                                        },
                                     },
-                                ]
-                            }
+                                ],
+                            },
                         },
                         {
                             edgeLabel: EdgeLabel.named('vec'),
-                            node: v
+                            node: v,
                         },
                         {
                             edgeLabel: EdgeLabel.named('argv'),
@@ -163,7 +163,7 @@ function vectorApp(): StateGraph {
                                                         typeKind: NodeTypeClass.Atom,
                                                         typeName: 'int',
                                                         value: BigInt(2),
-                                                    }
+                                                    },
                                                 },
                                                 ...['a.out', '-h'].map((s: string, i: number) => {
                                                     return {
@@ -174,43 +174,63 @@ function vectorApp(): StateGraph {
                                                                 {
                                                                     edgeLabel: EdgeLabel.DEREF,
                                                                     node: {
-                                                                        typeKind: NodeTypeClass.Array,
+                                                                        typeKind:
+                                                                            NodeTypeClass.Array,
                                                                         outEdges: [
                                                                             {
-                                                                                edgeLabel: EdgeLabel.LENGTH,
+                                                                                edgeLabel:
+                                                                                    EdgeLabel.LENGTH,
                                                                                 node: {
-                                                                                    typeKind: NodeTypeClass.Atom,
+                                                                                    typeKind:
+                                                                                        NodeTypeClass.Atom,
                                                                                     typeName: 'int',
-                                                                                    value: BigInt(s.length),
-                                                                                }
+                                                                                    value: BigInt(
+                                                                                        s.length,
+                                                                                    ),
+                                                                                },
                                                                             },
-                                                                            ...[].map.call(s, (c: string, i: number) => {
-                                                                                return {
-                                                                                    edgeLabel: EdgeLabel.index(i),
-                                                                                    node: {
-                                                                                        typeKind: NodeTypeClass.Atom,
-                                                                                        typeName: 'char',
-                                                                                        value: BigInt(c.charCodeAt(0)),
-                                                                                    }
-                                                                                }
-                                                                            })
-                                                                        ]
-                                                                    }
-                                                                }
-                                                            ]
-                                                        }
+                                                                            ...[].map.call(
+                                                                                s,
+                                                                                (
+                                                                                    c: string,
+                                                                                    i: number,
+                                                                                ) => {
+                                                                                    return {
+                                                                                        edgeLabel:
+                                                                                            EdgeLabel.index(
+                                                                                                i,
+                                                                                            ),
+                                                                                        node: {
+                                                                                            typeKind:
+                                                                                                NodeTypeClass.Atom,
+                                                                                            typeName:
+                                                                                                'char',
+                                                                                            value: BigInt(
+                                                                                                c.charCodeAt(
+                                                                                                    0,
+                                                                                                ),
+                                                                                            ),
+                                                                                        },
+                                                                                    };
+                                                                                },
+                                                                            ),
+                                                                        ],
+                                                                    },
+                                                                },
+                                                            ],
+                                                        },
                                                     };
-                                                })
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    ]
-                }
-            }
-        ]
+                                                }),
+                                            ],
+                                        },
+                                    },
+                                ],
+                            },
+                        },
+                    ],
+                },
+            },
+        ],
     });
 }
 
@@ -232,18 +252,20 @@ function listSplit(): StateGraph {
             ],
         };
     });
-    listNodes.slice(1).forEach((node, i) => listNodes[i].outEdges?.push({
-        edgeLabel: EdgeLabel.named('next'),
-        node: {
-            typeKind: NodeTypeClass.Ref,
-            outEdges: [
-                {
-                    edgeLabel: EdgeLabel.DEREF,
-                    node,
-                },
-            ],
-        },
-    }));
+    listNodes.slice(1).forEach((node, i) =>
+        listNodes[i].outEdges?.push({
+            edgeLabel: EdgeLabel.named('next'),
+            node: {
+                typeKind: NodeTypeClass.Ref,
+                outEdges: [
+                    {
+                        edgeLabel: EdgeLabel.DEREF,
+                        node,
+                    },
+                ],
+            },
+        }),
+    );
     const stackFrames: StateNode[] = Array.from({ length: LENGTH / 2 }, (_, i) => {
         return {
             typeKind: NodeTypeClass.Frame,
@@ -283,10 +305,12 @@ function listSplit(): StateGraph {
             typeName: 'nullptr',
         },
     });
-    stackFrames.slice(1).forEach((node, i) => stackFrames[i].outEdges?.push({
-        edgeLabel: EdgeLabel.NEXT,
-        node,
-    }));
+    stackFrames.slice(1).forEach((node, i) =>
+        stackFrames[i].outEdges?.push({
+            edgeLabel: EdgeLabel.NEXT,
+            node,
+        }),
+    );
     return new StateGraph({
         typeKind: NodeTypeClass.Root,
         outEdges: [
@@ -331,4 +355,4 @@ function listSplit(): StateGraph {
 const SAMPLE_GRAPH_CONSTRUCTORS: Record<SampleGraph, () => StateGraph> = {
     [SampleGraph.VECTOR_APP]: vectorApp,
     [SampleGraph.LIST_SPLIT]: listSplit,
-}
+};

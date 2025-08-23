@@ -135,7 +135,7 @@ export class TestFrame {
             endPinTargets: this.connectors.map(c => c.end.target),
             startPinProjectedTargets: this.connectors.map(c => c.start.projectedTarget),
             endPinProjectedTargets: this.connectors.map(c => c.end.projectedTarget),
-        }
+        };
     }
     readonly elements: VisElement[];
     readonly connectors: VisConnector[];

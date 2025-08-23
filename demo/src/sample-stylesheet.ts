@@ -1,6 +1,6 @@
 /**
  * Pre-written stylesheets for common ways of displaying data.
- * 
+ *
  * @module
  */
 
@@ -50,11 +50,11 @@ export const STYLESHEET_NAME: Record<BuiltinStylesheet, string> = {
     [BuiltinStylesheet.STATE_GRAPH_PRETTY]: 'State graph with highlights',
     [BuiltinStylesheet.VECTOR]: 'Vector',
     [BuiltinStylesheet.LINKED_LIST]: 'Linked list',
-}
+};
 
 /**
  * Gets a predefined stylesheet by its key.
- * 
+ *
  * @param key Identifier of the requested stylesheet.
  */
 export function getSampleStylesheet(key: BuiltinStylesheet): string {
@@ -65,8 +65,7 @@ export function getSampleStylesheet(key: BuiltinStylesheet): string {
  * The text of the built-in stylesheets.
  */
 const BUILTIN_STYLESHEETS: Record<BuiltinStylesheet, string> = {
-    [BuiltinStylesheet.STATE_GRAPH_PRETTY]:
-`/**
+    [BuiltinStylesheet.STATE_GRAPH_PRETTY]: `/**
  * This stylesheet is similar to the raw view,
  * but it includes color and patterns for ease
  * of reading.
@@ -167,8 +166,7 @@ ref::edge {
 }
 
 `,
-    [BuiltinStylesheet.TRACE_GRAPH]:
-`/**
+    [BuiltinStylesheet.TRACE_GRAPH]: `/**
  * This stylesheet displays a program as a graph
  * where each node is a stack frame or a heap allocation
  */
@@ -240,8 +238,7 @@ next::edge {
 }
 
 `,
-    [BuiltinStylesheet.TRACE_COLUMN]:
-`/**
+    [BuiltinStylesheet.TRACE_COLUMN]: `/**
  * This stylesheet displays a program as a graph
  * where each node is a heap allocation around
  * the central stack
@@ -332,8 +329,7 @@ ref::edge {
 }
 
 `,
-    [BuiltinStylesheet.STATE_GRAPH]:
-`/**
+    [BuiltinStylesheet.STATE_GRAPH]: `/**
  * This stylesheet displays the underlying state graph
  * as plainly as possible
  *
@@ -416,8 +412,7 @@ ret::edge {
 }
 
 `,
-    [BuiltinStylesheet.VECTOR]:
-`/**
+    [BuiltinStylesheet.VECTOR]: `/**
  * THIS STYLESHEET IS SPECIFICALLY INTENDED
  * TO BE USED WITH THE VECTOR EXAMPLE
  *
@@ -481,8 +476,7 @@ ret::edge {
 }
 
 `,
-    [BuiltinStylesheet.LINKED_LIST]:
-`/**
+    [BuiltinStylesheet.LINKED_LIST]: `/**
  * THIS STYLESHEET IS SPECIFICALLY INTENDED
  * TO BE USED WITH THE LINKED LIST EXAMPLE
  *
@@ -535,4 +529,4 @@ ret::edge {
 }
 
 `,
-}
+};

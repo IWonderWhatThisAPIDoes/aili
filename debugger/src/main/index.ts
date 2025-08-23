@@ -1,9 +1,9 @@
 /**
  * Main process of the Electron application.
- * 
+ *
  * Window launching and interactions with the operating
  * system happen here.
- * 
+ *
  * @module
  */
 
@@ -15,7 +15,7 @@ import { DebuggerManager } from './debugger-manager';
 
 /**
  * Creates the application main window.
- * 
+ *
  * @returns Main window of the application.
  */
 function setupMainWindow(): BrowserWindow {

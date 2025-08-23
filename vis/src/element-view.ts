@@ -1,6 +1,6 @@
 /**
  * Rendering of {@link ReadonlyVisElement}s.
- * 
+ *
  * @module
  */
 
@@ -16,7 +16,7 @@ import { ContextFreeViewModelFactory } from './model-factory';
 export class ElementViewContainer extends ViewContainer<ReadonlyVisElement, ElementView> {
     /**
      * Constructs an empty view container.
-     * 
+     *
      * @param modelFactory Factory for constructing view models for elements.
      */
     constructor(modelFactory: ContextFreeViewModelFactory) {
@@ -34,7 +34,7 @@ export class ElementViewContainer extends ViewContainer<ReadonlyVisElement, Elem
  * Describes the embedding of an {@link ElementView},
  * i.e. the place where its respective {@link ReadonlyVisElement}
  * should be rendered.
- * 
+ *
  * Possible variants are:
  * - Root (explicit) embedding - {@link slot} is specified explicitly.
  * - Inherited embedding - {@link parent} is specified and
@@ -48,13 +48,13 @@ export interface ViewEmbedding {
      * Parent view. A {@link ElementViewSlot} will be requested
      * from it to place the view into.
      */
-    parent?: ElementView | undefined,
+    parent?: ElementView | undefined;
     /**
      * Explicit slot. The {@link ElementView} will be embedded
      * in that slot. This will be indicated by the
      * {@link ElementView.hasExplicitEmbedding} property.
      */
-    slot?: ElementViewSlot | undefined,
+    slot?: ElementViewSlot | undefined;
 }
 
 /**
@@ -64,7 +64,7 @@ export interface ElementView extends ViewBase {
     /**
      * Embeds the view in a new placement. Visuals will be updated
      * as needed.
-     * 
+     *
      * @param embedding New embedding for the view.
      */
     useEmbedding(embedding: ViewEmbedding): void;
@@ -86,7 +86,7 @@ export interface ElementView extends ViewBase {
 class ElementViewImpl implements ElementView {
     /**
      * Constructs a view for a given element.
-     * 
+     *
      * @param element The element to be viewed.
      * @param model View model that determines the rendering of the element.
      *              The model will be owned by the view and will be destroyed
@@ -103,11 +103,13 @@ class ElementViewImpl implements ElementView {
             return;
         }
         this._hasExplicitEmbedding = !!embedding.slot;
-        this.moveToSlot(embedding.slot ?? (embedding.parent ? this.getSlot(embedding.parent) : undefined));
+        this.moveToSlot(
+            embedding.slot ?? (embedding.parent ? this.getSlot(embedding.parent) : undefined),
+        );
     }
     /**
      * Embeds the view in a specified slot.
-     * 
+     *
      * @param slot New slot for the view.
      */
     private moveToSlot(slot: ElementViewSlot | undefined): void {
@@ -120,7 +122,7 @@ class ElementViewImpl implements ElementView {
     }
     /**
      * Cleans up after the view has expired.
-     * 
+     *
      * @internal
      */
     _destroy(): void {
@@ -132,8 +134,8 @@ class ElementViewImpl implements ElementView {
     }
     /**
      * Requests an inline or companion slot for an element
-     * from its parent. 
-     * 
+     * from its parent.
+     *
      * @param parentView View for the parent element.
      * @returns Slot provided by the parent element's model.
      */

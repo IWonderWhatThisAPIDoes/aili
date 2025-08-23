@@ -7,7 +7,7 @@ import { BuiltinStylesheet, STYLESHEET_NAME } from './sample-stylesheet';
 
 /**
  * Shorthand for retrieving an element with a given ID.
- * 
+ *
  * @param id ID of the HTML element.
  * @returns The requested element.
  * @throws {@link Error} - The element does not exist.
@@ -71,8 +71,12 @@ stateSelect.addEventListener('input', () => {
     showcase.useStateGraph(createSampleGraph(SampleGraph[stateSelect.value]));
     updateRendering();
 });
-printTreeButton.addEventListener('click', () => logger.log(Severity.DEBUG, showcase.prettyPrintTree()));
-printStyleButton.addEventListener('click', () => logger.log(Severity.DEBUG, showcase.prettyPrintResolvedStyle()));
+printTreeButton.addEventListener('click', () =>
+    logger.log(Severity.DEBUG, showcase.prettyPrintTree()),
+);
+printStyleButton.addEventListener('click', () =>
+    logger.log(Severity.DEBUG, showcase.prettyPrintResolvedStyle()),
+);
 
 // Visualize everything initially
 updateRendering();

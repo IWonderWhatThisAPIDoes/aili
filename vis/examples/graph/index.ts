@@ -1,6 +1,6 @@
 /**
  * Rendes a (deterministic) graph structure with an unoriented layout.
- * 
+ *
  * @module
  */
 
@@ -10,7 +10,7 @@ import {
     TAG_GRAPH,
     Viewport,
     VisConnector,
-    VisElement
+    VisElement,
 } from '../../src';
 
 addEventListener('load', () => {
@@ -20,10 +20,10 @@ addEventListener('load', () => {
     const connectors = Array.from({ length: 50 }, () => new VisConnector());
 
     // Construct visualization tree structure
-    nodes.forEach(n => n.parent = root);
+    nodes.forEach(n => (n.parent = root));
     connectors.forEach((c, i) => {
         c.start.target = nodes[i % 30];
-        c.end.target = nodes[Math.abs(i % 41 - 7)];
+        c.end.target = nodes[Math.abs((i % 41) - 7)];
     });
 
     // Make it look pretty

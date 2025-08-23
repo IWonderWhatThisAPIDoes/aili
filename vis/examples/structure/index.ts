@@ -1,7 +1,7 @@
 /**
  * Renders a data structure as a key-value table.
  * Demonstrates compound key-value entries of various types.
- * 
+ *
  * @module
  */
 
@@ -13,14 +13,17 @@ import {
     TAG_ROW,
     TAG_TEXT,
     Viewport,
-    VisElement
+    VisElement,
 } from '../../src';
 
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz';
 const HEX_DIGITS = '0123456789abcdef';
 
 function randomWord(characters, length) {
-    return Array.from({ length }, () => characters[Math.floor(Math.random() * characters.length)]).join('');
+    return Array.from(
+        { length },
+        () => characters[Math.floor(Math.random() * characters.length)],
+    ).join('');
 }
 
 addEventListener('load', () => {
@@ -32,12 +35,12 @@ addEventListener('load', () => {
     const position = new VisElement(TAG_KVT);
     const posNodes = Array.from({ length: 3 }, () => new VisElement(TAG_TEXT));
     position.parent = root;
-    posNodes.forEach(n => n.parent = position);
+    posNodes.forEach(n => (n.parent = position));
     position.attributes.key.value = 'position';
     posNodes[0].attributes.key.value = 'x';
     posNodes[1].attributes.key.value = 'y';
     posNodes[2].attributes.key.value = 'z';
-    posNodes.forEach(n => n.attributes.value.value = String(Math.floor(Math.random() * 100)));
+    posNodes.forEach(n => (n.attributes.value.value = String(Math.floor(Math.random() * 100))));
 
     // Visibility entry, rendered as a checkbox
     const isvisible = new VisElement(TAG_CHECKBOX);
@@ -49,7 +52,7 @@ addEventListener('load', () => {
     const tags = new VisElement(TAG_ROW);
     const tagNodes = Array.from({ length: 3 }, () => new VisElement(TAG_CELL));
     tags.parent = root;
-    tagNodes.forEach(n => n.parent = tags);
+    tagNodes.forEach(n => (n.parent = tags));
     tags.attributes.key.value = 'markers';
     tags.attributes.gap.value = '0.5';
     tagNodes.forEach(n => {
@@ -61,7 +64,7 @@ addEventListener('load', () => {
     const attributes = new VisElement(TAG_KVT);
     const attrNodes = Array.from({ length: 5 }, () => new VisElement(TAG_TEXT));
     attributes.parent = root;
-    attrNodes.forEach(n => n.parent = attributes);
+    attrNodes.forEach(n => (n.parent = attributes));
     attributes.attributes.key.value = 'attributes';
     attributes.attributes.title.value = 'Map';
     attrNodes.forEach(n => {

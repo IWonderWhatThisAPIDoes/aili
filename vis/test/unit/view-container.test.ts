@@ -2,15 +2,17 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ViewBase, ViewContainer } from '../../src/view-container';
 
 const mockDestructor = jest.fn().mockName('_destroy');
-const mockConstructor = jest.fn(() => ({ _destroy: mockDestructor } as ViewBase)).mockName('createNew');
+const mockConstructor = jest
+    .fn(() => ({ _destroy: mockDestructor }) as ViewBase)
+    .mockName('createNew');
 
-class TestViewContainer extends ViewContainer<Object, ViewBase> {
-    createNew = mockConstructor
+class TestViewContainer extends ViewContainer<object, ViewBase> {
+    createNew = mockConstructor;
 }
 
 describe(ViewContainer, () => {
     const tag = {};
-    let container: ViewContainer<Object, ViewBase>;
+    let container: ViewContainer<object, ViewBase>;
 
     beforeEach(() => {
         mockConstructor.mockClear();
@@ -39,7 +41,7 @@ describe(ViewContainer, () => {
 
     describe(ViewContainer.prototype.getOrCreate, () => {
         it('delegates creation to the implementation', () => {
-            const constructedView = { _destroy() {} }
+            const constructedView = { _destroy() {} };
             mockConstructor.mockImplementationOnce(() => constructedView);
             const { view } = container.getOrCreate(tag);
             expect(mockConstructor).toBeCalled();

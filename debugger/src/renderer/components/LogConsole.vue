@@ -11,7 +11,7 @@
     export type LogEntry = readonly [readonly string[], Severity, string, string | undefined];
     /**
      * How many lines of history should be kept by default.
-     * 
+     *
      * History is deleted in buffers of this size,
      * so there will always be between {@link DEFAULT_HISTORY_BUFFER_SIZE}
      * and {@link DEFAULT_HISTORY_BUFFER_SIZE} `* 2` lines.
@@ -25,7 +25,7 @@
     import Console from './Console.vue';
     import LogLine from './LogLine.vue';
 
-    const { showTopic, history } = defineProps<{ showTopic?: boolean, history?: number }>();
+    const { showTopic, history } = defineProps<{ showTopic?: boolean; history?: number }>();
 
     // Two swappable buffers
     // Once one of them is full, it is pushed back and the previous one is discarded
@@ -36,7 +36,7 @@
     defineExpose({
         /**
          * Displays a new line in the log.
-         * 
+         *
          * @param entry Data that describes the new line.
          */
         addEntry(...entry: LogEntry) {
@@ -62,11 +62,13 @@
 <template>
     <Console>
         <template v-for="buffer of logs">
-            <LogLine v-for="log of buffer"
+            <LogLine
+                v-for="log of buffer"
                 :topic="log[0]"
                 :severity="log[1]"
                 :message="log[2]"
-                :showTopic="showTopic"/>
+                :showTopic="showTopic"
+            />
         </template>
     </Console>
 </template>

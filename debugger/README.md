@@ -50,6 +50,7 @@ that can be used with all of the programs.
 ## Documentation
 
 The following command generates documentation and saves it to the `doc` directory.
+
 ```sh
 npm run doc
 ```

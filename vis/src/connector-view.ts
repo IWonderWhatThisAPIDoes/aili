@@ -1,6 +1,6 @@
 /**
  * Rendering of {@link ReadonlyVisConnector}s.
- * 
+ *
  * @module
  */
 
@@ -18,7 +18,7 @@ import * as jsplumb from '@jsplumb/browser-ui';
 export class ConnectorViewContainer extends ViewContainer<ReadonlyVisConnector, ConnectorView> {
     /**
      * Constructs an empty view container.
-     * 
+     *
      * @param context Context for construction of visuals.
      */
     constructor(context: ViewportContext) {
@@ -38,7 +38,7 @@ export interface ConnectorView extends ViewBase {
     /**
      * Changes the placement of the view's endpoints. Visuals
      * will be updated as needed.
-     * 
+     *
      * @param start The element view that the start pin should be attached to.
      * @param end The element view that the end pin should be attached to.
      */
@@ -52,7 +52,7 @@ export interface ConnectorView extends ViewBase {
 class ConnectorViewImpl implements ConnectorView {
     /**
      * Constructs a view for a given connector.
-     * 
+     *
      * @param connector The connector to be viewed.
      * @param context Context for creation of visuals.
      */
@@ -74,7 +74,7 @@ class ConnectorViewImpl implements ConnectorView {
                 this.connector,
                 this.jsplumb,
                 this.start.pinHtmlContainer,
-                this.end.pinHtmlContainer
+                this.end.pinHtmlContainer,
             );
         } else {
             this.model = undefined;
@@ -82,7 +82,7 @@ class ConnectorViewImpl implements ConnectorView {
     }
     /**
      * Cleans up after the view has expired.
-     * 
+     *
      * @internal
      */
     _destroy(): void {
@@ -135,7 +135,7 @@ class ConnectorViewModel {
         source: Element,
         target: Element,
     ) {
-        const connection = this.connection = jsplumb.connect({
+        const connection = (this.connection = jsplumb.connect({
             source,
             target,
             // We do not want connectors to be interactive... yet
@@ -152,7 +152,7 @@ class ConnectorViewModel {
             connector: ConnectorViewModel.getJsplumbConnectorDescription(connector),
             anchor: ConnectorViewModel.PIN_ANCHOR_MAP.auto,
             endpoint: 'Blank',
-        });
+        }));
 
         this.connectorObserver = setAttributeBindings(connector.attributes, {
             stroke(value) {
@@ -192,8 +192,8 @@ class ConnectorViewModel {
                             type: 'Label',
                             options: {
                                 label: value,
-                                id: LABEL_OVERLAY_ID
-                            }
+                                id: LABEL_OVERLAY_ID,
+                            },
                         });
                     } else {
                         label.setLabel(value);
@@ -204,13 +204,16 @@ class ConnectorViewModel {
                         jsplumb.removeOverlay(connection, LABEL_OVERLAY_ID);
                     }
                 }
-            }
+            },
         });
         this.pinObservers = [connector.start, connector.end].map((pin, i) => {
             const endpoint = connection.endpoints[i];
             return setAttributeBindings(pin.attributes, {
                 anchor(value) {
-                    const anchor = value === undefined ? ConnectorViewModel.PIN_ANCHOR_MAP.auto : ConnectorViewModel.PIN_ANCHOR_MAP[value];
+                    const anchor =
+                        value === undefined
+                            ? ConnectorViewModel.PIN_ANCHOR_MAP.auto
+                            : ConnectorViewModel.PIN_ANCHOR_MAP[value];
                     endpoint.setAnchor(anchor);
                     jsplumb.repaint(endpoint.element);
                 },
@@ -257,9 +260,9 @@ class ConnectorViewModel {
                                 type: 'Label',
                                 options: {
                                     label: value,
-                                    id: LABEL_OVERLAY_ID
-                                }
-                            })
+                                    id: LABEL_OVERLAY_ID,
+                                },
+                            });
                         } else {
                             label.setLabel(value);
                         }
@@ -269,7 +272,7 @@ class ConnectorViewModel {
                             jsplumb.removeOverlay(endpoint, LABEL_OVERLAY_ID);
                         }
                     }
-                }
+                },
             });
         }) as [ObserverHandle, ObserverHandle];
     }
@@ -283,7 +286,7 @@ class ConnectorViewModel {
         northwest: 'TopLeft',
         southeast: 'BottomRight',
         southwest: 'BottomLeft',
-        auto: { type: 'Perimeter', options: { shape: "Rectangle" } },
+        auto: { type: 'Perimeter', options: { shape: 'Rectangle' } },
     };
 
     destroy(): void {
@@ -298,11 +301,16 @@ class ConnectorViewModel {
     private readonly connectorObserver: ObserverHandle;
     private readonly pinObservers: readonly [ObserverHandle, ObserverHandle];
 
-    private static getJsplumbConnectorDescription(connector: ReadonlyVisConnector): jsplumb.ConnectorSpec {
+    private static getJsplumbConnectorDescription(
+        connector: ReadonlyVisConnector,
+    ): jsplumb.ConnectorSpec {
         switch (connector.attributes.shape.value) {
-            case 'square': return 'Flowchart';
-            case 'quadratic': return { type: 'StateMachine', options: { margin: 1 /* 0 is not allowed */ }};
-            case 'cubic': return 'Bezier';
+            case 'square':
+                return 'Flowchart';
+            case 'quadratic':
+                return { type: 'StateMachine', options: { margin: 1 /* 0 is not allowed */ } };
+            case 'cubic':
+                return 'Bezier';
             default:
                 // Straight connectors cannot handle connecting an element to itself
                 if (connector.start.target === connector.end.target) {

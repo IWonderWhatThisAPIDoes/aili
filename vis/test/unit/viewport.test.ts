@@ -44,7 +44,7 @@ describe(Viewport, () => {
         expect(document.querySelectorAll(SELECTOR_ELEMENT)).toHaveLength(1);
     });
 
-    it('ignores the root element\'s parent', () => {
+    it("ignores the root element's parent", () => {
         /* Expected:
          * +------+
          * | root |
@@ -55,7 +55,7 @@ describe(Viewport, () => {
         expect(document.querySelectorAll(SELECTOR_ELEMENT)).toHaveLength(1);
     });
 
-    it('ignores the root element\'s parent even if it was rendered before', () => {
+    it("ignores the root element's parent even if it was rendered before", () => {
         /* Expected:
          * +------+
          * | root |
@@ -423,7 +423,7 @@ describe(Viewport, () => {
          *               + - - - - - -> grandchild  -  -
          *          (not rendered) -  + - - - - - - +  -
          *                         + - - - - - - - - - +
-         * 
+         *
          * The purpose of this test case is to test that when an element is
          * detached, all connectors attached to its whole subtree get erased,
          * not just those connected directly to the element

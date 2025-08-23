@@ -1,6 +1,6 @@
 /**
  * Describes structure of the visualization tree.
- * 
+ *
  * @module
  */
 
@@ -22,7 +22,7 @@ export interface ReadonlyVisElement {
     readonly attributes: ReadonlyAttributeMap;
     /**
      * Parent element, or `undefined` if the element is the root of its subtree.
-     * 
+     *
      * Mirrored by the {@link children} property.
      */
     readonly parent: ReadonlyVisElement | undefined;
@@ -32,57 +32,57 @@ export interface ReadonlyVisElement {
     readonly children: Iterable<ReadonlyVisElement>;
     /**
      * Connector pins that are attached directly to this element.
-     * 
+     *
      * Mirrors the {@link ReadonlyVisPin.target} property.
      */
     readonly pins: Iterable<ReadonlyVisPin>;
     /**
      * Connector pins whose projections are attached to this element.
-     * 
+     *
      * Mirrors the {@link ReadonlyVisPin.projectedTarget} property.
      */
     readonly projectedPins: Iterable<ReadonlyVisPin>;
     /**
      * Connectors whose projections belong to this element.
-     * 
+     *
      * Mirrors the {@link ReadonlyVisConnector.projectedParent} property.
      */
     readonly projectedConnectors: Iterable<ReadonlyVisConnector>;
     /**
      * Triggers when a pin is added to {@link pins}.
      * The added pin is also passed as the argument to the observers.
-     * 
+     *
      * @event
      */
     readonly onAddPin: Hookable<[ReadonlyVisPin]>;
     /**
      * Triggers when a pin is added to {@link projectedPins}.
      * The added pin is also passed as the argument to the observers.
-     * 
+     *
      * The hook is triggered after the matching call
      * to {@link ReadonlyVisPin.onProjectedTargetChanged}.
-     * 
+     *
      * @event
      */
     readonly onAddProjectedPin: Hookable<[ReadonlyVisPin]>;
     /**
      * Triggers when a connector is added to {@link projectedConnectors}.
      * The added connector is also passed as the argument to the observers.
-     * 
+     *
      * The hook is triggered after the matching call
      * to {@link ReadonlyVisConnector.onProjectedParentChanged},
      * {@link ReadonlyVisPin.onProjectedTargetChanged}, and {@link onAddProjectedPin}.
-     * 
+     *
      * @event
      */
     readonly onAddProjectedConnector: Hookable<[ReadonlyVisConnector]>;
     /**
      * Triggers when an element is added to {@link children}.
      * The added element is also passed as the argument to the observers.
-     * 
+     *
      * The hook is triggered after the matching call to {@link onParentChanged}
      * of the child element.
-     * 
+     *
      * @event
      */
     readonly onAddChild: Hookable<[ReadonlyVisElement]>;
@@ -90,13 +90,15 @@ export interface ReadonlyVisElement {
      * Triggers when the {@link parent} element changes.
      * The new and previous parent elements are also passed as arguments
      * to the observers.
-     * 
+     *
      * The hook is triggered before the matching call to {@link onAddChild}
      * of the new parent element.
-     * 
+     *
      * @event
      */
-    readonly onParentChanged: Hookable<[ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]>;
+    readonly onParentChanged: Hookable<
+        [ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]
+    >;
 }
 
 /**
@@ -111,21 +113,21 @@ export interface ReadonlyVisConnector {
     /**
      * The pin that attaches the start of the connector.
      * It never changes.
-     * 
+     *
      * Mirrored by the {@link ReadonlyVisPin.connector} property.
      */
     readonly start: ReadonlyVisPin;
     /**
      * The pin that attaches the end of the connector.
      * It never changes.
-     * 
+     *
      * Mirrored by the {@link ReadonlyVisPin.connector} property.
      */
     readonly end: ReadonlyVisPin;
     /**
      * Nearest common ancestor of the target elements of both pins.
      * `undefined` if either pin is detached or their targets are in unrelated subtrees.
-     * 
+     *
      * Mirrored by the {@link ReadonlyVisElement.projectedConnectors} property.
      */
     readonly projectedParent: ReadonlyVisElement | undefined;
@@ -133,14 +135,16 @@ export interface ReadonlyVisConnector {
      * Triggers when the {@link projectedParent} property changes.
      * The new and previous projected parent elements are also passed as arguments
      * to the observers.
-     * 
+     *
      * The hook is triggered after the matching call to either
      * {@link ReadonlyVisElement.onAddChild} or {@link ReadonlyVisElement.onAddPin},
      * depending on what modification caused the update.
-     * 
+     *
      * @event
      */
-    readonly onProjectedParentChanged: Hookable<[ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]>;
+    readonly onProjectedParentChanged: Hookable<
+        [ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]
+    >;
 }
 
 /**
@@ -154,26 +158,26 @@ export interface ReadonlyVisPin {
     readonly attributes: ReadonlyAttributeMap;
     /**
      * The connector that owns this pin.
-     * 
+     *
      * Mirrors the {@link ReadonlyVisConnector.start} and
      * {@link ReadonlyVisConnector.end} properties.
      */
     readonly connector: ReadonlyVisConnector;
     /**
      * The element that the pin is attached to.
-     * 
+     *
      * Mirrored by the {@link ReadonlyVisElement.pins} property.
      */
     readonly target: ReadonlyVisElement | undefined;
     /**
      * The element that the pin's projection is attached to.
-     * 
+     *
      * It is the ancestor (inclusive) of {@link target} that is a child
      * of {@link ReadonlyVisConnector.projectedParent} of this pin's
      * {@link connector}. If {@link ReadonlyVisConnector.projectedParent}
      * is the same element as {@link target}, {@link projectedTarget}
      * is the same element too.
-     * 
+     *
      * Mirrored by the {@link ReadonlyVisElement.projectedPins} property.
      */
     readonly projectedTarget: ReadonlyVisElement | undefined;
@@ -181,21 +185,25 @@ export interface ReadonlyVisPin {
      * Triggers when the {@link target} property changes.
      * The new and previous target elements are also passed as arguments
      * to the observers.
-     * 
+     *
      * The hook is triggered before the matching call to {@link ReadonlyVisElement.onAddPin}
      * of the new target element.
-     * 
+     *
      * @event
      */
-    readonly onTargetChanged: Hookable<[ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]>;
+    readonly onTargetChanged: Hookable<
+        [ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]
+    >;
     /**
      * Triggers when the {@link projectedTarget} property changes.
      * The new and previous projected target elements are also passed
      * as arguments to the observers.
-     * 
+     *
      * @event
      */
-    readonly onProjectedTargetChanged: Hookable<[ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]>;
+    readonly onProjectedTargetChanged: Hookable<
+        [ReadonlyVisElement | undefined, ReadonlyVisElement | undefined]
+    >;
 }
 
 /**
@@ -204,7 +212,7 @@ export interface ReadonlyVisPin {
 export class VisElement implements ReadonlyVisElement {
     /**
      * Constructs a new element with a provided tag name.
-     * 
+     *
      * @param tagName Tag name of the new element.
      */
     constructor(tagName: string) {
@@ -236,7 +244,7 @@ export class VisElement implements ReadonlyVisElement {
     }
     /**
      * Insert the element into a new parent or detach it from its current parent.
-     * 
+     *
      * @throws {@link VisStructuralException} - The modification would violate structural invariants.
      */
     set parent(parent: VisElement | undefined) {
@@ -278,8 +286,9 @@ export class VisElement implements ReadonlyVisElement {
      * @internal
      */
     _getPathToRoot(): VisElement[] {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         let current: VisElement | undefined = this;
-        let path: VisElement[] = [];
+        const path: VisElement[] = [];
         while (current) {
             path.push(current);
             current = current._parent;
@@ -295,10 +304,10 @@ export class VisElement implements ReadonlyVisElement {
 export class VisPin implements ReadonlyVisPin {
     /**
      * Constructs a new pin bound to a connector.
-     * 
+     *
      * This constructor is intended to be called by the owner connector.
      * Users should not need to construct new pins manually.
-     * 
+     *
      * @internal
      * @param connector Connector that owns the new pin.
      */
@@ -366,7 +375,7 @@ export class VisConnector implements ReadonlyVisConnector {
     /**
      * Finds the current projection of the connector
      * and updates it if it has changed.
-     * 
+     *
      * @internal
      */
     _updateProjection(): void {
@@ -402,7 +411,9 @@ export class VisConnector implements ReadonlyVisConnector {
             parent?.onAddProjectedConnector?.trigger(this);
         }
     }
-    private getCurrentProjectionData(): { start: VisElement, end: VisElement, parent: VisElement } | undefined {
+    private getCurrentProjectionData():
+        | { start: VisElement; end: VisElement; parent: VisElement }
+        | undefined {
         if (!this.start.target || !this.end.target) {
             // Quick return: we know there is no projection
             // if the connector is not even attached

@@ -1,8 +1,5 @@
 {
-    "entryPoints": [
-        "./src/ipc.ts",
-        "./src/*/**/*.ts"
-    ],
+    "entryPoints": ["./src/ipc.ts", "./src/*/**/*.ts"],
     "readme": "none",
     "out": "./doc",
     "skipErrorChecking": true,

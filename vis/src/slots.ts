@@ -1,6 +1,6 @@
 /**
  * Slots for embedding renderings.
- * 
+ *
  * @module
  */
 
@@ -15,7 +15,7 @@ export interface ElementViewSlot {
     /**
      * Notifies the slot or its owner that the slot
      * is no longer going to be used.
-     * 
+     *
      * Cleanup code goes here.
      */
     destroy(): void;
@@ -24,7 +24,7 @@ export interface ElementViewSlot {
 /**
  * Provides an interface for views to insert themselves
  * into a slot.
- * 
+ *
  * Implementors can subclass this to add their own
  * client-specific embedding methods.
  * The default is to insert the content as
@@ -32,9 +32,9 @@ export interface ElementViewSlot {
  */
 export interface ViewSlotPopulator {
     /**
-     * Inserts the content in the form of a 
+     * Inserts the content in the form of a
      * [flow HTML element](https://developer.mozilla.org/en-US/docs/Web/HTML/Content_categories#flow_content).
-     * 
+     *
      * @param html The element to insert.
      */
     insertFlowHtml(html: HTMLElement): void;
@@ -51,5 +51,5 @@ export const NULL_SLOT: ElementViewSlot = {
         insertFlowHtml() {
             // Nowhere to insert content to
         },
-    }
-}
+    },
+};

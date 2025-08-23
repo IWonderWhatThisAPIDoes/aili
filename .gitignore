@@ -1,6 +1,12 @@
+# Node cache
 node_modules/
+
+# Artifacts
 out/
 doc/
-!/doc/
 target/
 dist/
+/jsapi/pkg/
+
+# Check in documentation sources
+!/doc/

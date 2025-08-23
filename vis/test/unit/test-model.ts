@@ -17,7 +17,7 @@ export class TestViewModel implements ViewModel {
         this.pinContainer = this.element;
         this.companionSlot = {
             populator: {
-                insertFlowHtml: (html: HTMLElement) => this.element.append(html)
+                insertFlowHtml: (html: HTMLElement) => this.element.append(html),
             },
             destroy(): void {},
         };

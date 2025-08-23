@@ -14,13 +14,13 @@ export class SourceViewer {
     }
     /**
      * Loads the contents of a file or reuses a cached content.
-     * 
+     *
      * @param fileName Path to the file to read.
      * @returns Lines of the file.
      * @throws The file could not be read.
      */
     async loadFile(fileName: string): Promise<readonly string[]> {
-        return this.cachedContents[fileName] ??= await this.getFileAsLines(fileName);
+        return (this.cachedContents[fileName] ??= await this.getFileAsLines(fileName));
     }
     /**
      * Deletes all cached source files.
@@ -30,7 +30,7 @@ export class SourceViewer {
     }
     /**
      * Loads the contents of a file and splits it into lines.
-     * 
+     *
      * @param fileName Name of the file to read.
      * @returns Contents of the file, split into lines.
      * @throws The file could not be read.

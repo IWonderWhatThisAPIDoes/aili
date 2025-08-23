@@ -1,12 +1,12 @@
 /**
  * Preload script of the renderer process.
- * 
+ *
  * This script runs before the renderer process is launched.
  * IPC API are declared here.
- * 
+ *
  * See [Electron Inter-Process Communication](https://www.electronjs.org/docs/latest/tutorial/ipc)
  * for more information.
- * 
+ *
  * @module
  */
 
@@ -43,7 +43,7 @@ const api: ipc.IpcActionApi & ipc.IpcEventApi = {
     },
     addDebuggerOutputHandler(handler: (pid: number, output: string) => void) {
         ipcRenderer.on(ipc.GDB_OUTPUT, (_, pid, output) => handler(pid, output));
-    }
+    },
 };
 
 contextBridge.exposeInMainWorld(ipc.API_KEY, api);

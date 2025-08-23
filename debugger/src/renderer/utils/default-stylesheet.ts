@@ -1,15 +1,14 @@
 /**
  * Aili-Translate Stylesheet that is used to render the Raw View panel,
  * and the default appearence of the Viewoprt panel.
- * 
+ *
  * @module
  */
 
 /**
  * Default stylesheet for Raw View and for initial style of Viewport panel.
  */
-export const DEFAULT_STYLESHEET: string =
-`/**
+export const DEFAULT_STYLESHEET: string = `/**
  * Default stylesheet that renders
  * program state exactly the way it is
  * represented by the state graph.
@@ -103,8 +102,7 @@ ref::edge {
  * Default pointer hint sheet that does not provide any hints,
  * but explains the usage to the user.
  */
-export const DEFAULT_HINT_SHEET: string =
-`/**
+export const DEFAULT_HINT_SHEET: string = `/**
  * This is the hint sheet -
  * hints for the backend to determine
  * the length of dynamically allocated

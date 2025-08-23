@@ -20,14 +20,16 @@
 
 .aili-kvt td {
     border-top: solid 1px #f0e8e8;
-    padding: .125em .25em;
+    padding: 0.125em 0.25em;
 }
 
-.aili-kvt tr:not(:last-of-type) > td, .aili-kvt thead td {
+.aili-kvt tr:not(:last-of-type) > td,
+.aili-kvt thead td {
     border-bottom: solid 1px #807474;
 }
 
-.aili-kvt td.aili-kvt-key, .aili-kvt thead td {
+.aili-kvt td.aili-kvt-key,
+.aili-kvt thead td {
     color: #544;
 }
 

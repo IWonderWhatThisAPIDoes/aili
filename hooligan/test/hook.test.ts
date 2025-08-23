@@ -3,7 +3,7 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 describe(Hook, () => {
     let hook: Hook;
-    let mockObserver = jest.fn();
+    const mockObserver = jest.fn();
 
     beforeEach(() => {
         hook = new Hook();

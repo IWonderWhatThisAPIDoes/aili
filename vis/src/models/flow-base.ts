@@ -1,6 +1,6 @@
 /**
  * Base {@link ViewModel} implementations reused by several models.
- * 
+ *
  * @module
  */
 
@@ -17,7 +17,7 @@ import { ReadonlyVisElement } from '../tree';
 export abstract class FlowViewModel implements ViewModel {
     /**
      * Constructs a view model base that manages a provided HTML subtree.
-     * 
+     *
      * @param wrapperHtml Root element of the view's DOM content.
      *                    This should be created by derived class constructors.
      * @param contentHtml Element that corresponds to the bounding box of the view's
@@ -34,7 +34,7 @@ export abstract class FlowViewModel implements ViewModel {
             populator: {
                 insertFlowHtml(child) {
                     contentHtml.append(child);
-                }
+                },
             },
             destroy() {},
         };
@@ -57,7 +57,7 @@ export abstract class FlowViewModel implements ViewModel {
     }
     /**
      * Adds an observer to be unhooked when the view is destroyed.
-     * 
+     *
      * @param handle Handle to the observer that should be unhooked.
      */
     protected unhookOnDestroy(...handle: ObserverHandle[]): void {

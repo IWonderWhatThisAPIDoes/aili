@@ -1,6 +1,6 @@
 /**
  * The checkbox view model.
- * 
+ *
  * @module
  */
 
@@ -21,17 +21,17 @@ export const CLASS_CHECKBOX: string = 'aili-checkbox';
  * ```text
  * [x]
  * ```
- * 
+ *
  * ## Permitted Parents
  * Any {@link ViewModel} that permits a {@link ViewLayoutMode.INLINE} child.
- * 
+ *
  * ## Permitted Children
  * Only {@link ViewLayoutMode.COMPANION} {@link ViewModel}s.
- * 
+ *
  * ## Model Attributes
  * The following attributes of {@link ReadonlyVisElement.attributes}
  * affect the appearence of the visual.
- * 
+ *
  * ### checked
  * ```text
  * checked: false
@@ -46,10 +46,12 @@ export class CheckboxViewModel extends FlowViewModel {
         html.className = CLASS_CHECKBOX;
         super(html);
 
-        this.unhookOnDestroy(setAttributeBindings(element.attributes, {
-            checked(value) {
-                html.checked = value === 'true';
-            }
-        }));
+        this.unhookOnDestroy(
+            setAttributeBindings(element.attributes, {
+                checked(value) {
+                    html.checked = value === 'true';
+                },
+            }),
+        );
     }
 }

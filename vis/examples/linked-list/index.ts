@@ -1,7 +1,7 @@
 /**
  * Renders a short linked list. Each node is represented
  * as a key-value table.
- * 
+ *
  * @module
  */
 
@@ -15,7 +15,7 @@ import {
     TAG_TEXT,
     Viewport,
     VisConnector,
-    VisElement
+    VisElement,
 } from '../../src';
 
 addEventListener('load', () => {
@@ -38,9 +38,9 @@ addEventListener('load', () => {
     const allPtrNodes = [headPtr, ...ptrNodes];
 
     // Construct visualization tree structure
-    nodes.forEach(n => n.parent = root);
-    valueNodes.forEach((n, i) => n.parent = nodes[i]);
-    ptrNodes.forEach((n, i) => n.parent = nodes[i]);
+    nodes.forEach(n => (n.parent = root));
+    valueNodes.forEach((n, i) => (n.parent = nodes[i]));
+    ptrNodes.forEach((n, i) => (n.parent = nodes[i]));
     head.parent = root;
     headPtr.parent = head;
     connectors.forEach((c, i) => {
@@ -53,7 +53,7 @@ addEventListener('load', () => {
     root.attributes.direction.value = GraphLayoutDirection.EAST;
     root.attributes.gap.value = String(NODE_SPACING);
     head.attributes.title.value = 'Head';
-    nodes.forEach(n => n.attributes.title.value = 'Node');
+    nodes.forEach(n => (n.attributes.title.value = 'Node'));
     valueNodes.forEach(n => {
         n.attributes.key.value = 'value';
         n.attributes.value.value = String(Math.floor(Math.random() * 100));

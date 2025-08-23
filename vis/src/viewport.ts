@@ -1,6 +1,6 @@
 /**
  * Defines the main rendering class.
- * 
+ *
  * @module
  */
 
@@ -19,15 +19,12 @@ export class Viewport {
     /**
      * Constructs a new viewport that renders a provided visualization
      * tree into a provided DOM container.
-     * 
+     *
      * @param container The DOM element that the viewport will render to.
      * @param viewModelFactory Factory that creates view models
      *        for {@link ReadonlyVisElement}s.
      */
-    constructor(
-        container: HTMLElement,
-        viewModelFactory: ViewModelFactory,
-    ) {
+    constructor(container: HTMLElement, viewModelFactory: ViewModelFactory) {
         const root = new ViewportDOMRoot(container);
         const modelFactory = new ContextFreeViewModelFactory(viewModelFactory, root.context);
         const elementViews = new ElementViewContainer(modelFactory);
@@ -38,7 +35,7 @@ export class Viewport {
     }
     /**
      * Sets the element that is at the root of the viewport.
-     * 
+     *
      * @param newRoot The new root element.
      */
     set root(newRoot: ReadonlyVisElement | undefined) {

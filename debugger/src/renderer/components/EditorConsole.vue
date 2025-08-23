@@ -5,7 +5,7 @@
 <script lang="ts">
     /**
      * Calculates the number of lines in a string.
-     * 
+     *
      * @param s The source string to examine.
      */
     function countLines(s: string): number {
@@ -37,10 +37,12 @@
         <div class="editor-line-numbers">
             <div v-for="i in lineCount">{{ i }}</div>
         </div>
-        <div class="editor-console-inner"
+        <div
+            class="editor-console-inner"
             contenteditable="plaintext-only"
             @input="contentChanged"
-            ref="inner">
+            ref="inner"
+        >
             {{ content }}
         </div>
     </Console>

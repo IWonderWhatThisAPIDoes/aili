@@ -1,6 +1,6 @@
 /**
  * Rendering of the visualization tree.
- * 
+ *
  * @module
  */
 
@@ -14,31 +14,31 @@ import { ViewContainer } from './view-container';
 /**
  * Tracks the structure of the visualization tree
  * and updates its rendering as needed.
- * 
+ *
  * The view is backed by two containers, {@link ElementViewContainer}
  * and {@link ConnectorViewContainer}, which manage the renderings of individual
  * elements and connectors. This class is responsible for responding
  * to updates of the structure of the visualization tree.
  * Views are created, updated, and destroyed as needed.
- * 
+ *
  * ### Tracking invariants
- * 
+ *
  * A {@link ReadonlyVisElement} is tracked if and only if it is a root
  * element (registered with {@link addRootElement}) or a descendant thereof.
- * 
+ *
  * A {@link ReadonlyVisConnector} is tracked if and only if both
  * of its endpoints are attached to tracked elements.
  */
 export class TreeView {
     /**
      * Construct an empty tree view.
-     * 
+     *
      * @param elements Container for storing element views.
      * @param connectors Container for storing connector views.
      */
     constructor(
         elements: ViewContainer<ReadonlyVisElement, ElementView>,
-        connectors: ViewContainer<ReadonlyVisConnector, ConnectorView>
+        connectors: ViewContainer<ReadonlyVisConnector, ConnectorView>,
     ) {
         this.elementViews = elements;
         this.connectorViews = connectors;
@@ -48,14 +48,14 @@ export class TreeView {
     /**
      * Adds a new element that will remain tracked by the view until forcibly removed.
      * All elements tracked by the view are descendants of a root element.
-     * 
+     *
      * The view will update itself as needed to always track
      * the whole subtree and all connectors within it.
-     * 
+     *
      * Tracked trees are expected to be disjoint. No guarantees are made
      * on the behavior if a root is an ancestor of another one.
      * Connectors may connect different trees.
-     * 
+     *
      * @param rootElement The root element that will be an entry point of the view.
      * @param rootSlot Special view slot that the root will be embedded in.
      *                 All descendant elements will be embedded in slots
@@ -67,7 +67,7 @@ export class TreeView {
     /**
      * Revokes an element's root status, which means the element
      * and its whole subtree will be removed from the visualization.
-     * 
+     *
      * @param expiringElement The root element that should lose its root status.
      */
     removeRootElement(expiringElement: ReadonlyVisElement): void {
@@ -79,14 +79,11 @@ export class TreeView {
     }
     /**
      * Handles any change in the embedding of a tracked element.
-     * 
+     *
      * @param element The element whose embedding changed.
      * @param embedding New embedding for the element.
      */
-    private elementMovedToEmbedding(
-        element: ReadonlyVisElement,
-        embedding: ViewEmbedding
-    ): void {
+    private elementMovedToEmbedding(element: ReadonlyVisElement, embedding: ViewEmbedding): void {
         const { view, created: isNewElement } = this.elementViews.getOrCreate(element);
         // If an element was embedded explicitly (with addRootElement),
         // it is stuck that way and cannot be moved
@@ -100,19 +97,19 @@ export class TreeView {
     }
     /**
      * Handles registration of a new element to the view.
-     * 
+     *
      * Registers all its descendants recursively, registers
      * connectors that are fully attached to the subtree,
      * and attaches mutation observers to the element
      * so its subtree can be kept up-to-date.
-     * 
+     *
      * @param view View for the newly added element.
      */
     private afterAddedNewElement(view: ElementView): void {
         // Add all child elements to rendering, even ones that appear in the future
         const addChildElement = (child: ReadonlyVisElement) => {
             this.elementMovedToEmbedding(child, { parent: view });
-        }
+        };
         for (const child of view.element.children) {
             addChildElement(child);
         }
@@ -121,7 +118,7 @@ export class TreeView {
         // Add all attached pins to rendering, even ones that appear in the future
         const addAttachedPin = (pin: ReadonlyVisPin) => {
             this.connectorPinAttached(pin.connector);
-        }
+        };
         for (const pin of view.element.pins) {
             addAttachedPin(pin);
         }
@@ -146,7 +143,7 @@ export class TreeView {
     }
     /**
      * Handles the attachment of a connector pin to a tracked element.
-     * 
+     *
      * @param connector Connector that has been attached to a tracked element.
      */
     private connectorPinAttached(connector: ReadonlyVisConnector): void {
@@ -165,18 +162,22 @@ export class TreeView {
 
         if (isNewConnector) {
             // Remove the connector if it is detached from the element
-            const startObserver = connector.start.onTargetChanged.hook(() => this.removeConnector(connector));
-            const endObserver = connector.end.onTargetChanged.hook(() => this.removeConnector(connector));
+            const startObserver = connector.start.onTargetChanged.hook(() =>
+                this.removeConnector(connector),
+            );
+            const endObserver = connector.end.onTargetChanged.hook(() =>
+                this.removeConnector(connector),
+            );
             // Put the observers aside so they can be unhooked when the connector is removed
             this.connectorObservers.set(connector, {
                 startTargetChanged: startObserver,
-                endTargetChanged: endObserver
+                endTargetChanged: endObserver,
             });
         }
     }
     /**
      * Stops tracking an element, its whole subtree, and all connectors attached to it.
-     * 
+     *
      * @param element The element to remove.
      */
     private removeElementWithSubtreeAndConnectors(element: ReadonlyVisElement): void {
@@ -195,10 +196,10 @@ export class TreeView {
     }
     /**
      * Stops tracking an element.
-     * 
+     *
      * Removes all observers attached to the element
      * and destroys its view.
-     * 
+     *
      * @param element The element to remove.
      */
     private removeElement(element: ReadonlyVisElement): void {
@@ -213,10 +214,10 @@ export class TreeView {
     }
     /**
      * Stops tracking a connector.
-     * 
+     *
      * Removes all observers attached to the element
      * and destroys its view.
-     * 
+     *
      * @param connector The connector to remove.
      */
     private removeConnector(connector: ReadonlyVisConnector): void {

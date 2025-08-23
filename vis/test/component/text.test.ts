@@ -18,7 +18,7 @@ describe(vis.TextViewModel, () => {
     t.theElementSelector = `.${vis.CLASS_TEXT}`;
 
     beforeEach(() => t.beforeEach());
-    
+
     it('renders as an element with the correct class', async () => {
         await t.setupViewport();
         expect(await t.appContainer.$$(t.theElementSelector)).toHaveLength(1);
@@ -30,14 +30,14 @@ describe(vis.TextViewModel, () => {
     });
 
     it('contains text that was assigned beforehand', async () => {
-        await t.rootElement((root, value) => root.attributes.value.value = value, TEXT_VALUE);
+        await t.rootElement((root, value) => (root.attributes.value.value = value), TEXT_VALUE);
         await t.setupViewport();
         expect(await t.textContent()).toBe(TEXT_VALUE);
     });
 
     it('contains text that was assigned later', async () => {
         await t.setupViewport();
-        await t.rootElement((root, value) => root.attributes.value.value = value, TEXT_VALUE);
+        await t.rootElement((root, value) => (root.attributes.value.value = value), TEXT_VALUE);
         expect(await t.textContent()).toBe(TEXT_VALUE);
     });
 
@@ -48,7 +48,7 @@ describe(vis.TextViewModel, () => {
     });
 
     it('has text color that was assigned beforehand', async () => {
-        await t.rootElement((root, value) => root.attributes.color.value = value, COLOR_VALUE);
+        await t.rootElement((root, value) => (root.attributes.color.value = value), COLOR_VALUE);
         await t.setupViewport();
         const color = await t.getComputedStyle('color');
         expect(parseResolvedColor(color)).toStrictEqual(EXPECTED_COLOR);
@@ -56,8 +56,8 @@ describe(vis.TextViewModel, () => {
 
     it('has text color that was assigned later', async () => {
         await t.setupViewport();
-        await t.rootElement((root, value) => root.attributes.color.value = value, COLOR_VALUE);
+        await t.rootElement((root, value) => (root.attributes.color.value = value), COLOR_VALUE);
         const color = await t.getComputedStyle('color');
-        expect(parseResolvedColor(color)).toStrictEqual(EXPECTED_COLOR); 
+        expect(parseResolvedColor(color)).toStrictEqual(EXPECTED_COLOR);
     });
 });

@@ -1,6 +1,6 @@
 /**
  * Communication with debugger instances in external processes.
- * 
+ *
  * @module
  */
 
@@ -19,7 +19,7 @@ export class DebuggerManager {
     }
     /**
      * Launches a new debugger instance.
-     * 
+     *
      * @returns PID of the new debugger instance.
      * @throws The debugger could not be launched.
      */
@@ -38,7 +38,7 @@ export class DebuggerManager {
     }
     /**
      * Terminates a running debugger instance.
-     * 
+     *
      * @param pid PID of the debugger instance to kill.
      *            Must have been acquired by previous call
      *            to {@link DebuggerManager.spawn}.
@@ -54,7 +54,7 @@ export class DebuggerManager {
     }
     /**
      * Sends data to standard input of a debugger process.
-     * 
+     *
      * @param pid PID of the debugger process.
      *            Must have been acquired by previous call
      *            to {@link DebuggerManager.spawn}.
@@ -71,35 +71,35 @@ export class DebuggerManager {
     }
     /**
      * Path to the debugger executable binary.
-     * 
+     *
      * Used by {@link DebuggerManager.spawn}.
      */
     pathToDebugger: string = 'gdb';
     /**
      * Triggers when a debugger instance exits.
-     * 
+     *
      * PID of the process and its exit code (if available)
      * are forwarded to observers.
-     * 
+     *
      * @event
      */
     onProcessExit: Hook<[number, number | undefined]>;
     /**
      * Triggers when a debugger instance reports an error.
-     * 
+     *
      * PID of the process and the reported error
      * are forwarded to observers.
-     * 
+     *
      * @event
      */
     onProcessError: Hook<[number, Error]>;
     /**
      * Triggers when a debugger instance emits data
      * to its standard output.
-     * 
+     *
      * PID of the process and the data payload
      * are forwarded to observers.
-     * 
+     *
      * @event
      */
     onProcessOutput: Hook<[number, string]>;
@@ -115,7 +115,7 @@ export class DebuggerManager {
 class DebuggerProcess {
     /**
      * Launches a new debugger instance.
-     * 
+     *
      * The constructor is synchronous. To get a {@link Promise}
      * that resolves (or fails) when the debugger is initialized,
      * call {@link DebuggerProcess.start} immediately after construction.
@@ -136,7 +136,7 @@ class DebuggerProcess {
     }
     /**
      * Awaits the initialization of the debugger instance.
-     * 
+     *
      * @returns Promise that resolves when the debugger process is initialized.
      *          If successful, resolves with the PID of the debugger process.
      * @throws The debugger could not be launched.
@@ -157,7 +157,11 @@ class DebuggerProcess {
                 } else {
                     // This should not happen, kill the process and report failure
                     this.childProcess.kill();
-                    reject(new Error('Child process reports that it has spawned successfully, but it does not have a PID'));
+                    reject(
+                        new Error(
+                            'Child process reports that it has spawned successfully, but it does not have a PID',
+                        ),
+                    );
                 }
             };
             const onError = (err: Error) => {
@@ -171,7 +175,7 @@ class DebuggerProcess {
     }
     /**
      * Terminates the wrapped debugger instance.
-     * 
+     *
      * @throws The debugger is already being terminated or it could not be killed.
      */
     kill(): Promise<void> {
@@ -188,7 +192,7 @@ class DebuggerProcess {
     }
     /**
      * Sends data to the standard input of the debugger.
-     * 
+     *
      * @param input Data to send to the debugger.
      * @throws The debugger is not active or it did not accept input.
      */
@@ -202,31 +206,31 @@ class DebuggerProcess {
         // This should not happen with local OS pipes, but better be safe
         // https://nodejs.org/api/stream.html#writablewritechunk-encoding-callback
         if (isDraining) {
-            await new Promise(resolve => stdin.once('drain', resolve))
+            await new Promise(resolve => stdin.once('drain', resolve));
         }
     }
     /**
      * Triggers when the debugger exits.
-     * 
+     *
      * Exit code of the process is forwarded to observers
      * if it is available.
-     * 
+     *
      * @event
      */
     onExit: Hook<[number | undefined]>;
     /**
      * Triggers when the debugger reports an error.
-     * 
+     *
      * The error object is forwarded to observers.
-     * 
+     *
      * @event
      */
     onError: Hook<[Error]>;
     /**
      * Triggers when the debugger emits data to its standard output.
-     * 
+     *
      * The data payload is forwarded to observers.
-     * 
+     *
      * @event
      */
     onOutput: Hook<[string]>;

@@ -35,7 +35,9 @@ describe(vis.KeyValueTableViewModel, () => {
     async function verifyChildren(): Promise<void> {
         // Extract the text content of all rows
         const rows = await t.appContainer.$$(trSelector);
-        const rowTexts = await Promise.all(rows.map(r => r.getProperty('textContent').then(t => t.jsonValue())));
+        const rowTexts = await Promise.all(
+            rows.map(r => r.getProperty('textContent').then(t => t.jsonValue())),
+        );
         // There should be one row for each child
         expect(rows).toHaveLength(Object.keys(CHILD_CONTENT).length);
         // Each row should contain its child's key and value
@@ -64,21 +66,21 @@ describe(vis.KeyValueTableViewModel, () => {
     });
 
     it('contains a header if set beforehand', async () => {
-        await t.rootElement((root, title) => root.attributes.title.value = title, TITLE);
+        await t.rootElement((root, title) => (root.attributes.title.value = title), TITLE);
         await t.setupViewport();
         expect(await t.textContent(theadSelector)).toBe(TITLE);
     });
 
     it('contains a header if set afterwards', async () => {
         await t.setupViewport();
-        await t.rootElement((root, title) => root.attributes.title.value = title, TITLE);
+        await t.rootElement((root, title) => (root.attributes.title.value = title), TITLE);
         expect(await t.textContent(theadSelector)).toBe(TITLE);
     });
 
     it('does not contain a header after it is removed', async () => {
-        await t.rootElement((root, title) => root.attributes.title.value = title, TITLE);
+        await t.rootElement((root, title) => (root.attributes.title.value = title), TITLE);
         await t.setupViewport();
-        await t.rootElement(root => root.attributes.title.value = undefined);
+        await t.rootElement(root => (root.attributes.title.value = undefined));
         expect(await t.appContainer.$$(theadSelector)).toHaveLength(0);
     });
 
@@ -108,6 +110,8 @@ describe(vis.KeyValueTableViewModel, () => {
         const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
         expect(children).toHaveLength(2);
         // Right edges should align
-        expect(childBounds[0].x + childBounds[0].width).toBeCloseTo(childBounds[1].x + childBounds[1].width);
+        expect(childBounds[0].x + childBounds[0].width).toBeCloseTo(
+            childBounds[1].x + childBounds[1].width,
+        );
     });
 });

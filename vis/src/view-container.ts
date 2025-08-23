@@ -1,17 +1,17 @@
 /**
  * Generic view containers.
- * 
+ *
  * @module
  */
 
 /**
  * Generic container that manages views -
  * renderings associated with a given object.
- * 
+ *
  * @typeParam T Type of the objects that are viewed by the container.
  * @typeParam R Type of the view.
  */
-export abstract class ViewContainer<T extends Object, R extends ViewBase> {
+export abstract class ViewContainer<T extends object, R extends ViewBase> {
     /**
      * Constructs an empty view container.
      */
@@ -21,12 +21,12 @@ export abstract class ViewContainer<T extends Object, R extends ViewBase> {
     /**
      * Retrieves the view associated with a specified object
      * or constructs one if needed.
-     * 
+     *
      * @param tag The object whose view should be retrieved.
      * @returns View associated with `tag` and a flag indicating
      *          whether it was just constructed.
      */
-    getOrCreate(tag: T): { view: R, created: boolean } {
+    getOrCreate(tag: T): { view: R; created: boolean } {
         const existingView = this.get(tag);
         if (existingView) {
             return { view: existingView, created: false };
@@ -39,7 +39,7 @@ export abstract class ViewContainer<T extends Object, R extends ViewBase> {
     /**
      * Retrieves the view associated with a specified object
      * if one is present.
-     * 
+     *
      * @param tag The object whose view should be retrieved.
      * @returns View associated with `tag`, if any.
      */
@@ -49,7 +49,7 @@ export abstract class ViewContainer<T extends Object, R extends ViewBase> {
     /**
      * Completely destroys an objects's view.
      * The object will be forgotten by the container.
-     * 
+     *
      * @param tag The object to be forgotten.
      */
     remove(tag: T): void {
@@ -61,7 +61,7 @@ export abstract class ViewContainer<T extends Object, R extends ViewBase> {
     }
     /**
      * Constructs a new view associated with a given object.
-     * 
+     *
      * @param tag The object for which a view should be instantiated.
      * @returns New view associated with `tag`.
      */

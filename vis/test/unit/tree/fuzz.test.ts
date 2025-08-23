@@ -1,7 +1,7 @@
 /**
  * Visualization tree invariant testing with large test cases
  * generated using fuzzer.
- * 
+ *
  * @module
  */
 
@@ -32,15 +32,17 @@ const uniformInstructionGenerator = new InstructionGenerator(ELEMENT_COUNT, CONN
 
 for (let i = 0; i < TEST_CASE_COUNT; ++i) {
     const frame = new TestFrame(ELEMENT_COUNT, CONNECTOR_COUNT);
-    const instructions = Array.from({ length: OPERATION_COUNT }, () => instructionGenerator.generate(rand));
+    const instructions = Array.from({ length: OPERATION_COUNT }, () =>
+        instructionGenerator.generate(rand),
+    );
 
     describe(
-        `Frame with ${ELEMENT_COUNT} elements, ${CONNECTOR_COUNT} connectors; `+
-        `operations: {\n\t${instructions.map(i => i.describe()).join('\n\t')}\n}`,
+        `Frame with ${ELEMENT_COUNT} elements, ${CONNECTOR_COUNT} connectors; ` +
+            `operations: {\n\t${instructions.map(i => i.describe()).join('\n\t')}\n}`,
         () => {
             instructions.forEach(i => executeInstructionFallible(i, frame));
             frame.mergeIntoSingleTree();
-        
+
             it('has consistent parent-child relationships', () => {
                 frame.verifyChildrenMirrorParents();
                 frame.verifyParentsMirrorChildren();
@@ -72,15 +74,19 @@ for (let i = 0; i < TEST_CASE_COUNT; ++i) {
             it('has no fully attached connectors witout a projection', () => {
                 frame.verifyAllAttachedConnectorsProjected();
             });
-        }
+        },
     );
 }
 
-function mockObservers<T>(targets: T[], name: string, getHook: (target: T) => Hookable): (() => void)[] {
+function mockObservers<T>(
+    targets: T[],
+    name: string,
+    getHook: (target: T) => Hookable,
+): (() => void)[] {
     return targets.map((target, i) => {
         const mockObserver = jest.fn().mockName(`${name}Observer${i}`);
         getHook(target).hook(mockObserver);
-        return mockObserver
+        return mockObserver;
     });
 }
 
@@ -88,38 +94,76 @@ const TEST_OPERATION_COUNT = 50;
 
 for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
     const frame = new TestFrame(ELEMENT_COUNT, CONNECTOR_COUNT);
-    const instructions = Array.from({ length: OPERATION_COUNT }, () => instructionGenerator.generate(rand));
+    const instructions = Array.from({ length: OPERATION_COUNT }, () =>
+        instructionGenerator.generate(rand),
+    );
     instructions.forEach(i => executeInstructionFallible(i, frame));
     const snapshot = frame.getRelationsSnapshot();
 
     const mockAddChildObservers = mockObservers(frame.elements, 'addChild', e => e.onAddChild);
-    const mockParentChangedObservers = mockObservers(frame.elements, 'parentChanged', e => e.onParentChanged);
-    const mockStartTargetChangedObservers = mockObservers(frame.connectors, 'startTargetChanged', c => c.start.onTargetChanged);
-    const mockEndTargetChangedObservers = mockObservers(frame.connectors, 'endTargetChanged', c => c.end.onTargetChanged);
+    const mockParentChangedObservers = mockObservers(
+        frame.elements,
+        'parentChanged',
+        e => e.onParentChanged,
+    );
+    const mockStartTargetChangedObservers = mockObservers(
+        frame.connectors,
+        'startTargetChanged',
+        c => c.start.onTargetChanged,
+    );
+    const mockEndTargetChangedObservers = mockObservers(
+        frame.connectors,
+        'endTargetChanged',
+        c => c.end.onTargetChanged,
+    );
     const mockAddPinObservers = mockObservers(frame.elements, 'addPin', e => e.onAddPin);
-    const mockProjectedParentChangedObservers = mockObservers(frame.connectors, 'projectedParentChanged', c => c.onProjectedParentChanged);
-    const mockAddProjectedConnectorObservers = mockObservers(frame.elements, 'addProjectedConnector', e => e.onAddProjectedConnector);
-    const mockStartProjectedTargetChangedObservers = mockObservers(frame.connectors, 'startProjectedTargetChanged', c => c.start.onProjectedTargetChanged);
-    const mockEndProjectedTargetChangedObservers = mockObservers(frame.connectors, 'endProjectedTargetChanged', c => c.end.onProjectedTargetChanged);
-    const mockAddProjectedPinObservers = mockObservers(frame.elements, 'addProjectedPin', e => e.onAddProjectedPin);
+    const mockProjectedParentChangedObservers = mockObservers(
+        frame.connectors,
+        'projectedParentChanged',
+        c => c.onProjectedParentChanged,
+    );
+    const mockAddProjectedConnectorObservers = mockObservers(
+        frame.elements,
+        'addProjectedConnector',
+        e => e.onAddProjectedConnector,
+    );
+    const mockStartProjectedTargetChangedObservers = mockObservers(
+        frame.connectors,
+        'startProjectedTargetChanged',
+        c => c.start.onProjectedTargetChanged,
+    );
+    const mockEndProjectedTargetChangedObservers = mockObservers(
+        frame.connectors,
+        'endProjectedTargetChanged',
+        c => c.end.onProjectedTargetChanged,
+    );
+    const mockAddProjectedPinObservers = mockObservers(
+        frame.elements,
+        'addProjectedPin',
+        e => e.onAddProjectedPin,
+    );
 
     const newInstruction = uniformInstructionGenerator.generate(rand);
     executeInstructionFallible(newInstruction, frame);
 
     describe(
         `Frame with ${ELEMENT_COUNT} elements, ${CONNECTOR_COUNT} connectors; ` +
-        `operations: {\n\t${instructions.map(i => i.describe()).join('\n\t')}\n} ` +
-        `after additional operation: ${newInstruction.describe()}`,
+            `operations: {\n\t${instructions.map(i => i.describe()).join('\n\t')}\n} ` +
+            `after additional operation: ${newInstruction.describe()}`,
         () => {
             it('triggers parent-child observers correctly', () => {
                 for (let i = 0; i < ELEMENT_COUNT; ++i) {
                     const parent = frame.elements[i].parent;
                     const previousParent = snapshot.elementParents[i];
                     if (parent !== previousParent) {
-                        expect(mockParentChangedObservers[i]).toBeCalledWith(parent, previousParent);
+                        expect(mockParentChangedObservers[i]).toBeCalledWith(
+                            parent,
+                            previousParent,
+                        );
                         if (parent) {
-                            expect(mockAddChildObservers[frame.elements.indexOf(parent)])
-                                .toBeCalledWith(frame.elements[i]);
+                            expect(
+                                mockAddChildObservers[frame.elements.indexOf(parent)],
+                            ).toBeCalledWith(frame.elements[i]);
                         }
                     } else {
                         expect(mockParentChangedObservers[i]).not.toBeCalled();
@@ -132,10 +176,14 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const startTarget = frame.connectors[i].start.target;
                     const previousStartTarget = snapshot.startPinTargets[i];
                     if (startTarget !== previousStartTarget) {
-                        expect(mockStartTargetChangedObservers[i]).toBeCalledWith(startTarget, previousStartTarget);
+                        expect(mockStartTargetChangedObservers[i]).toBeCalledWith(
+                            startTarget,
+                            previousStartTarget,
+                        );
                         if (startTarget) {
-                            expect(mockAddPinObservers[frame.elements.indexOf(startTarget)])
-                                .toBeCalledWith(frame.connectors[i].start);
+                            expect(
+                                mockAddPinObservers[frame.elements.indexOf(startTarget)],
+                            ).toBeCalledWith(frame.connectors[i].start);
                         }
                     } else {
                         expect(mockStartTargetChangedObservers[i]).not.toBeCalled();
@@ -148,10 +196,14 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const endTarget = frame.connectors[i].end.target;
                     const previousEndTarget = snapshot.endPinTargets[i];
                     if (endTarget !== previousEndTarget) {
-                        expect(mockEndTargetChangedObservers[i]).toBeCalledWith(endTarget, previousEndTarget);
+                        expect(mockEndTargetChangedObservers[i]).toBeCalledWith(
+                            endTarget,
+                            previousEndTarget,
+                        );
                         if (endTarget) {
-                            expect(mockAddPinObservers[frame.elements.indexOf(endTarget)])
-                                .toBeCalledWith(frame.connectors[i].end);
+                            expect(
+                                mockAddPinObservers[frame.elements.indexOf(endTarget)],
+                            ).toBeCalledWith(frame.connectors[i].end);
                         }
                     } else {
                         expect(mockEndTargetChangedObservers[i]).not.toBeCalled();
@@ -164,10 +216,16 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const projectedParent = frame.connectors[i].projectedParent;
                     const previousProjectedParent = snapshot.connectorProjectedParents[i];
                     if (projectedParent !== previousProjectedParent) {
-                        expect(mockProjectedParentChangedObservers[i]).toBeCalledWith(projectedParent, previousProjectedParent);
+                        expect(mockProjectedParentChangedObservers[i]).toBeCalledWith(
+                            projectedParent,
+                            previousProjectedParent,
+                        );
                         if (projectedParent) {
-                            expect(mockAddProjectedConnectorObservers[frame.elements.indexOf(projectedParent)])
-                                .toBeCalledWith(frame.connectors[i]);
+                            expect(
+                                mockAddProjectedConnectorObservers[
+                                    frame.elements.indexOf(projectedParent)
+                                ],
+                            ).toBeCalledWith(frame.connectors[i]);
                         }
                     } else {
                         expect(mockProjectedParentChangedObservers[i]).not.toBeCalled();
@@ -180,10 +238,14 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const startTarget = frame.connectors[i].start.projectedTarget;
                     const previousStartTarget = snapshot.startPinProjectedTargets[i];
                     if (startTarget !== previousStartTarget) {
-                        expect(mockStartProjectedTargetChangedObservers[i]).toBeCalledWith(startTarget, previousStartTarget);
+                        expect(mockStartProjectedTargetChangedObservers[i]).toBeCalledWith(
+                            startTarget,
+                            previousStartTarget,
+                        );
                         if (startTarget) {
-                            expect(mockAddProjectedPinObservers[frame.elements.indexOf(startTarget)])
-                                .toBeCalledWith(frame.connectors[i].start)
+                            expect(
+                                mockAddProjectedPinObservers[frame.elements.indexOf(startTarget)],
+                            ).toBeCalledWith(frame.connectors[i].start);
                         }
                     } else {
                         expect(mockStartProjectedTargetChangedObservers[i]).not.toBeCalled();
@@ -196,16 +258,20 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const endTarget = frame.connectors[i].end.projectedTarget;
                     const previousEndTarget = snapshot.endPinProjectedTargets[i];
                     if (endTarget !== previousEndTarget) {
-                        expect(mockEndProjectedTargetChangedObservers[i]).toBeCalledWith(endTarget, previousEndTarget);
+                        expect(mockEndProjectedTargetChangedObservers[i]).toBeCalledWith(
+                            endTarget,
+                            previousEndTarget,
+                        );
                         if (endTarget) {
-                            expect(mockAddProjectedPinObservers[frame.elements.indexOf(endTarget)])
-                                .toBeCalledWith(frame.connectors[i].end)
+                            expect(
+                                mockAddProjectedPinObservers[frame.elements.indexOf(endTarget)],
+                            ).toBeCalledWith(frame.connectors[i].end);
                         }
                     } else {
                         expect(mockEndProjectedTargetChangedObservers[i]).not.toBeCalled();
                     }
                 }
             });
-        }
+        },
     );
 }

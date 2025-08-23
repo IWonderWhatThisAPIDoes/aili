@@ -1,7 +1,7 @@
 /**
  * Container for tracking slots of graph view model
  * and managing their layout.
- * 
+ *
  * @module
  */
 
@@ -19,7 +19,7 @@ export const INVALID_GRAPH_SLOT: string = '';
 
 /**
  * Tracks active element slots for a graph view model.
- * 
+ *
  * Controls slot layout using a provided layout engine.
  * Layout is recalculated when structure of the visualization tree
  * or the visual models of child elements change, and immediately
@@ -28,7 +28,7 @@ export const INVALID_GRAPH_SLOT: string = '';
 export class GraphSlotManager {
     /**
      * Constructs an empty slot manager and binds it to a DOM element.
-     * 
+     *
      * @param container DOM element that will contain the slots.
      * @param layout Layout engine that will be used to build the slots' layout.
      * @param context Context for constructing visual objects.
@@ -45,10 +45,10 @@ export class GraphSlotManager {
     /**
      * Registers a new slot bound to a visual element and DOM element
      * and inserts it into the DOM.
-     * 
+     *
      * Layout will not be affected. Call {@link updateLayout} explicitly
      * after calling this to commit structural changes to layout.
-     * 
+     *
      * @param slotHtml HTMl element that represents the new slot.
      * @param element Visual element for which the slot is intended.
      *                Provides an identity for the slot and uses its
@@ -87,7 +87,7 @@ export class GraphSlotManager {
                 if (ordered) {
                     this.updateLayout();
                 }
-            }
+            },
         });
 
         // Update bounding box of the node and recalculate layout whenever the node's size changes
@@ -97,17 +97,17 @@ export class GraphSlotManager {
             html: slotHtml,
             element,
             addProjectedPinObserver,
-            attributeBindings
+            attributeBindings,
         };
 
-        return node.id
+        return node.id;
     }
     /**
      * Stops tracking a slot that was previously registered with {@link addSlot}
      * and removes it from the layout and the DOM.
-     * 
+     *
      * Layout will be updated asynchronously.
-     * 
+     *
      * @param slotId Identifier returned by {@link addSlot} when the slot was created.
      */
     removeSlot(slotId: string): void {
@@ -158,7 +158,7 @@ export class GraphSlotManager {
     /**
      * Asynchronously recalculates layout using the layout engine
      * received on construction and updates the DOM according to it.
-     * 
+     *
      * @returns Promise that resolves when the layout has been fully updated.
      */
     private async updateLayoutNow(): Promise<void> {
@@ -179,7 +179,10 @@ export class GraphSlotManager {
         // Connectors will need to be recalculated too
         this.context.jsplumb.repaintEverything();
     }
-    private getOrAddElementToLayout(element: ReadonlyVisElement): { node: LayoutNode, created: boolean } {
+    private getOrAddElementToLayout(element: ReadonlyVisElement): {
+        node: LayoutNode;
+        created: boolean;
+    } {
         const existingNodeId = this.slotAssignments.get(element);
         const existingNode = existingNodeId && this.layout.getNodeById(existingNodeId);
         if (existingNode) {
@@ -200,8 +203,12 @@ export class GraphSlotManager {
             return false;
         }
 
-        const startSlotId = connector.start.projectedTarget && this.slotAssignments.get(connector.start.projectedTarget);
-        const endSlotId = connector.end.projectedTarget && this.slotAssignments.get(connector.end.projectedTarget);
+        const startSlotId =
+            connector.start.projectedTarget &&
+            this.slotAssignments.get(connector.start.projectedTarget);
+        const endSlotId =
+            connector.end.projectedTarget &&
+            this.slotAssignments.get(connector.end.projectedTarget);
         if (startSlotId === undefined || endSlotId === undefined) {
             // The connector's endpoints are not actually in the layout,
             // so we can skip it
@@ -218,13 +225,15 @@ export class GraphSlotManager {
         // Drop the connector when it moves
         const dropCallback = () => this.removeConnectorFromLayout(connector);
         const projectedParentChanged = connector.onProjectedParentChanged.hook(dropCallback);
-        const startProjectedTargetChanged = connector.start.onProjectedTargetChanged.hook(dropCallback);
+        const startProjectedTargetChanged =
+            connector.start.onProjectedTargetChanged.hook(dropCallback);
         const endProjectedTargetChanged = connector.end.onProjectedTargetChanged.hook(dropCallback);
 
         // Listen for attribute updates
         const attributeBindings = setAttributeBindings(connector.attributes, {
             order: value => {
-                layoutEdge.order = value === undefined ? undefined : bind.getNumeric(bind.integer, value);
+                layoutEdge.order =
+                    value === undefined ? undefined : bind.getNumeric(bind.integer, value);
                 this.updateLayout();
             },
         });
@@ -312,8 +321,8 @@ interface LayoutActiveConnector {
      * Edge of the layout graph that represents the connector.
      */
     layoutEdge: LayoutEdge;
-    projectedParentChanged: ObserverHandle,
-    startProjectedTargetChanged: ObserverHandle,
-    endProjectedTargetChanged: ObserverHandle,
-    attributeBindings: ObserverHandle,
+    projectedParentChanged: ObserverHandle;
+    startProjectedTargetChanged: ObserverHandle;
+    endProjectedTargetChanged: ObserverHandle;
+    attributeBindings: ObserverHandle;
 }

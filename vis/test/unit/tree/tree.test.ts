@@ -1,6 +1,6 @@
 /**
  * Basic hand-written unit tests for visualization tree structure.
- * 
+ *
  * @module
  */
 
@@ -102,21 +102,21 @@ describe(VisElement, () => {
     });
 
     describe('Parent change observer', () => {
-        let mockObserver = jest.fn().mockName('parentChangedObserver');
+        const mockObserver = jest.fn().mockName('parentChangedObserver');
 
         beforeEach(() => {
             mockObserver.mockClear();
         });
 
         it('triggers when an element is inserted into a parent', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
             element.onParentChanged.hook(mockObserver);
             element.parent = parent;
             expect(mockObserver).toBeCalledWith(parent, undefined);
         });
 
         it('triggers when an element is removed from its parent', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
             element.parent = parent;
             element.onParentChanged.hook(mockObserver);
             element.parent = undefined;
@@ -124,8 +124,8 @@ describe(VisElement, () => {
         });
 
         it('triggers when an element is moved from one parent to another', () => {
-            let source = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
             element.parent = source;
             element.onParentChanged.hook(mockObserver);
             element.parent = dest;
@@ -133,7 +133,7 @@ describe(VisElement, () => {
         });
 
         it('does not trigger when an element is moved to its current parent', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
             element.parent = parent;
             element.onParentChanged.hook(mockObserver);
             element.parent = parent;
@@ -151,7 +151,7 @@ describe(VisElement, () => {
                 expect(element.parent).toBe(parent);
                 expect(parent.children).toContain(element);
             });
-            let parent = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
             element.onParentChanged.hook(mockObserver);
             element.parent = parent;
             expect(mockObserver).toBeCalled();
@@ -159,7 +159,7 @@ describe(VisElement, () => {
     });
 
     describe('Child insertion observer', () => {
-        let mockObserver = jest.fn().mockName('addChildObserver');
+        const mockObserver = jest.fn().mockName('addChildObserver');
         let child: VisElement;
 
         beforeEach(() => {
@@ -174,7 +174,7 @@ describe(VisElement, () => {
         });
 
         it('triggers when a child is moved from a different parent', () => {
-            let source = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
             child.parent = source;
             element.onAddChild.hook(mockObserver);
             child.parent = element;
@@ -189,12 +189,13 @@ describe(VisElement, () => {
         });
 
         it('triggers after parent change observer', () => {
-            let mockParentChangeObserver = jest.fn().mockName('parentChangedObserver');
+            const mockParentChangeObserver = jest.fn().mockName('parentChangedObserver');
             child.onParentChanged.hook(mockParentChangeObserver);
             element.onAddChild.hook(mockObserver);
             child.parent = element;
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockParentChangeObserver.mock.invocationCallOrder[0]);
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockParentChangeObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after relevant properties have been updated', () => {
@@ -209,7 +210,7 @@ describe(VisElement, () => {
     });
 
     describe('Pin insertion observer', () => {
-        let mockObserver = jest.fn().mockName('addPinObserver');
+        const mockObserver = jest.fn().mockName('addPinObserver');
         let connector: VisConnector;
 
         beforeEach(() => {
@@ -224,7 +225,7 @@ describe(VisElement, () => {
         });
 
         it('triggers when a pin is moved from another element', () => {
-            let source = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
             connector.start.target = source;
             element.onAddPin.hook(mockObserver);
             connector.start.target = element;
@@ -239,12 +240,13 @@ describe(VisElement, () => {
         });
 
         it('triggers after the pin target change observer', () => {
-            let mockTargetChangeObserver = jest.fn().mockName('targetChangedObserver');
+            const mockTargetChangeObserver = jest.fn().mockName('targetChangedObserver');
             element.onAddPin.hook(mockObserver);
             connector.start.onTargetChanged.hook(mockTargetChangeObserver);
             connector.start.target = element;
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockTargetChangeObserver.mock.invocationCallOrder[0]);
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockTargetChangeObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after relevant properties have been updated', () => {
@@ -259,7 +261,7 @@ describe(VisElement, () => {
     });
 
     describe('Projected pin insertion observer', () => {
-        let mockObserver = jest.fn().mockName('addProjectedPinObserver');
+        const mockObserver = jest.fn().mockName('addProjectedPinObserver');
         let connector: VisConnector;
 
         beforeEach(() => {
@@ -268,8 +270,8 @@ describe(VisElement, () => {
         });
 
         it('triggers when sibling elements are connected', () => {
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             left.onAddProjectedPin.hook(mockObserver);
@@ -287,9 +289,9 @@ describe(VisElement, () => {
         });
 
         it('does not trigger when pin moves within the subtree', () => {
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let child = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const child = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             child.parent = left;
@@ -301,9 +303,9 @@ describe(VisElement, () => {
         });
 
         it('triggers when pin moves to a different subtree', () => {
-            let source = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
             source.parent = element;
             right.parent = element;
             dest.parent = element;
@@ -315,9 +317,9 @@ describe(VisElement, () => {
         });
 
         it('does not trigger when other pin moves to a different subtree', () => {
-            let source = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
             source.parent = element;
             right.parent = element;
             dest.parent = element;
@@ -329,17 +331,20 @@ describe(VisElement, () => {
         });
 
         it('triggers after projected target change observer', () => {
-            let mockProjectedTargetChangedObserver = jest.fn().mockName('projectedTargetChangedObserver');
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const mockProjectedTargetChangedObserver = jest
+                .fn()
+                .mockName('projectedTargetChangedObserver');
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             connector.start.onProjectedTargetChanged.hook(mockProjectedTargetChangedObserver);
             right.onAddProjectedPin.hook(mockObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockProjectedTargetChangedObserver.mock.invocationCallOrder[0]);
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockProjectedTargetChangedObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after relevant properties have been updated', () => {
@@ -351,8 +356,8 @@ describe(VisElement, () => {
                 expect(connector.start.projectedTarget).toBe(left);
                 expect(connector.end.projectedTarget).toBe(right);
             });
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             left.onAddProjectedPin.hook(mockObserver);
@@ -363,7 +368,7 @@ describe(VisElement, () => {
     });
 
     describe('Projection insertion observer', () => {
-        let mockObserver = jest.fn().mockName('addProjectedConnectorObserver');
+        const mockObserver = jest.fn().mockName('addProjectedConnectorObserver');
         let connector: VisConnector;
 
         beforeEach(() => {
@@ -372,8 +377,8 @@ describe(VisElement, () => {
         });
 
         it('triggers when sibling elements are connected', () => {
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             element.onAddProjectedConnector.hook(mockObserver);
@@ -383,9 +388,9 @@ describe(VisElement, () => {
         });
 
         it('does not trigger when pin moves to a different subtree', () => {
-            let source = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
             source.parent = element;
             right.parent = element;
             dest.parent = element;
@@ -397,10 +402,10 @@ describe(VisElement, () => {
         });
 
         it('triggers when a pin moves under a different ancestor', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             element.parent = parent;
             dest.parent = parent;
             left.parent = element;
@@ -413,24 +418,31 @@ describe(VisElement, () => {
         });
 
         it('triggers after projected parent change observer', () => {
-            let mockProjectedParentChangeObserver = jest.fn().mockName('projectedParentChangedObserver');
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const mockProjectedParentChangeObserver = jest
+                .fn()
+                .mockName('projectedParentChangedObserver');
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             element.onAddProjectedConnector.hook(mockObserver);
             connector.onProjectedParentChanged.hook(mockProjectedParentChangeObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockProjectedParentChangeObserver.mock.invocationCallOrder[0]);
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockProjectedParentChangeObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after projected target change observer', () => {
-            let mockStartProjectedTargetChangedObserver = jest.fn().mockName('startProjectedTargetChangedObserver');
-            let mockEndProjectedTargetChangedObserver = jest.fn().mockName('endProjectedTargetChangedObserver');
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const mockStartProjectedTargetChangedObserver = jest
+                .fn()
+                .mockName('startProjectedTargetChangedObserver');
+            const mockEndProjectedTargetChangedObserver = jest
+                .fn()
+                .mockName('endProjectedTargetChangedObserver');
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             element.onAddProjectedConnector.hook(mockObserver);
@@ -438,10 +450,12 @@ describe(VisElement, () => {
             connector.end.onProjectedTargetChanged.hook(mockEndProjectedTargetChangedObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockStartProjectedTargetChangedObserver.mock.invocationCallOrder[0]);
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockEndProjectedTargetChangedObserver.mock.invocationCallOrder[0]);
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockStartProjectedTargetChangedObserver.mock.invocationCallOrder[0],
+            );
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockEndProjectedTargetChangedObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after relevant properties have been updated', () => {
@@ -453,8 +467,8 @@ describe(VisElement, () => {
                 expect(connector.start.projectedTarget).toBe(left);
                 expect(connector.end.projectedTarget).toBe(right);
             });
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = element;
             right.parent = element;
             element.onAddProjectedConnector.hook(mockObserver);
@@ -521,7 +535,7 @@ describe(VisConnector, () => {
         });
 
         it('is not a pin of its former target', () => {
-            expect(element.pins).not.toContain(connector.start); 
+            expect(element.pins).not.toContain(connector.start);
         });
     });
 
@@ -709,7 +723,7 @@ describe(VisConnector, () => {
         it('has endpoints projected into the element', () => {
             expect(connector.start.projectedTarget).toBe(element);
             expect(connector.end.projectedTarget).toBe(element);
-        })
+        });
 
         it('is projected into the element', () => {
             expect(element.projectedConnectors).toContain(connector);
@@ -740,16 +754,16 @@ describe(VisConnector, () => {
     });
 
     describe('Projected parent change observer', () => {
-        let mockObserver = jest.fn().mockName('projectedParentChangedObserver');
+        const mockObserver = jest.fn().mockName('projectedParentChangedObserver');
 
         beforeEach(() => {
             mockObserver.mockClear();
         });
 
         it('triggers when sibling elements are connected', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.onProjectedParentChanged.hook(mockObserver);
@@ -759,9 +773,9 @@ describe(VisConnector, () => {
         });
 
         it('does not trigger when pin moves within the subtree', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.target = left;
@@ -772,10 +786,10 @@ describe(VisConnector, () => {
         });
 
         it('does not trigger when pin moves to a different subtree', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let source = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
             source.parent = parent;
             right.parent = parent;
             dest.parent = parent;
@@ -787,22 +801,22 @@ describe(VisConnector, () => {
         });
 
         it('triggers when a pin is detached', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.target = left;
             connector.end.target = right;
-            connector.onProjectedParentChanged.hook(mockObserver)
+            connector.onProjectedParentChanged.hook(mockObserver);
             connector.start.target = undefined;
             expect(mockObserver).toBeCalledWith(undefined, parent);
         });
 
         it('triggers when the subtree with a pin is detached', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.target = left;
@@ -813,33 +827,35 @@ describe(VisConnector, () => {
         });
 
         it('triggers after pin insertion observer', () => {
-            let mockAddPinObserver = jest.fn().mockName('addPinObserver');
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const mockAddPinObserver = jest.fn().mockName('addPinObserver');
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.onProjectedParentChanged.hook(mockObserver);
             right.onAddPin.hook(mockAddPinObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockAddPinObserver.mock.invocationCallOrder[0]);
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockAddPinObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after child insertion observer', () => {
-            let mockAddChildObserver = jest.fn().mockName('addChildObserver');
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const mockAddChildObserver = jest.fn().mockName('addChildObserver');
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             connector.start.target = left;
             connector.end.target = right;
             connector.onProjectedParentChanged.hook(mockObserver);
             parent.onAddChild.hook(mockAddChildObserver);
             right.parent = parent;
-            expect(mockObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockAddChildObserver.mock.invocationCallOrder[0]);
+            expect(mockObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockAddChildObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after relevant properties have been updated', () => {
@@ -851,9 +867,9 @@ describe(VisConnector, () => {
                 expect(connector.start.projectedTarget).toBe(left);
                 expect(connector.end.projectedTarget).toBe(right);
             });
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.onProjectedParentChanged.hook(mockObserver);
@@ -872,7 +888,7 @@ describe(VisPin, () => {
     });
 
     describe('Target change observer', () => {
-        let mockObserver = jest.fn().mockName('targetChangedObserver');
+        const mockObserver = jest.fn().mockName('targetChangedObserver');
         let element: VisElement;
 
         beforeEach(() => {
@@ -894,7 +910,7 @@ describe(VisPin, () => {
         });
 
         it('triggers when a pin is moved from one element to another', () => {
-            let source = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
             connector.start.target = source;
             connector.start.onTargetChanged.hook(mockObserver);
             connector.start.target = element;
@@ -926,8 +942,8 @@ describe(VisPin, () => {
     });
 
     describe('Projected target change observer', () => {
-        let mockStartObserver = jest.fn().mockName('projectedTargetChangedStartObserver');
-        let mockEndObserver = jest.fn().mockName('projectedTargetChangedEndObserver');
+        const mockStartObserver = jest.fn().mockName('projectedTargetChangedStartObserver');
+        const mockEndObserver = jest.fn().mockName('projectedTargetChangedEndObserver');
 
         beforeEach(() => {
             mockStartObserver.mockClear();
@@ -935,9 +951,9 @@ describe(VisPin, () => {
         });
 
         it('triggers when sibling elements are linked', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
@@ -949,10 +965,10 @@ describe(VisPin, () => {
         });
 
         it('does not trigger when pin moves within the subtree', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let child = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const child = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             child.parent = left;
@@ -966,8 +982,8 @@ describe(VisPin, () => {
         });
 
         it('does not trigger when unrelated nodes are linked', () => {
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             connector.start.target = left;
@@ -977,10 +993,10 @@ describe(VisPin, () => {
         });
 
         it('triggers when pin moves to a different subtree', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let source = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const source = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
             source.parent = parent;
             right.parent = parent;
             dest.parent = parent;
@@ -994,10 +1010,10 @@ describe(VisPin, () => {
         });
 
         it('triggers when the subtree with the pin moves', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
-            let dest = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
+            const dest = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             dest.parent = parent;
@@ -1011,9 +1027,9 @@ describe(VisPin, () => {
         });
 
         it('triggers when a pin is detached', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.target = left;
@@ -1026,9 +1042,9 @@ describe(VisPin, () => {
         });
 
         it('triggers when the subtree with a pin is detached', () => {
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.target = left;
@@ -1041,10 +1057,12 @@ describe(VisPin, () => {
         });
 
         it('triggers after projected parent change observer', () => {
-            let mockProjectedParentChangeObserver = jest.fn().mockName('projectedParentChangedObserver');
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const mockProjectedParentChangeObserver = jest
+                .fn()
+                .mockName('projectedParentChangedObserver');
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
@@ -1052,14 +1070,16 @@ describe(VisPin, () => {
             connector.onProjectedParentChanged.hook(mockProjectedParentChangeObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockStartObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockProjectedParentChangeObserver.mock.invocationCallOrder[0]);
-            expect(mockEndObserver.mock.invocationCallOrder[0])
-                .toBeGreaterThan(mockProjectedParentChangeObserver.mock.invocationCallOrder[0]);
+            expect(mockStartObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockProjectedParentChangeObserver.mock.invocationCallOrder[0],
+            );
+            expect(mockEndObserver.mock.invocationCallOrder[0]).toBeGreaterThan(
+                mockProjectedParentChangeObserver.mock.invocationCallOrder[0],
+            );
         });
 
         it('triggers after relevant properties have been updated', () => {
-            let expectPropertiesToBeUpdated = () => {
+            const expectPropertiesToBeUpdated = () => {
                 expect(parent.projectedConnectors).toContain(connector);
                 expect(left.projectedPins).toContain(connector.start);
                 expect(right.projectedPins).toContain(connector.end);
@@ -1071,9 +1091,9 @@ describe(VisPin, () => {
             mockEndObserver.mockImplementationOnce(expectPropertiesToBeUpdated);
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
-            let parent = new VisElement(ELEMENT_TAG_NAME);
-            let left = new VisElement(ELEMENT_TAG_NAME);
-            let right = new VisElement(ELEMENT_TAG_NAME);
+            const parent = new VisElement(ELEMENT_TAG_NAME);
+            const left = new VisElement(ELEMENT_TAG_NAME);
+            const right = new VisElement(ELEMENT_TAG_NAME);
             left.parent = parent;
             right.parent = parent;
             connector.start.target = left;
@@ -1086,16 +1106,16 @@ describe(VisPin, () => {
 
 describe(VisStructuralException, () => {
     it('is thrown when an element is inserted into itself', () => {
-        let element = new VisElement(ELEMENT_TAG_NAME);
-        expect(() => element.parent = element).toThrow(VisStructuralException);
+        const element = new VisElement(ELEMENT_TAG_NAME);
+        expect(() => (element.parent = element)).toThrow(VisStructuralException);
     });
 
     it('is thrown when an element is inserted into its descendant', () => {
-        let element = new VisElement(ELEMENT_TAG_NAME);
-        let child = new VisElement(ELEMENT_TAG_NAME);
-        let grandchild = new VisElement(ELEMENT_TAG_NAME);
+        const element = new VisElement(ELEMENT_TAG_NAME);
+        const child = new VisElement(ELEMENT_TAG_NAME);
+        const grandchild = new VisElement(ELEMENT_TAG_NAME);
         child.parent = element;
         grandchild.parent = child;
-        expect(() => element.parent = grandchild).toThrow(VisStructuralException);
+        expect(() => (element.parent = grandchild)).toThrow(VisStructuralException);
     });
 });

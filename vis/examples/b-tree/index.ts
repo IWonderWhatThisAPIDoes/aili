@@ -1,6 +1,6 @@
 /**
  * Rendes a B-tree. Demonstrates structured graph nodes and ordered edges.
- * 
+ *
  * @module
  */
 
@@ -13,13 +13,13 @@ import {
     TAG_TEXT,
     Viewport,
     VisConnector,
-    VisElement
+    VisElement,
 } from '../../src';
 
 /**
  * Converts node indices from zero-based breadth-first left-to-right order
  * to one-based depth-first in-order-subtree order.
- * 
+ *
  * ```text
  *   0+1          2+4
  *  / | \  --->  / | \
@@ -28,7 +28,8 @@ import {
  */
 function inOrderIndex(index, nodeWidth, totalLayers) {
     const nodeIndex = Math.floor(index / nodeWidth);
-    const layer = Math.ceil(Math.log2((nodeIndex + 1) * nodeWidth + 1) / Math.log2(nodeWidth + 1)) - 1;
+    const layer =
+        Math.ceil(Math.log2((nodeIndex + 1) * nodeWidth + 1) / Math.log2(nodeWidth + 1)) - 1;
     const indexWithinLayer = nodeIndex - (Math.pow(nodeWidth + 1, layer) - 1) / nodeWidth;
     const indexWithinNode = index % nodeWidth;
     const layerStride = Math.pow(nodeWidth + 1, totalLayers - layer - 1);
@@ -52,31 +53,39 @@ addEventListener('load', () => {
     const root = new VisElement(TAG_GRAPH);
     const nodes = Array.from({ length: NODE_COUNT }, () => new VisElement(TAG_ROW));
     const items = Array.from({ length: NODE_COUNT * NODE_WIDTH }, () => new VisElement(TAG_CELL));
-    const pointers = Array.from({ length: NODE_COUNT * (NODE_WIDTH + 1) }, () => new VisElement(TAG_TEXT));
+    const pointers = Array.from(
+        { length: NODE_COUNT * (NODE_WIDTH + 1) },
+        () => new VisElement(TAG_TEXT),
+    );
     const nilNodes = Array.from({ length: LEAF_COUNT }, () => new VisElement(TAG_CELL));
-    const connectors = Array.from({ length: NODE_COUNT + LEAF_COUNT - 1 }, () => new VisConnector());
+    const connectors = Array.from(
+        { length: NODE_COUNT + LEAF_COUNT - 1 },
+        () => new VisConnector(),
+    );
 
     // Group all nodes together for ease of structure building
     const allNodes = [...nodes, ...nilNodes];
 
     // Construct visualization tree structure
-    nodes.forEach(n => n.parent = root);
-    items.forEach((e, i) => e.parent = nodes[Math.floor(i / NODE_WIDTH)]);
-    pointers.forEach((e, i) => e.parent = nodes[Math.floor(i / (NODE_WIDTH + 1))]);
-    nilNodes.forEach(n => n.parent = root);
+    nodes.forEach(n => (n.parent = root));
+    items.forEach((e, i) => (e.parent = nodes[Math.floor(i / NODE_WIDTH)]));
+    pointers.forEach((e, i) => (e.parent = nodes[Math.floor(i / (NODE_WIDTH + 1))]));
+    nilNodes.forEach(n => (n.parent = root));
     connectors.forEach((c, i) => {
         c.start.target = pointers[i];
         c.end.target = allNodes[i + 1];
     });
 
     // Ensure correct ordering of nodes and items within nodes
-    items.forEach((e, i) => e.attributes.order.value = String(i % NODE_WIDTH * 2 + 1));
-    pointers.forEach((e, i) => e.attributes.order.value = String(i % (NODE_WIDTH + 1) * 2));
-    nodes.forEach(n => n.attributes['order-children'].value = 'true');
-    connectors.forEach((c, i) => c.attributes.order.value = String(i % (NODE_WIDTH + 1)));
+    items.forEach((e, i) => (e.attributes.order.value = String((i % NODE_WIDTH) * 2 + 1)));
+    pointers.forEach((e, i) => (e.attributes.order.value = String((i % (NODE_WIDTH + 1)) * 2)));
+    nodes.forEach(n => (n.attributes['order-children'].value = 'true'));
+    connectors.forEach((c, i) => (c.attributes.order.value = String(i % (NODE_WIDTH + 1))));
 
     // Add labels to nodes to indicated intended order
-    items.forEach((e, i) => e.attributes.value.value = String(inOrderIndex(i, NODE_WIDTH, LAYERS)));
+    items.forEach(
+        (e, i) => (e.attributes.value.value = String(inOrderIndex(i, NODE_WIDTH, LAYERS))),
+    );
 
     // Make it look pretty
     root.attributes.layout.value = GraphLayoutModel.LAYERED;
@@ -89,7 +98,7 @@ addEventListener('load', () => {
         n.attributes.size.value = String(NIL_NODE_SIZE);
         n.attributes.fill.value = NIL_NODE_COLOR;
     });
-    connectors.forEach(c => c.end.attributes.decoration.value = 'arrow');
+    connectors.forEach(c => (c.end.attributes.decoration.value = 'arrow'));
 
     // Attach to the DOM
     const container = document.getElementById('app');

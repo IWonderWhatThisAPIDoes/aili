@@ -1,6 +1,6 @@
 /**
  * Logging utilities.
- * 
+ *
  * @module
  */
 
@@ -35,7 +35,7 @@ export enum Severity {
 export interface Logger {
     /**
      * Emits a log message.
-     * 
+     *
      * @param severity Severity class representing the nature of the message.
      * @param summary Short (one-line) description of the message.
      * @param details If necessary, a longer description that contains additional details.
@@ -50,11 +50,11 @@ export interface Logger {
 export interface TopicLogger extends Logger {
     /**
      * Registers a new topic - a named source of log messages.
-     * 
+     *
      * @param topicName Name of the topic. Should be unique (otherwise the user cannot tell them apart).
      * @return New {@link Logger} for the new topic. Messages logged into this
      *         will be associated with the topic.
-     * 
+     *
      * @example
      * ```
      * let masterLogger = // ...
@@ -83,11 +83,11 @@ export class HookableLogger implements TopicLogger {
     }
     /**
      * Triggers whenever a message is logged.
-     * 
+     *
      * Observers will receive the arguments passed to {@link log},
      * plus the topic path (first argument), starting from the most
      * general topic.
-     * 
+     *
      * @event
      */
     get onLog(): Hookable<[readonly string[], Severity, string, string | undefined]> {

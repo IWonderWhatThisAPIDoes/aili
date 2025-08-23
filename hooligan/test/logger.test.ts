@@ -32,6 +32,11 @@ describe(HookableLogger, () => {
         const topicLogger = logger.createTopic(TOPIC_NAME);
         const subtopicLogger = topicLogger.createTopic(SUBTOPIC_NAME);
         subtopicLogger.log(LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
-        expect(mockObserver).toBeCalledWith([TOPIC_NAME, SUBTOPIC_NAME], LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
+        expect(mockObserver).toBeCalledWith(
+            [TOPIC_NAME, SUBTOPIC_NAME],
+            LOG_SEVERITY,
+            LOG_MESSAGE,
+            LOG_DESC,
+        );
     });
 });

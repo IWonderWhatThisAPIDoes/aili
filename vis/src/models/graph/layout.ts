@@ -1,6 +1,6 @@
 /**
  * Interface for layout engines that can be used with a graph view model.
- * 
+ *
  * @module
  */
 
@@ -24,14 +24,14 @@ export interface LayoutNode {
     readonly top: number;
     /**
      * Updates the size of a node's bounding box.
-     * 
+     *
      * @param width New width of the node.
      * @param height New height of the node.
      */
     setSize(width: number, height: number): void;
     /**
      * Whether the outgoing edges of the node are ordered.
-     * 
+     *
      * When outgoing edges are ordered, layouts may prefer
      * to lay out successor nodes in a way that preserves
      * their order given by {@link LayoutEdge.order}.
@@ -50,7 +50,7 @@ export interface LayoutEdge {
     /**
      * Relative order of the edge among other outgoing edges
      * of its starting node.
-     * 
+     *
      * If {@link LayoutNode.orderedOutEdges} is set on the starting
      * node, layouts may prefer to lay out its successors in a way
      * that preserves edge order.
@@ -68,38 +68,38 @@ export interface GraphLayout {
     addNode(): LayoutNode;
     /**
      * Removes a node from the layout.
-     * 
+     *
      * @param id Identifier of the node to remove.
      */
     removeNode(id: string): void;
     /**
      * Retrieves an existing node by its identifier.
-     * 
+     *
      * @param id Identifier of the node to find.
      */
     getNodeById(id: string): LayoutNode | undefined;
     /**
      * Creates a new edge.
-     * 
+     *
      * @param startId Identifier of the starting node.
      * @param endId Identifier of the ending node.
      */
     addEdge(startId: string, endId: string): LayoutEdge | undefined;
     /**
      * Removes an edge from the layout.
-     * 
+     *
      * @param id Identifier of the edge to remove.
      */
     removeEdge(id: string): void;
     /**
      * Retrieves an existing edge by its identifier.
-     * 
+     *
      * @param id Identifier of the edge to find.
      */
     getEdgeById(id: string): LayoutEdge | undefined;
     /**
      * Asynchronously recalculates the layout of the graph.
-     * 
+     *
      * @returns Promise that resolves when the calculation is done.
      */
     recalculateLayout(): Promise<void>;

@@ -1,6 +1,6 @@
 /**
  * General utilities for in-browser testing.
- * 
+ *
  * @module
  */
 
@@ -27,7 +27,7 @@ export const BLACK: ColorChannels = {
     g: 0,
     b: 0,
     a: 255,
-}
+};
 
 /**
  * Opaque white.
@@ -37,7 +37,7 @@ export const WHITE: ColorChannels = {
     g: 255,
     b: 255,
     a: 255,
-}
+};
 
 /**
  * How many digits after the decimal point (in pixels) must match
@@ -61,15 +61,15 @@ const PIXEL_PATTERN: RegExp = /^(\d+(?:\.\d+)?)px$/;
 
 /**
  * Deserializes a CSS color in order to properly assert its value.
- * 
+ *
  * @param color CSS color specification, in `rgb` or `rgba` format.
  * @returns The same color, deserialized.
  * @throws Color does not have an expected format.
  */
 export function parseResolvedColor(color: string): ColorChannels {
     color = color.trim();
-    var match: string | undefined;
-    if (match = RGBA_PATTERN.exec(color)?.[1]) {
+    let match: string | undefined;
+    if ((match = RGBA_PATTERN.exec(color)?.[1])) {
         const channels = match.split(',').map(c => Number.parseInt(c.trim()));
         return {
             r: channels[0],
@@ -77,7 +77,7 @@ export function parseResolvedColor(color: string): ColorChannels {
             b: channels[2],
             a: channels[3],
         };
-    } else if (match = RGB_PATTERN.exec(color)?.[1]) {
+    } else if ((match = RGB_PATTERN.exec(color)?.[1])) {
         const channels = match.split(',').map(c => Number.parseInt(c.trim()));
         return {
             r: channels[0],
@@ -92,7 +92,7 @@ export function parseResolvedColor(color: string): ColorChannels {
 
 /**
  * Deserializes a CSS length in order to properly assert its value.
- * 
+ *
  * @param length CSS length specification, expected to be in pixels.
  * @returns The same length, as a number in pixels.
  * @throws {Error} `length` is not a pixel length specification.
@@ -116,11 +116,11 @@ export class Testbed {
         // Load the page
         await page.goto('file://' + path.resolve(__dirname, 'testbed/out/index.html'));
         // Find the app container
-        this.appContainer = await page.$('#app') as ElementHandle<HTMLElement>;
+        this.appContainer = (await page.$('#app')) as ElementHandle<HTMLElement>;
         // Create the root element
         this.rootElementHandle = await page.evaluateHandle(
             tagName => new vis.VisElement(tagName),
-            this.rootElementTagName
+            this.rootElementTagName,
         );
     }
     /**
@@ -128,7 +128,8 @@ export class Testbed {
      */
     async setupViewport(): Promise<void> {
         await page.evaluate(
-            (container, root) => new vis.Viewport(container, vis.DEFAULT_MODEL_FACTORY).root = root,
+            (container, root) =>
+                (new vis.Viewport(container, vis.DEFAULT_MODEL_FACTORY).root = root),
             this.appContainer,
             this.rootElementHandle,
         );
@@ -137,16 +138,19 @@ export class Testbed {
      * Performs arbitrary operations on the root element.
      * Because this function runs in browser context,
      * Puppeteer's execution constraints apply.
-     * 
+     *
      * @param callback The callback to run in context of the testbed.
      * @param extra Additional arguments passed to the callback.
      */
-    async rootElement<T extends any[], F extends EvaluateFunc<[JSHandle<vis.VisElement>, ...T]>>(callback: F, ...extra: T): Promise<void> {
+    async rootElement<
+        T extends unknown[],
+        F extends EvaluateFunc<[JSHandle<vis.VisElement>, ...T]>,
+    >(callback: F, ...extra: T): Promise<void> {
         await page.evaluate(callback, this.rootElementHandle, ...extra);
     }
     /**
      * Gets the default element or any other element if a selector is provided.
-     * 
+     *
      * @param selector Selector that identifies the target element.
      *                 If not provided, {@link theElementSelector} will be used.
      * @returns The element that represents the visual's rendering.
@@ -161,7 +165,7 @@ export class Testbed {
     }
     /**
      * Gets the bounding box of a DOM element.
-     * 
+     *
      * @param selector Selector that identifies the target element.
      *                 If not provided, {@link theElementSelector} will be used.
      * @returns Bounding box of the target element.
@@ -173,7 +177,7 @@ export class Testbed {
     }
     /**
      * Gets the text content of a DOM element.
-     * 
+     *
      * @param selector Selector that identifies the target element.
      *                 If not provided, {@link theElementSelector} will be used.
      * @returns Text content of the visual's rendering.
@@ -181,11 +185,11 @@ export class Testbed {
     async textContent(selector?: string): Promise<string> {
         const element = await this.theElement(selector);
         const text = await element.getProperty('textContent');
-        return await text.jsonValue() ?? '';
+        return (await text.jsonValue()) ?? '';
     }
     /**
      * Reads a CSS property of the visual's rendering element.
-     * 
+     *
      * @param property Name of the property to retrieve.
      * @returns Value of the requested CSS property.
      */
@@ -193,12 +197,12 @@ export class Testbed {
         return await page.evaluate(
             (e, property) => getComputedStyle(e).getPropertyValue(property),
             await this.theElement(),
-            property
+            property,
         );
     }
     /**
      * Gets the bounding box of an element, and fails if it does not have one
-     * 
+     *
      * @param handle Handle to the examined element.
      * @returns Bounding box of the element.
      * @throws {Error} The element is not included in layout.

@@ -20,14 +20,14 @@ describe(vis.CheckboxViewModel, () => {
     });
 
     it('is checked if set beforehand', async () => {
-        await t.rootElement(root => root.attributes.checked.value = 'true');
+        await t.rootElement(root => (root.attributes.checked.value = 'true'));
         await t.setupViewport();
         expect(await t.appContainer.$$(`${t.theElementSelector}:checked`)).toHaveLength(1);
     });
 
     it('is checked if set afterwards', async () => {
         await t.setupViewport();
-        await t.rootElement(root => root.attributes.checked.value = 'true');
+        await t.rootElement(root => (root.attributes.checked.value = 'true'));
         expect(await t.appContainer.$$(`${t.theElementSelector}:checked`)).toHaveLength(1);
     });
 

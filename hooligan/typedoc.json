@@ -1,7 +1,5 @@
 {
-    "entryPoints": [
-        "./src/*.ts"
-    ],
+    "entryPoints": ["./src/*.ts"],
     "out": "./doc",
     "excludeReferences": true,
     "treatWarningsAsErrors": true

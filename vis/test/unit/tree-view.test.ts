@@ -8,7 +8,7 @@ import { ViewModel } from '../../src/model';
 
 const ELEMENT_TAG_NAME = 'foo';
 
-class TestViewContainer<T extends Object, R extends ViewBase> extends ViewContainer<T, R> {
+class TestViewContainer<T extends object, R extends ViewBase> extends ViewContainer<T, R> {
     createNew(tag: T): R {
         // Find the views associated with the tag
         const views = this.expectedCalls.get(tag);
@@ -38,7 +38,7 @@ class TestViewContainer<T extends Object, R extends ViewBase> extends ViewContai
             }
             let views = this.expectedCalls.get(tag);
             if (!views) {
-                this.expectedCalls.set(tag, views = []);
+                this.expectedCalls.set(tag, (views = []));
             }
             views.push(...view);
         });
@@ -58,7 +58,7 @@ class TestViewContainer<T extends Object, R extends ViewBase> extends ViewContai
     /**
      * Maps tags that are expected to be passed to {@link createNew}
      * to the values associated with those tags.
-     * 
+     *
      * Each tag is expected exactly once.
      */
     private expectedCalls: Map<T, R[]>;
@@ -68,7 +68,7 @@ class MockElementView implements ElementView {
     constructor(element: ReadonlyVisElement, mockName: string) {
         this.element = element;
         this.useEmbedding = jest
-            .fn((em: ViewEmbedding) => this.hasExplicitEmbedding = !!em.slot)
+            .fn((em: ViewEmbedding) => (this.hasExplicitEmbedding = !!em.slot))
             .mockName(`${mockName}.useEmbedding`);
         this._destroy = jest.fn().mockName(`${mockName}._destroy`);
     }
@@ -99,7 +99,7 @@ describe(TreeView, () => {
             insertFlowHtml: jest.fn().mockName('rootSlot.insertFlowHtml'),
         },
         destroy: jest.fn().mockName('rootSlot.destroy'),
-    }
+    };
     let root: VisElement;
     let rootView: MockElementView;
     let conn: VisConnector;
@@ -136,7 +136,9 @@ describe(TreeView, () => {
         child.parent = root;
         elementViews.expectCalls([root, rootView], [child, childView]);
         treeView.addRootElement(root, rootSlot);
-        expect(childView.useEmbedding).toBeCalledWith(expect.objectContaining({ parent: rootView }));
+        expect(childView.useEmbedding).toBeCalledWith(
+            expect.objectContaining({ parent: rootView }),
+        );
     });
 
     it('embeds grandchild after it is added', () => {
@@ -145,11 +147,17 @@ describe(TreeView, () => {
         const childView = new MockElementView(child, 'childView');
         const grandchildView = new MockElementView(grandchild, 'grandchildView');
         child.parent = root;
-        elementViews.expectCalls([root, rootView], [child, childView], [grandchild, grandchildView]);
+        elementViews.expectCalls(
+            [root, rootView],
+            [child, childView],
+            [grandchild, grandchildView],
+        );
         treeView.addRootElement(root, rootSlot);
         // Now add the grandchild (after child was given a view)
         grandchild.parent = child;
-        expect(grandchildView.useEmbedding).toBeCalledWith(expect.objectContaining({ parent: childView }));
+        expect(grandchildView.useEmbedding).toBeCalledWith(
+            expect.objectContaining({ parent: childView }),
+        );
     });
 
     it('embeds grandchild if it is present at initialization', () => {
@@ -159,10 +167,16 @@ describe(TreeView, () => {
         const grandchildView = new MockElementView(grandchild, 'grandchildView');
         child.parent = root;
         grandchild.parent = child;
-        elementViews.expectCalls([root, rootView], [child, childView], [grandchild, grandchildView]);
+        elementViews.expectCalls(
+            [root, rootView],
+            [child, childView],
+            [grandchild, grandchildView],
+        );
         // Initialize tree view, the grandchild is already there
         treeView.addRootElement(root, rootSlot);
-        expect(grandchildView.useEmbedding).toBeCalledWith(expect.objectContaining({ parent: childView }));
+        expect(grandchildView.useEmbedding).toBeCalledWith(
+            expect.objectContaining({ parent: childView }),
+        );
     });
 
     it('removes whole subtree when a child is detached', () => {
@@ -172,7 +186,11 @@ describe(TreeView, () => {
         const grandchildView = new MockElementView(grandchild, 'grandchildView');
         child.parent = root;
         grandchild.parent = child;
-        elementViews.expectCalls([root, rootView], [child, childView], [grandchild, grandchildView]);
+        elementViews.expectCalls(
+            [root, rootView],
+            [child, childView],
+            [grandchild, grandchildView],
+        );
         treeView.addRootElement(root, rootSlot);
         child.parent = undefined;
         expect(childView._destroy).toBeCalled();
@@ -189,7 +207,9 @@ describe(TreeView, () => {
         child.parent = undefined;
         child.parent = root;
         expect(childViewOne._destroy).toBeCalled();
-        expect(childViewTwo.useEmbedding).toBeCalledWith(expect.objectContaining({ parent: rootView }));
+        expect(childViewTwo.useEmbedding).toBeCalledWith(
+            expect.objectContaining({ parent: rootView }),
+        );
     });
 
     it('does nothing when root element is moved to a parent', () => {
@@ -280,7 +300,11 @@ describe(TreeView, () => {
         const grandchild = new VisElement(ELEMENT_TAG_NAME);
         const childView = new MockElementView(child, 'childView');
         const grandchildView = new MockElementView(grandchild, 'grandchildView');
-        elementViews.expectCalls([root, rootView], [child, childView], [grandchild, grandchildView]);
+        elementViews.expectCalls(
+            [root, rootView],
+            [child, childView],
+            [grandchild, grandchildView],
+        );
         grandchild.parent = child;
         conn.start.target = root;
         conn.end.target = grandchild;
@@ -315,7 +339,11 @@ describe(TreeView, () => {
         const grandchild = new VisElement(ELEMENT_TAG_NAME);
         const childView = new MockElementView(child, 'childView');
         const grandchildView = new MockElementView(grandchild, 'grandchildView');
-        elementViews.expectCalls([root, rootView], [child, childView], [grandchild, grandchildView]);
+        elementViews.expectCalls(
+            [root, rootView],
+            [child, childView],
+            [grandchild, grandchildView],
+        );
         connectorViews.expectCalls([conn, connView]);
         child.parent = root;
         grandchild.parent = child;

@@ -1,11 +1,16 @@
 /**
  * {@link GraphLayout} implementation backed by [Graphviz](https://graphviz.org/).
- * 
+ *
  * @module
  */
 
 import { GraphLayout, LayoutEdge, LayoutNode } from './layout';
-import { GRAPH_DEFAULT_GAP, GraphLayoutDirection, GraphLayoutModel, GraphLayoutSettings } from './layout-settings';
+import {
+    GRAPH_DEFAULT_GAP,
+    GraphLayoutDirection,
+    GraphLayoutModel,
+    GraphLayoutSettings,
+} from './layout-settings';
 import * as graphviz from '@viz-js/viz';
 
 /**
@@ -102,18 +107,21 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
         const bb = (layout as { bb: string }).bb.split(',').map(Number.parseFloat);
         this.width = bb[2];
         this.height = bb[3];
-        for (const object of (layout as { objects: { name: string, pos: string, width: string, height: string }[] }).objects ?? []) {
+        for (const object of (
+            layout as { objects: { name: string; pos: string; width: string; height: string }[] }
+        ).objects ?? []) {
             const slot = this.nodes[object.name];
             const pos = object.pos.split(',').map(Number.parseFloat);
-            slot.left = pos[0] - Number.parseFloat(object.width) * POINTS_PER_INCH / 2;
-            slot.top = this.height - Number.parseFloat(object.height) * POINTS_PER_INCH / 2 - pos[1];
-            slot.node.attributes.pos = `${pos[0] * POINTS_PER_INCH / 2},${pos[1] * POINTS_PER_INCH / 2}`;
+            slot.left = pos[0] - (Number.parseFloat(object.width) * POINTS_PER_INCH) / 2;
+            slot.top =
+                this.height - (Number.parseFloat(object.height) * POINTS_PER_INCH) / 2 - pos[1];
+            slot.node.attributes.pos = `${(pos[0] * POINTS_PER_INCH) / 2},${(pos[1] * POINTS_PER_INCH) / 2}`;
         }
     }
     /**
      * Reorders edges of the graph to reflect an update
      * to {@link LayoutEdge.order}.
-     * 
+     *
      * Internally, Graphviz orders edges in declaration order
      * when [ordering](https://graphviz.org/docs/attrs/ordering/)
      * is set on their endpoint nodes. Here, declaration order
@@ -124,9 +132,11 @@ export class GraphvizLayout implements GraphLayout, GraphLayoutSettings {
         // Sort edges by their declared order
         // Edges with undefined order do not matter, but we need the comparison
         // function to be consistent, so they are assigned an order of zero.
-        const sortedEdges = Object.values(this.edges).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const sortedEdges = Object.values(this.edges).sort(
+            (a, b) => (a.order ?? 0) - (b.order ?? 0),
+        );
         // Get the edges as they are currently in the graph
-        const oldEdges = this.graph.edges ??= [];
+        const oldEdges = (this.graph.edges ??= []);
         // Place edges into the graph in the new order
         // and reassign indices to edge handles
         this.graph.edges = sortedEdges.map((edge, i) => {
@@ -158,7 +168,7 @@ class GraphvizLayoutNode implements LayoutNode {
     get id(): string {
         return this.node.name;
     }
-    readonly node: { name: string, attributes: Record<string, string | number> };
+    readonly node: { name: string; attributes: Record<string, string | number> };
     index: number;
     set orderedOutEdges(value: boolean) {
         this.node.attributes.ordering = value ? 'out' : '';
@@ -189,7 +199,7 @@ const LAYOUT_DIRECTION_TO_GRAPHVIZ = {
     [GraphLayoutDirection.SOUTH]: 'TB',
     [GraphLayoutDirection.EAST]: 'LR',
     [GraphLayoutDirection.WEST]: 'RL',
-}
+};
 
 const LAYOUT_MODEL_TO_GRAPHVIZ = {
     [GraphLayoutModel.LAYERED]: 'dot',
@@ -199,6 +209,6 @@ const LAYOUT_MODEL_TO_GRAPHVIZ = {
     [GraphLayoutModel.GRAPHVIZ_FDP]: 'fdp',
     [GraphLayoutModel.GRAPHVIZ_CIRCO]: 'circo',
     [GraphLayoutModel.GRAPHVIZ_TWOPI]: 'twopi',
-}
+};
 
 const POINTS_PER_INCH: number = 72;

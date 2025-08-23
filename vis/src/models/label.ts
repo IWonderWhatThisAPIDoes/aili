@@ -1,6 +1,6 @@
 /**
  * The companion label view model.
- * 
+ *
  * @module
  */
 
@@ -72,7 +72,7 @@ export const CLASS_LABEL_HAT_NS: string = 'aili-label-hat-ns';
  * {@link ViewModel} that represents an element as a simple
  * text label positioned near the parent element.
  * It can optionally be decorated with an arrow-like hat.
- * 
+ *
  * ```text
  *   +----------+
  *   |          |
@@ -80,13 +80,13 @@ export const CLASS_LABEL_HAT_NS: string = 'aili-label-hat-ns';
  * -  42 - -----+
  * + - - +
  * ```
- * 
+ *
  * Labels can be positioned at the center of their parent,
  * or at any of the 9 cardinal directions, inside, outside,
  * or on the edge of the parent container, for a total of 49 placements.
- * 
+ *
  * Pictured are the 25 placements that do not overlap the edge.
- * 
+ *
  * ```text
  * +---+----+   +---+   +----+---+
  * | A |  B |   | C |   | D  | E |
@@ -104,29 +104,29 @@ export const CLASS_LABEL_HAT_NS: string = 'aili-label-hat-ns';
  * | U |  V |   | W |   | X  | Y |
  * +---+----+   +---+   +----+---+
  * ```
- * 
+ *
  * ## Permitted Parents
  * Any {@link ViewModel} that permits a {@link ViewLayoutMode.COMPANION} child.
- * 
+ *
  * ## Permitted Children
  * Only {@link ViewLayoutMode.COMPANION} {@link ViewModel}s.
- * 
+ *
  * ## Model Attributes
  * The following attributes of {@link ReadonlyVisElement.attributes}
  * affect the appearence of the visual.
- * 
+ *
  * ### value
  * ```text
  * value: ''
  * ```
  * The text that will be displayed on the label.
- * 
+ *
  * ### color
  * ```text
  * color: black
  * ```
  * Color of the label text.
- * 
+ *
  * ### vertical-justify
  * ```text
  * vertical-justify: center
@@ -135,7 +135,7 @@ export const CLASS_LABEL_HAT_NS: string = 'aili-label-hat-ns';
  * - `start`
  * - `center`
  * - `end`
- * 
+ *
  * ### horizontal-justify
  * ```text
  * horizontal-justify: center
@@ -144,7 +144,7 @@ export const CLASS_LABEL_HAT_NS: string = 'aili-label-hat-ns';
  * - `start`
  * - `center`
  * - `end`
- * 
+ *
  * ### vertical-align
  * ```text
  * vertical-align: inside
@@ -153,7 +153,7 @@ export const CLASS_LABEL_HAT_NS: string = 'aili-label-hat-ns';
  * - `inside`
  * - `middle`
  * - `outside`
- * 
+ *
  * ### horizontal-align
  * ```text
  * horizontal-align: inside
@@ -162,7 +162,7 @@ export const CLASS_LABEL_HAT_NS: string = 'aili-label-hat-ns';
  * - `inside`
  * - `middle`
  * - `outside`
- * 
+ *
  * ### padding
  * ```text
  * padding: 0
@@ -191,113 +191,115 @@ export class LabelViewModel extends FlowViewModel {
         html.append(htmlMid);
         super(html, htmlInner);
 
-        this.unhookOnDestroy(setAttributeBindings(element.attributes, {
-            value: bind.textContent(htmlInner),
-            color(value) {
-                const color = value && bind.color(value);
-                if (color) {
-                    svgMain.style.setProperty('fill', color);
-                    htmlInner.style.setProperty('color', color);
-                } else {
-                    svgMain.style.removeProperty('fill');
-                    htmlInner.style.removeProperty('color');
-                }
-            },
-            padding: bind.css(htmlMid, 'padding', bind.numeric(bind.positiveOrZero, 'em')),
-            'vertical-align'(value) {
-                switch (value) {
-                    case 'outside':
-                        html.classList.add(CLASS_LABEL_NS_OUTSIDE);
-                        html.classList.remove(CLASS_LABEL_NS_MIDDLE);
-                        break;
-                    case 'middle':
-                        html.classList.remove(CLASS_LABEL_NS_OUTSIDE);
-                        html.classList.add(CLASS_LABEL_NS_MIDDLE);
-                        break;
-                    default:
-                        html.classList.remove(CLASS_LABEL_NS_OUTSIDE);
-                        html.classList.remove(CLASS_LABEL_NS_MIDDLE);
-                        break;
-                }
-            },
-            'horizontal-align'(value) {
-                switch (value) {
-                    case 'outside':
-                        html.classList.add(CLASS_LABEL_WE_OUTSIDE);
-                        html.classList.remove(CLASS_LABEL_WE_MIDDLE);
-                        break;
-                    case 'middle':
-                        html.classList.remove(CLASS_LABEL_WE_OUTSIDE);
-                        html.classList.add(CLASS_LABEL_WE_MIDDLE);
-                        break;
-                    default:
-                        html.classList.remove(CLASS_LABEL_WE_OUTSIDE);
-                        html.classList.remove(CLASS_LABEL_WE_MIDDLE);
-                        break;
-                }
-            },
-            'vertical-justify'(value) {
-                switch (value) {
-                    case 'start':
-                        html.classList.add(CLASS_LABEL_NORTH);
-                        html.classList.remove(CLASS_LABEL_SOUTH);
-                        break;
-                    case 'end':
-                        html.classList.remove(CLASS_LABEL_NORTH);
-                        html.classList.add(CLASS_LABEL_SOUTH);
-                        break;
-                    default:
-                        html.classList.remove(CLASS_LABEL_NORTH);
-                        html.classList.remove(CLASS_LABEL_SOUTH);
-                }
-            },
-            'horizontal-justify'(value) {
-                switch (value) {
-                    case 'start':
-                        html.classList.add(CLASS_LABEL_WEST);
-                        html.classList.remove(CLASS_LABEL_EAST);
-                        break;
-                    case 'end':
-                        html.classList.remove(CLASS_LABEL_WEST);
-                        html.classList.add(CLASS_LABEL_EAST);
-                        break;
-                    default:
-                        html.classList.remove(CLASS_LABEL_WEST);
-                        html.classList.remove(CLASS_LABEL_EAST);
-                }
-            },
-            hat(value) {
-                switch (value) {
-                    case 'north':
-                        svgMain.style.removeProperty('display');
-                        svgMain.style.transform = 'rotate(270deg)';
-                        html.classList.add(CLASS_LABEL_HAT_NS);
-                        htmlMid.insertBefore(svgMain, htmlInner);
-                        break;
-                    case 'south':
-                        svgMain.style.removeProperty('display');
-                        svgMain.style.transform = 'rotate(90deg)';
-                        html.classList.add(CLASS_LABEL_HAT_NS);
-                        htmlMid.insertBefore(htmlInner, svgMain);
-                        break;
-                    case 'east':
-                        svgMain.style.removeProperty('display');
-                        svgMain.style.removeProperty('transform');
-                        html.classList.remove(CLASS_LABEL_HAT_NS);
-                        htmlMid.insertBefore(htmlInner, svgMain);
-                        break;
-                    case 'west':
-                        svgMain.style.removeProperty('display');
-                        svgMain.style.transform = 'rotate(180deg)';
-                        html.classList.remove(CLASS_LABEL_HAT_NS);
-                        htmlMid.insertBefore(svgMain, htmlInner);
-                        break;
-                    default:
-                        svgMain.style.display = 'none';
-                        break;
-                }
-            }
-        }));
+        this.unhookOnDestroy(
+            setAttributeBindings(element.attributes, {
+                value: bind.textContent(htmlInner),
+                color(value) {
+                    const color = value && bind.color(value);
+                    if (color) {
+                        svgMain.style.setProperty('fill', color);
+                        htmlInner.style.setProperty('color', color);
+                    } else {
+                        svgMain.style.removeProperty('fill');
+                        htmlInner.style.removeProperty('color');
+                    }
+                },
+                padding: bind.css(htmlMid, 'padding', bind.numeric(bind.positiveOrZero, 'em')),
+                'vertical-align'(value) {
+                    switch (value) {
+                        case 'outside':
+                            html.classList.add(CLASS_LABEL_NS_OUTSIDE);
+                            html.classList.remove(CLASS_LABEL_NS_MIDDLE);
+                            break;
+                        case 'middle':
+                            html.classList.remove(CLASS_LABEL_NS_OUTSIDE);
+                            html.classList.add(CLASS_LABEL_NS_MIDDLE);
+                            break;
+                        default:
+                            html.classList.remove(CLASS_LABEL_NS_OUTSIDE);
+                            html.classList.remove(CLASS_LABEL_NS_MIDDLE);
+                            break;
+                    }
+                },
+                'horizontal-align'(value) {
+                    switch (value) {
+                        case 'outside':
+                            html.classList.add(CLASS_LABEL_WE_OUTSIDE);
+                            html.classList.remove(CLASS_LABEL_WE_MIDDLE);
+                            break;
+                        case 'middle':
+                            html.classList.remove(CLASS_LABEL_WE_OUTSIDE);
+                            html.classList.add(CLASS_LABEL_WE_MIDDLE);
+                            break;
+                        default:
+                            html.classList.remove(CLASS_LABEL_WE_OUTSIDE);
+                            html.classList.remove(CLASS_LABEL_WE_MIDDLE);
+                            break;
+                    }
+                },
+                'vertical-justify'(value) {
+                    switch (value) {
+                        case 'start':
+                            html.classList.add(CLASS_LABEL_NORTH);
+                            html.classList.remove(CLASS_LABEL_SOUTH);
+                            break;
+                        case 'end':
+                            html.classList.remove(CLASS_LABEL_NORTH);
+                            html.classList.add(CLASS_LABEL_SOUTH);
+                            break;
+                        default:
+                            html.classList.remove(CLASS_LABEL_NORTH);
+                            html.classList.remove(CLASS_LABEL_SOUTH);
+                    }
+                },
+                'horizontal-justify'(value) {
+                    switch (value) {
+                        case 'start':
+                            html.classList.add(CLASS_LABEL_WEST);
+                            html.classList.remove(CLASS_LABEL_EAST);
+                            break;
+                        case 'end':
+                            html.classList.remove(CLASS_LABEL_WEST);
+                            html.classList.add(CLASS_LABEL_EAST);
+                            break;
+                        default:
+                            html.classList.remove(CLASS_LABEL_WEST);
+                            html.classList.remove(CLASS_LABEL_EAST);
+                    }
+                },
+                hat(value) {
+                    switch (value) {
+                        case 'north':
+                            svgMain.style.removeProperty('display');
+                            svgMain.style.transform = 'rotate(270deg)';
+                            html.classList.add(CLASS_LABEL_HAT_NS);
+                            htmlMid.insertBefore(svgMain, htmlInner);
+                            break;
+                        case 'south':
+                            svgMain.style.removeProperty('display');
+                            svgMain.style.transform = 'rotate(90deg)';
+                            html.classList.add(CLASS_LABEL_HAT_NS);
+                            htmlMid.insertBefore(htmlInner, svgMain);
+                            break;
+                        case 'east':
+                            svgMain.style.removeProperty('display');
+                            svgMain.style.removeProperty('transform');
+                            html.classList.remove(CLASS_LABEL_HAT_NS);
+                            htmlMid.insertBefore(htmlInner, svgMain);
+                            break;
+                        case 'west':
+                            svgMain.style.removeProperty('display');
+                            svgMain.style.transform = 'rotate(180deg)';
+                            html.classList.remove(CLASS_LABEL_HAT_NS);
+                            htmlMid.insertBefore(svgMain, htmlInner);
+                            break;
+                        default:
+                            svgMain.style.display = 'none';
+                            break;
+                    }
+                },
+            }),
+        );
     }
     preferredLayoutMode: ViewLayoutMode = ViewLayoutMode.COMPANION;
 }

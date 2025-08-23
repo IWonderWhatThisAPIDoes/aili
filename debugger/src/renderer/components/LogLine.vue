@@ -24,21 +24,23 @@
 
 <script setup lang="ts">
     defineProps<{
-        severity: Severity,
-        message: string,
-        topic?: readonly string[],
-        showTopic?: boolean,
+        severity: Severity;
+        message: string;
+        topic?: readonly string[];
+        showTopic?: boolean;
     }>();
 </script>
 
 <template>
     <div :class="['log-line', severityClass(severity), ...topicClasses(topic)]">
-        <span v-if="showTopic"
+        <span
+            v-if="showTopic"
             v-for="topic in topic"
             :class="['log-line-topic', `topic-${topic}`]"
-            :style="{ color: colorFromString(topic) }">
-            {{ topic }}
-        </span>{{ message }}
+            :style="{ color: colorFromString(topic) }"
+        >
+            {{ topic }} </span
+        >{{ message }}
     </div>
 </template>
 

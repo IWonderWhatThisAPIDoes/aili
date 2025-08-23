@@ -1,15 +1,15 @@
 /**
  * Pretty-printing the visualization tree.
- * 
+ *
  * @module
  */
 
-import { ReadonlyVisConnector, ReadonlyVisElement } from "aili-vis";
+import { ReadonlyVisConnector, ReadonlyVisElement } from 'aili-vis';
 
 /**
  * Formats the structure of a visualization tree
  * for displaying to the user.
- * 
+ *
  * @param root Root element of the tree to show.
  */
 export function prettyPrintVisTree(root: ReadonlyVisElement): string {
@@ -32,7 +32,7 @@ export function prettyPrintVisTree(root: ReadonlyVisElement): string {
         for (const pin of root.pins) {
             let connectorNumber = connectorNumbers.get(pin.connector);
             if (!connectorNumber) {
-                connectorNumbers.set(pin.connector, connectorNumber = connectorNumbers.size + 1);
+                connectorNumbers.set(pin.connector, (connectorNumber = connectorNumbers.size + 1));
             }
             let pinString;
             if (pin === pin.connector.start) {

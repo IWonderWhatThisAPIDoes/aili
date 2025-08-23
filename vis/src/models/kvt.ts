@@ -1,6 +1,6 @@
 /**
  * The key-value table view model.
- * 
+ *
  * @module
  */
 
@@ -38,7 +38,7 @@ export const CLASS_KVT_NESTED: string = 'aili-kvt-nested';
 /**
  * {@link ViewModel} that represents an element as a table
  * of key-value pairs.
- * 
+ *
  * ```text
  * +-----------+
  * |   Point   |
@@ -48,27 +48,27 @@ export const CLASS_KVT_NESTED: string = 'aili-kvt-nested';
  * | y       3 |
  * +-----------+
  * ```
- * 
+ *
  * ## Permitted Parents
  * Any {@link ViewModel} that permits a {@link ViewLayoutMode.INLINE} child.
- * 
+ *
  * ## Permitted Children
  * Any {@link ViewModel}.
- * 
+ *
  * If a child has {@link ViewLayoutMode.INLINE},
  * the following attributes of {@link ReadonlyVisElement.attributes}
  * of the child affect the layout of this container.
- * 
+ *
  * ### key
  * ```text
  * key: ''
  * ```
  * Key that the child is assigned to.
- * 
+ *
  * ## Model Attributes
  * The following attributes of {@link ReadonlyVisElement.attributes}
  * affect the appearence of the visual.
- * 
+ *
  * ### title
  * ```text
  * title: ''
@@ -90,16 +90,18 @@ export class KeyValueTableViewModel extends FlowViewModel {
 
         this.tbody = tbody;
         this.ownerDocument = context.ownerDocument;
-        this.unhookOnDestroy(setAttributeBindings(element.attributes, {
-            title: value => {
-                if (value) {
-                    titleCell.textContent = value;
-                    tableHtml.prepend(thead);
-                } else {
-                    thead.remove();
-                }
-            }
-        }));
+        this.unhookOnDestroy(
+            setAttributeBindings(element.attributes, {
+                title: value => {
+                    if (value) {
+                        titleCell.textContent = value;
+                        tableHtml.prepend(thead);
+                    } else {
+                        thead.remove();
+                    }
+                },
+            }),
+        );
     }
     createInlineSlot(child: ReadonlyVisElement, childModel: ViewModel): ElementViewSlot {
         const rowHtml = this.tbody.insertRow();
@@ -124,13 +126,13 @@ export class KeyValueTableViewModel extends FlowViewModel {
             populator: {
                 insertFlowHtml(html) {
                     valueInner.append(html);
-                }
+                },
             },
             destroy() {
                 rowHtml.remove();
                 observer.unhook();
-            }
-        }
+            },
+        };
     }
     private readonly tbody: HTMLTableSectionElement;
     private readonly ownerDocument: Document;

@@ -71,21 +71,33 @@
     <div class="session-control">
         <label>
             Path to debuggee:
-            <input v-model="pathToDebuggee" :disabled="status !== DebugSessionStatus.INACTIVE">
+            <input v-model="pathToDebuggee" :disabled="status !== DebugSessionStatus.INACTIVE" />
         </label>
         <span v-if="sourceLocation !== undefined">
             {{ sourceLocationText(sourceLocation) }}
         </span>
-        <button :disabled="status === DebugSessionStatus.BUSY || pathToDebuggee === ''" @click="startStop">
+        <button
+            :disabled="status === DebugSessionStatus.BUSY || pathToDebuggee === ''"
+            @click="startStop"
+        >
             {{ startStopButtonText }}
         </button>
-        <button :disabled="status !== DebugSessionStatus.READY" @click="nextStep(DebugStepRange.SINGLE)">
+        <button
+            :disabled="status !== DebugSessionStatus.READY"
+            @click="nextStep(DebugStepRange.SINGLE)"
+        >
             Step
         </button>
-        <button :disabled="status !== DebugSessionStatus.READY" @click="nextStep(DebugStepRange.NEXT)">
+        <button
+            :disabled="status !== DebugSessionStatus.READY"
+            @click="nextStep(DebugStepRange.NEXT)"
+        >
             Next
         </button>
-        <button :disabled="status !== DebugSessionStatus.READY" @click="nextStep(DebugStepRange.FINISH)">
+        <button
+            :disabled="status !== DebugSessionStatus.READY"
+            @click="nextStep(DebugStepRange.FINISH)"
+        >
             Out
         </button>
     </div>

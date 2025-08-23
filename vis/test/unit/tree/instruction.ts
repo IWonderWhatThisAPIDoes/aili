@@ -53,7 +53,8 @@ export class ConnectInstruction implements Instruction {
         this.targetIndex = targetIndex;
     }
     execute(frame: TestFrame): void {
-        frame.connectors[this.connectorIndex][this.pinSide].target = frame.elements[this.targetIndex];
+        frame.connectors[this.connectorIndex][this.pinSide].target =
+            frame.elements[this.targetIndex];
     }
     describe(): string {
         return `connect ${this.pinSide} of connector ${this.connectorIndex} to element ${this.targetIndex}`;
@@ -88,10 +89,32 @@ export interface InstructionWeights {
 export class InstructionGenerator {
     constructor(elementCount: number, connectorCount: number, weights: InstructionWeights) {
         this.instructionTypePicker = new WeightedRandomSet<(rand: RandomSeed) => Instruction>([
-            [rand => new InsertInstruction(rand.intBetween(0, elementCount - 1), rand.intBetween(0, elementCount - 1)), weights.insert],
+            [
+                rand =>
+                    new InsertInstruction(
+                        rand.intBetween(0, elementCount - 1),
+                        rand.intBetween(0, elementCount - 1),
+                    ),
+                weights.insert,
+            ],
             [rand => new RemoveInstruction(rand.intBetween(0, elementCount - 1)), weights.remove],
-            [rand => new ConnectInstruction(rand.intBetween(0, connectorCount - 1), rand.random() > 0.5 ? 'start' : 'end', rand.intBetween(0, elementCount - 1)), weights.connect],
-            [rand => new DetachInstruction(rand.intBetween(0, connectorCount - 1), rand.random() > 0.5 ? 'start' : 'end'), weights.detach],
+            [
+                rand =>
+                    new ConnectInstruction(
+                        rand.intBetween(0, connectorCount - 1),
+                        rand.random() > 0.5 ? 'start' : 'end',
+                        rand.intBetween(0, elementCount - 1),
+                    ),
+                weights.connect,
+            ],
+            [
+                rand =>
+                    new DetachInstruction(
+                        rand.intBetween(0, connectorCount - 1),
+                        rand.random() > 0.5 ? 'start' : 'end',
+                    ),
+                weights.detach,
+            ],
         ]);
     }
     generate(rand: RandomSeed): Instruction {
@@ -106,12 +129,12 @@ class WeightedRandomSet<T> {
         let cummulative = 0;
         this.distribution = options.map(([value, weight]) => ({
             value,
-            cummulative: cummulative += weight / weightSum
-        }))
+            cummulative: (cummulative += weight / weightSum),
+        }));
     }
     generate(rand: RandomSeed): T {
         const selector = rand.random();
         return this.distribution.find(({ cummulative }) => cummulative > selector)?.value as T;
     }
-    private readonly distribution: { value: T, cummulative: number }[];
+    private readonly distribution: { value: T; cummulative: number }[];
 }

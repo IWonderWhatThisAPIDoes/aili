@@ -1,6 +1,6 @@
 /**
  * The main logic of presenting renderings to the user.
- * 
+ *
  * @module
  */
 
@@ -19,7 +19,9 @@ export class Showcase {
         this.renderer = new VisTreeRenderer({
             createElement: (tagName: string) => new VisElement(tagName),
             createConnector: () => new VisConnector(),
-            set root(root: VisElement) { viewport.root = root; }
+            set root(root: VisElement) {
+                viewport.root = root;
+            },
         });
         this.logger = logger;
         this.viewport = viewport;
@@ -27,13 +29,15 @@ export class Showcase {
         this.renderer.logger = {
             log(severity, message) {
                 logger.log(severity as number, message);
-            }
+            },
         };
     }
     stylesheetChanged(stylesheetSource: string): void {
         let stylesheet: Stylesheet;
         try {
-            stylesheet = Stylesheet.parse(stylesheetSource, (e: Error) => this.logger.log(Severity.WARNING, e.message));
+            stylesheet = Stylesheet.parse(stylesheetSource, (e: Error) =>
+                this.logger.log(Severity.WARNING, e.message),
+            );
         } catch (e) {
             this.logger.log(Severity.ERROR, 'Stylesheet failed to parse: ' + e.message);
             return;

@@ -7,7 +7,12 @@
 
 <script setup lang="ts">
     import { computed, ref, useTemplateRef } from 'vue';
-    import { Debugger, DebuggerInputSource, DebuggerStatus, isStatusRunning } from '../controllers/debugger';
+    import {
+        Debugger,
+        DebuggerInputSource,
+        DebuggerStatus,
+        isStatusRunning,
+    } from '../controllers/debugger';
     import DebuggerStatusIndicator from './DebuggerStatusIndicator.vue';
     import LogConsole from './LogConsole.vue';
     import ScrollBox from './ScrollBox.vue';
@@ -24,7 +29,9 @@
     });
 
     const isAcceptingInput = computed(() => isStatusRunning(status.value));
-    const isStatusChangeable = computed(() => status.value !== DebuggerStatus.STARTING && status.value !== DebuggerStatus.STOPPING);
+    const isStatusChangeable = computed(
+        () => status.value !== DebuggerStatus.STARTING && status.value !== DebuggerStatus.STOPPING,
+    );
     const changeStatusActionName = computed<string>(prev => {
         switch (status.value) {
             case DebuggerStatus.INACTIVE:
@@ -72,7 +79,7 @@
         <div class="debugger-control-row debugger-path">
             <label>
                 Path to debugger:
-                <input v-model="Debugger.pathToDebugger">
+                <input v-model="Debugger.pathToDebugger" />
             </label>
         </div>
         <div class="debugger-control-row debugger-status">
@@ -87,12 +94,17 @@
         </ScrollBox>
         <label class="debugger-control-row debugger-input">
             GDB>
-            <input v-model="inputToDebugger" @keyup.enter.self="sendInputToDebugger" :disabled="!isAcceptingInput">
+            <input
+                v-model="inputToDebugger"
+                @keyup.enter.self="sendInputToDebugger"
+                :disabled="!isAcceptingInput"
+            />
         </label>
         <span>
-            Send commands manually to the underlying GDB session.
-            The debugger is in
-            <a href="https://sourceware.org/gdb/current/onlinedocs/gdb.html/GDB_002fMI.html">GDB/MI</a>
+            Send commands manually to the underlying GDB session. The debugger is in
+            <a href="https://sourceware.org/gdb/current/onlinedocs/gdb.html/GDB_002fMI.html"
+                >GDB/MI</a
+            >
             input mode. Classic GDB CLI commands are also accepted.
         </span>
     </div>
@@ -152,7 +164,8 @@
         content: 'state';
     }
 
-    .log-line.topic-to-debugger::before, .log-line.topic-from-debugger::before {
+    .log-line.topic-to-debugger::before,
+    .log-line.topic-from-debugger::before {
         /* Drop these labels to make more space */
         content: none;
     }

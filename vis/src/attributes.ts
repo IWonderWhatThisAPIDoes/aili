@@ -1,6 +1,6 @@
 /**
  * Attribute containers with change detection.
- * 
+ *
  * @module
  */
 
@@ -26,9 +26,9 @@ export interface ReadonlyAttributeEntry {
      * Observer hook that is triggered when the value of the attribute
      * changes. The observers receive the new and previous value
      * as arguments.
-     * 
+     *
      * The hook is triggered after the value has been updated.
-     * 
+     *
      * @event
      */
     readonly onChange: Hookable<[string | undefined, string | undefined]>;
@@ -46,8 +46,8 @@ export class AttributeMap implements ReadonlyAttributeMap {
         // Wrap this in a proxy so we can add attributes as they are called
         return new Proxy(this as { [key: string]: AttributeEntry }, {
             get(self, key: string) {
-                return self[key] ??= new AttributeEntry();
-            }
+                return (self[key] ??= new AttributeEntry());
+            },
         });
     }
     /**
@@ -91,13 +91,13 @@ export class AttributeEntry implements ReadonlyAttributeEntry {
 /**
  * Shorthand for binding {@link ReadonlyAttributeEntry.onChange}
  * observers to multiple attributes in a single container.
- * 
+ *
  * For all attributes that have a value set, the observers are called immediately.
- * 
+ *
  * @param attributes The attribute container to observe.
  * @param bindings Observers assigned to individual attributes by their names.
  * @returns Handle to the registered observers that can be used to unhook them.
- * 
+ *
  * @example
  * ```
  * setAttributeBindings(attributeMap, {
@@ -110,18 +110,20 @@ export class AttributeEntry implements ReadonlyAttributeEntry {
  * });
  * ```
  */
-export function setAttributeBindings(attributes: ReadonlyAttributeMap, bindings: Record<string, (newValue: string | undefined, oldValue: string | undefined) => void>): ObserverHandle {
+export function setAttributeBindings(
+    attributes: ReadonlyAttributeMap,
+    bindings: Record<string, (newValue: string | undefined, oldValue: string | undefined) => void>,
+): ObserverHandle {
     const observers: ObserverHandle[] = [];
     for (const key in bindings) {
         const record = attributes[key];
         const observer = record.onChange.hook(bindings[key]);
-        if (record.value !== undefined)
-            bindings[key](record.value, undefined);
+        if (record.value !== undefined) bindings[key](record.value, undefined);
         observers.push(observer);
     }
     return {
         unhook(): void {
             observers.forEach(observer => observer.unhook());
-        }
+        },
     };
 }

@@ -15,29 +15,44 @@ describe(vis.GraphViewModel, () => {
     beforeEach(() => t.beforeEach());
 
     function insertChildren(count: number): Promise<JSHandle<vis.VisElement>[]> {
-        return Promise.all(Array.from({ length: count }, (_, i) => {
-            return page.evaluateHandle((root, value) => {
-                const child = new vis.VisElement(vis.TAG_CELL);
-                child.attributes.value.value = value;
-                child.parent = root;
-                return child;
-            }, t.rootElementHandle, String(i));
-        }));
+        return Promise.all(
+            Array.from({ length: count }, (_, i) => {
+                return page.evaluateHandle(
+                    (root, value) => {
+                        const child = new vis.VisElement(vis.TAG_CELL);
+                        child.attributes.value.value = value;
+                        child.parent = root;
+                        return child;
+                    },
+                    t.rootElementHandle,
+                    String(i),
+                );
+            }),
+        );
     }
 
-    function connect(start: JSHandle<vis.VisElement>, end: JSHandle<vis.VisElement>): Promise<JSHandle<vis.VisConnector>> {
-        return page.evaluateHandle((start, end) => {
-            const connector = new vis.VisConnector();
-            connector.start.target = start;
-            connector.end.target = end;
-            return connector;
-        }, start, end);
+    function connect(
+        start: JSHandle<vis.VisElement>,
+        end: JSHandle<vis.VisElement>,
+    ): Promise<JSHandle<vis.VisConnector>> {
+        return page.evaluateHandle(
+            (start, end) => {
+                const connector = new vis.VisConnector();
+                connector.start.target = start;
+                connector.end.target = end;
+                return connector;
+            },
+            start,
+            end,
+        );
     }
 
     async function boundingBoxesByTextContents(): Promise<Record<string, BoundingBox>> {
         const children = await t.appContainer.$$(childSelector);
         const childBounds = await Promise.all(children.map(c => c.boundingBox()));
-        const childTexts = await Promise.all(children.map(c => c.getProperty('textContent').then(t => t.jsonValue())));
+        const childTexts = await Promise.all(
+            children.map(c => c.getProperty('textContent').then(t => t.jsonValue())),
+        );
         return Object.fromEntries(childTexts.map((k, i) => [k, childBounds[i]]));
     }
 
@@ -67,30 +82,40 @@ describe(vis.GraphViewModel, () => {
         expect(children).toHaveLength(CHILD_COUNT);
     });
 
-    it('has nonzero size when emptied again', async() => {
+    it('has nonzero size when emptied again', async () => {
         await t.setupViewport();
         const [childHandle] = await insertChildren(1);
-        page.evaluate(child => child.parent = undefined, childHandle);
+        page.evaluate(child => (child.parent = undefined), childHandle);
         const bounds = await t.boundingBox();
         expect(bounds.width).toBeGreaterThan(0);
         expect(bounds.height).toBeGreaterThan(0);
     });
 
     it('adds padding as requested', async () => {
-        await t.rootElement((root, padding) => root.attributes.padding.value = padding, String(PADDING));
+        await t.rootElement(
+            (root, padding) => (root.attributes.padding.value = padding),
+            String(PADDING),
+        );
         await insertChildren(CHILD_COUNT);
         await t.setupViewport();
-        await page.waitForFunction(selector => {
-            // Wait until slots of the graph are laid out to get the correct measurements for assertions
-            const children = document.querySelectorAll(`${selector} .${vis.CLASS_GRAPH_SLOT}`);
-            return children.length > 0 && [].some.call(children, (child: HTMLElement) => child.offsetLeft > 0);
-        }, { timeout: 1000 }, t.theElementSelector);
+        await page.waitForFunction(
+            selector => {
+                // Wait until slots of the graph are laid out to get the correct measurements for assertions
+                const children = document.querySelectorAll(`${selector} .${vis.CLASS_GRAPH_SLOT}`);
+                return (
+                    children.length > 0 &&
+                    [].some.call(children, (child: HTMLElement) => child.offsetLeft > 0)
+                );
+            },
+            { timeout: 1000 },
+            t.theElementSelector,
+        );
         const fontSize = parsePixels(await t.getComputedStyle('font-size'));
         const graphBounds = await t.boundingBox();
         const children = await t.appContainer.$$(childSelector);
         const childBounds = await Promise.all(children.map(Testbed.boundingBoxOf));
         const minLeft = Math.min(...childBounds.map(c => c.x));
-        const minTop = Math.min(...childBounds.map(c => c.y))
+        const minTop = Math.min(...childBounds.map(c => c.y));
         const maxRight = Math.max(...childBounds.map(c => c.x + c.width));
         const maxBottom = Math.max(...childBounds.map(c => c.y + c.height));
         expect(minLeft).toBeCloseTo(graphBounds.x + PADDING * fontSize, -1);
@@ -110,7 +135,7 @@ describe(vis.GraphViewModel, () => {
          *     |
          *     8
          */
-        await t.rootElement(root => root.attributes.layout.value = vis.GraphLayoutModel.LAYERED);
+        await t.rootElement(root => (root.attributes.layout.value = vis.GraphLayoutModel.LAYERED));
         const elements = await insertChildren(9);
         await connect(elements[0], elements[1]);
         await connect(elements[0], elements[2]);
@@ -139,7 +164,7 @@ describe(vis.GraphViewModel, () => {
          * 3 <-- 2 <-- 1 <-- 0
          */
         await t.rootElement(root => {
-            root.attributes.layout.value = vis.GraphLayoutModel.LAYERED
+            root.attributes.layout.value = vis.GraphLayoutModel.LAYERED;
             root.attributes.direction.value = vis.GraphLayoutDirection.WEST;
         });
         const elements = await insertChildren(4);
@@ -171,16 +196,33 @@ describe(vis.GraphViewModel, () => {
             root.attributes.direction.value = vis.GraphLayoutDirection.EAST;
         });
         const elements = await insertChildren(9);
-        const CONNECTIONS = [[0, 1], [0, 2], [1, 3], [1, 4], [1, 5], [2, 6], [2, 7], [2, 8]];
-        const connectors = await Promise.all(CONNECTIONS.map(([from, to]) => connect(elements[from], elements[to])));
+        const CONNECTIONS = [
+            [0, 1],
+            [0, 2],
+            [1, 3],
+            [1, 4],
+            [1, 5],
+            [2, 6],
+            [2, 7],
+            [2, 8],
+        ];
+        const connectors = await Promise.all(
+            CONNECTIONS.map(([from, to]) => connect(elements[from], elements[to])),
+        );
         // Set orders for all connectors
         const CONNECTOR_ORDERS = [0, 1, 1, -1, 0, 1, 0, 2];
-        await Promise.all(connectors.map((c, i) => {
-            page.evaluate((c, o) => c.attributes.order.value = o, c, String(CONNECTOR_ORDERS[i]))
-        }));
+        await Promise.all(
+            connectors.map((c, i) => {
+                page.evaluate(
+                    (c, o) => (c.attributes.order.value = o),
+                    c,
+                    String(CONNECTOR_ORDERS[i]),
+                );
+            }),
+        );
         // Make all non-leaf elements ordered
         for (const i of [0, 1, 2]) {
-            await page.evaluate(e => e.attributes['order-children'].value = 'true', elements[i]);
+            await page.evaluate(e => (e.attributes['order-children'].value = 'true'), elements[i]);
         }
         await t.setupViewport();
         const boundingBoxes = await boundingBoxesByTextContents();

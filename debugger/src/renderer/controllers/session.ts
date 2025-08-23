@@ -1,6 +1,6 @@
 /**
  * Low-level wrapper for a debug session.
- * 
+ *
  * @module
  */
 
@@ -23,7 +23,7 @@ export enum DebugSessionStatus {
     READY,
     /**
      * Debug session is active and currently handling a command.
-     * 
+     *
      * Most operations will fail in this state.
      */
     BUSY,
@@ -49,7 +49,7 @@ export enum DebugStepRange {
 
 /**
  * Converts a debugger status to the corresponding status of a debug session.
- * 
+ *
  * @param debuggerStatus Status of the debugger.
  * @returns Corresponding status of a debug session on the same debugger.
  */
@@ -73,14 +73,14 @@ export function sessionStatusFromDebuggerStatus(
 
 /**
  * Low-level wrapper for a debug session.
- * 
+ *
  * The session takes place at debugger level,
  * with status directly copied from debugger.
  */
 export class DebuggerSession {
     /**
      * Constructs a new session wrapper for a provided debugger.
-     * 
+     *
      * @param debuggerContainer Debugger that the session is backed by.
      */
     constructor(debuggerContainer: Debugger) {
@@ -91,7 +91,7 @@ export class DebuggerSession {
     }
     /**
      * Starts a new debug session.
-     * 
+     *
      * @throws A debug session is already active,
      *         Debugger or debuggee could not be launched,
      *         or the session could not be started.
@@ -108,13 +108,15 @@ export class DebuggerSession {
                 await this.debuggerContainer.start();
             }
             // TODO: Sanitize path to debuggee
-            await this.sendMiCommandAndAssertSuccess(`-file-exec-and-symbols "${this.pathToDebuggee}"`);
+            await this.sendMiCommandAndAssertSuccess(
+                `-file-exec-and-symbols "${this.pathToDebuggee}"`,
+            );
             await this.sendMiCommandAndAssertSuccess('-exec-run --start');
         });
     }
     /**
      * Stops an ongoing debug session.
-     * 
+     *
      * @throws No debug session is active
      *         or the debugger could not end the session.
      */
@@ -127,9 +129,9 @@ export class DebuggerSession {
     }
     /**
      * Single-steps the debugger session and updates state.
-     * 
+     *
      * @param range How far the debug session should advance.
-     * 
+     *
      * @throws No debug session is active
      *         or the debugger could not make the step.
      */
@@ -148,7 +150,7 @@ export class DebuggerSession {
     }
     /**
      * Triggers when the status of the session updates.
-     * 
+     *
      * @event
      */
     get onStatusChanged(): Hookable<[DebugSessionStatus]> {
@@ -164,7 +166,7 @@ export class DebuggerSession {
     logger: Logger | undefined = undefined;
     /**
      * Handles the change of state of the underlying debugger.
-     * 
+     *
      * @param newStatus New status reported by the debugger.
      */
     private debuggerStatusChanged(newStatus: DebuggerStatus): void {
@@ -172,7 +174,10 @@ export class DebuggerSession {
         if (sessionStatus !== this._status) {
             if (sessionStatus === DebugSessionStatus.INACTIVE) {
                 this.logger?.log(Severity.INFO, 'Debug session has ended');
-            } else if (sessionStatus === DebugSessionStatus.BUSY && this._status === DebugSessionStatus.INACTIVE) {
+            } else if (
+                sessionStatus === DebugSessionStatus.BUSY &&
+                this._status === DebugSessionStatus.INACTIVE
+            ) {
                 this.logger?.log(Severity.INFO, 'Debug session has started');
             }
             this._status = sessionStatus;
@@ -183,14 +188,17 @@ export class DebuggerSession {
      * Sends a GDB/MI command to the debugger, awaits its response,
      * and asserts that the operation was successful,
      * throwing an exception if it was not.
-     * 
+     *
      * @param command The GDB/MI command to send to the debugger.
-     * 
+     *
      * @throws The debugger did not accept the input or it responded
      *         with an error.
      */
     private async sendMiCommandAndAssertSuccess(command: string): Promise<void> {
-        let [response, header] = await this.debuggerContainer.sendMiCommand(command, DebuggerInputSource.SESSION);
+        const [response, header] = await this.debuggerContainer.sendMiCommand(
+            command,
+            DebuggerInputSource.SESSION,
+        );
         // Handle the error class separately, it may provide useful information
         if (header.class === GdbMiResultClass.ERROR) {
             const message = parseGdbMiRecord(response)?.results?.msg ?? '[no details provided]';
@@ -204,21 +212,23 @@ export class DebuggerSession {
     /**
      * Asserts that the session is in a specified status,
      * throwing an exception if it is not.
-     * 
+     *
      * @param expectedStatus The status that is required for the operation to proceed.
-     * 
+     *
      * @throws The session is not in the expected status.
      */
     private assertStatus(expectedStatus: DebugSessionStatus): void {
         if (this._status !== expectedStatus) {
             const expectedName = DebugSessionStatus[expectedStatus];
             const gotName = DebugSessionStatus[this._status];
-            throw new Error(`Debug pipeline is in invalid state: ${gotName}, expected ${expectedName}`);
+            throw new Error(
+                `Debug pipeline is in invalid state: ${gotName}, expected ${expectedName}`,
+            );
         }
     }
     /**
      * Performs an action and logs all errors that have been thrown.
-     * 
+     *
      * @typeParam T Return value of the action.
      * @param action The action that should be performed.
      * @returns Return value of `action`.

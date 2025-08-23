@@ -1,6 +1,6 @@
 /**
  * Common interface of all {@link ReadonlyVisElement} visualizations.
- * 
+ *
  * @module
  */
 
@@ -26,20 +26,20 @@ export enum ViewLayoutMode {
 /**
  * Describes a visual represnetation of a {@link ReadonlyVisElement} -
  * i. e. a graph, table, plot, ...
- * 
+ *
  * An instance of this is assigned to each rendered element.
  */
 export interface ViewModel {
     /**
      * Layout mode expected by the model.
-     * 
+     *
      * This should never change.
      */
     readonly preferredLayoutMode: ViewLayoutMode;
     /**
      * A boundary element that connector pins should
      * attach to, if the model provides one.
-     * 
+     *
      * If no container is provided, connectors that attach
      * to an element rendered with this model
      * will not be rendered.
@@ -48,7 +48,7 @@ export interface ViewModel {
     /**
      * Slot for children whose models request being
      * laid out in {@link ViewLayoutMode.COMPANION} mode.
-     * 
+     *
      * This should always be available (the slot should always
      * be rendered when the parent element is).
      */
@@ -56,7 +56,7 @@ export interface ViewModel {
     /**
      * Creates a rendering slot for a child that requests to be
      * laid out in {@link ViewLayoutMode.INLINE} mode.
-     * 
+     *
      * @param child The child element that requests the slot.
      * @param childModel The view model of the child requesting the slot.
      *        Implementors can use this to only permit certain view models
@@ -72,7 +72,7 @@ export interface ViewModel {
     createInlineSlot(child: ReadonlyVisElement, childModel: ViewModel): ElementViewSlot;
     /**
      * Moves the model's rendering to a new slot.
-     * 
+     *
      * @param populator Slot that the model should be rendered into.
      *        A value of `undefined` indicates that the model
      *        should unrender itself.
@@ -80,7 +80,7 @@ export interface ViewModel {
     useSlot(populator: ViewSlotPopulator | undefined): void;
     /**
      * Performs cleanup before the view model expires.
-     * 
+     *
      * Implementations do not need to call {@link useSlot}
      * with a value of `undefined` (or perform equivalent actions)
      * here, the caller will take care of that.

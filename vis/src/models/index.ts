@@ -1,6 +1,6 @@
 /**
  * Built-in {@link ViewModel} types.
- * 
+ *
  * @module
  */
 
@@ -71,5 +71,7 @@ export const DEFAULT_MODELS: ReadonlyMap<string, ViewModelConstructor> = new Map
  * The default {@link ViewModelFactory} that provides
  * {@link DEFAULT_MODELS} and {@link FallbackViewModel} as fallback.
  */
-export const DEFAULT_MODEL_FACTORY: ViewModelFactory =
-    new ViewModelFactory(DEFAULT_MODELS, FallbackViewModel);
+export const DEFAULT_MODEL_FACTORY: ViewModelFactory = new ViewModelFactory(
+    DEFAULT_MODELS,
+    FallbackViewModel,
+);
