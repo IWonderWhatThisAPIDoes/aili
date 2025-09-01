@@ -14,28 +14,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Load Cargo cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: cargo-crates-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-crates-
-      - name: Load cached build outputs
-        uses: actions/cache@v4
-        with:
-          path: |
-            target/wasm32-unknown-unknown
-            target/release
-          key: target-wasm-${{ hashFiles('Cargo.lock') }}
-          restore-keys: target-wasm-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Install wasm-pack
         uses: jetli/wasm-pack-action@v0.4.0
+      - name: Load Cargo cache
+        uses: Leafwing-Studios/cargo-cache@v2
       - name: Build
         run: wasm-pack build jsapi --target bundler --features gdbstate
       - name: Save build outputs
@@ -190,25 +174,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Load Cargo cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: cargo-crates-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-crates-
-      - name: Load cached build outputs
-        uses: actions/cache@v4
-        with:
-          path: |
-            target/debug
-          key: target-debug-${{ hashFiles('Cargo.lock') }}
-          restore-keys: target-debug-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Load Cargo cache
+        uses: Leafwing-Studios/cargo-cache@v2
       - name: Run tests, except GDBState
         run: cargo test --workspace --exclude aili-gdbstate
       - name: Run GDBState library tests
@@ -220,27 +189,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Load Cargo cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: cargo-crates-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-crates-
-      - name: Load cached build outputs
-        # Never save the cache from this job, as it does not
-        # generate all the build outputs (let some other job save it)
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            target/debug
-          key: target-debug-${{ hashFiles('Cargo.lock') }}
-          restore-keys: target-debug-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Load Cargo cache
+        uses: Leafwing-Studios/cargo-cache@v2
+        # Never save the cache from this job, as it does not
+        # generate all the build outputs (let some other job save it)
+        with:
+          save-if: false
       - name: Update package manager
         run: sudo apt-get update
       - name: Install GDB
@@ -254,27 +210,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Load Cargo cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: cargo-crates-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-crates-
-      - name: Load cached build outputs
-        uses: actions/cache@v4
-        with:
-          path: |
-            target/debug
-          key: target-debug-${{ hashFiles('Cargo.lock') }}
-          restore-keys: target-debug-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+      - name: Load Cargo cache
+        uses: Leafwing-Studios/cargo-cache@v2
       - name: Run Clippy lints
         run: cargo clippy --workspace --all-targets --all-features -- --deny warnings
 
@@ -284,20 +225,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Load Cargo cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: cargo-crates-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
+      - name: Load Cargo cache
+        uses: Leafwing-Studios/cargo-cache@v2
+        with:
+          save-if: false
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -307,18 +242,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Load Cargo cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-          key: cargo-crates-${{ hashFiles('Cargo.lock') }}
-          restore-keys: cargo-crates-
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Load Cargo cache
+        uses: Leafwing-Studios/cargo-cache@v2
+        with:
+          save-if: false
       - name: Check documentation
         run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --document-private-items --no-deps --all-features
 
