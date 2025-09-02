@@ -44,14 +44,14 @@ describe(ViewContainer, () => {
             const constructedView = { _destroy() {} };
             mockConstructor.mockImplementationOnce(() => constructedView);
             const { view } = container.getOrCreate(tag);
-            expect(mockConstructor).toBeCalled();
+            expect(mockConstructor).toHaveBeenCalled();
             expect(view).toBe(constructedView);
         });
 
         it('does not recreate an existing view', () => {
             container.getOrCreate(tag);
             container.getOrCreate(tag);
-            expect(mockConstructor).toBeCalledTimes(1);
+            expect(mockConstructor).toHaveBeenCalledTimes(1);
         });
 
         it('returns the same view on subsequent calls', () => {
@@ -64,7 +64,7 @@ describe(ViewContainer, () => {
             container.getOrCreate(tag);
             container.remove(tag);
             container.getOrCreate(tag);
-            expect(mockConstructor).toBeCalledTimes(2);
+            expect(mockConstructor).toHaveBeenCalledTimes(2);
         });
 
         it('indicates whether the value was created', () => {
@@ -82,7 +82,7 @@ describe(ViewContainer, () => {
         it('calls the destructor', () => {
             container.getOrCreate(tag);
             container.remove(tag);
-            expect(mockDestructor).toBeCalled();
+            expect(mockDestructor).toHaveBeenCalled();
         });
     });
 });

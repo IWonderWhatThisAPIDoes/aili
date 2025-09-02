@@ -44,7 +44,7 @@ describe(bind.css, () => {
 
     it('updates CSS property with filtered value', () => {
         bind.css(html, PROPERTY_NAME, mockFilter)(ATTRIBUTE_VALUE);
-        expect(mockFilter).toBeCalledWith(ATTRIBUTE_VALUE);
+        expect(mockFilter).toHaveBeenCalledWith(ATTRIBUTE_VALUE);
         expect(html.style.getPropertyValue(PROPERTY_NAME)).toBe(PROPERTY_VALUE);
     });
 
@@ -52,14 +52,14 @@ describe(bind.css, () => {
         html.style.setProperty(PROPERTY_NAME, PROPERTY_VALUE);
         mockFilter.mockImplementationOnce(_ => undefined);
         bind.css(html, PROPERTY_NAME, mockFilter)(ATTRIBUTE_VALUE);
-        expect(mockFilter).toBeCalledWith(ATTRIBUTE_VALUE);
+        expect(mockFilter).toHaveBeenCalledWith(ATTRIBUTE_VALUE);
         expect(html.style.getPropertyValue(PROPERTY_NAME)).toBe('');
     });
 
     it('removes property when reset', () => {
         html.style.setProperty(PROPERTY_NAME, PROPERTY_VALUE);
         bind.css(html, PROPERTY_NAME, mockFilter)(undefined);
-        expect(mockFilter).not.toBeCalled();
+        expect(mockFilter).not.toHaveBeenCalled();
         expect(html.style.getPropertyValue(PROPERTY_NAME)).toBe('');
     });
 
@@ -84,27 +84,27 @@ describe(bind.getNumeric, () => {
 
     it('returns the attribute value as a number, passed through the filter', () => {
         const value = bind.getNumeric(mockFilter, ATTRIBUTE_VALUE);
-        expect(mockFilter).toBeCalledWith(NUMERIC_VALUE);
+        expect(mockFilter).toHaveBeenCalledWith(NUMERIC_VALUE);
         expect(value).toBe(PROPERTY_VALUE);
     });
 
     it('rejects input if the filter rejects it', () => {
         mockFilter.mockImplementationOnce(() => undefined);
         const value = bind.getNumeric(mockFilter, ATTRIBUTE_VALUE);
-        expect(mockFilter).toBeCalledWith(NUMERIC_VALUE);
+        expect(mockFilter).toHaveBeenCalledWith(NUMERIC_VALUE);
         expect(value).toBeUndefined();
     });
 
     it('rejects non-numeric arguments', () => {
         const value = bind.getNumeric(mockFilter, 'abc');
         expect(value).toBeUndefined();
-        expect(mockFilter).not.toBeCalled();
+        expect(mockFilter).not.toHaveBeenCalled();
     });
 
     it('rejects trailing non-numeric characters', () => {
         const value = bind.getNumeric(mockFilter, '42 abc');
         expect(value).toBeUndefined();
-        expect(mockFilter).not.toBeCalled();
+        expect(mockFilter).not.toHaveBeenCalled();
     });
 });
 
@@ -125,33 +125,33 @@ describe(bind.numeric, () => {
 
     it('returns the attribute value as a number, passed through the filter', () => {
         const value = bind.numeric(mockFilter)(ATTRIBUTE_VALUE);
-        expect(mockFilter).toBeCalledWith(NUMERIC_VALUE);
+        expect(mockFilter).toHaveBeenCalledWith(NUMERIC_VALUE);
         expect(value).toBe(PROPERTY_VALUE);
     });
 
     it('includes a unit if provided', () => {
         const value = bind.numeric(mockFilter, UNIT)(ATTRIBUTE_VALUE);
-        expect(mockFilter).toBeCalledWith(NUMERIC_VALUE);
+        expect(mockFilter).toHaveBeenCalledWith(NUMERIC_VALUE);
         expect(value).toBe(PROPERTY_WITH_UNIT);
     });
 
     it('rejects input if the filter rejects it', () => {
         mockFilter.mockImplementationOnce(() => undefined);
         const value = bind.numeric(mockFilter, UNIT)(ATTRIBUTE_VALUE);
-        expect(mockFilter).toBeCalledWith(NUMERIC_VALUE);
+        expect(mockFilter).toHaveBeenCalledWith(NUMERIC_VALUE);
         expect(value).toBeUndefined();
     });
 
     it('rejects non-numeric arguments', () => {
         const value = bind.numeric(mockFilter, UNIT)('abc');
         expect(value).toBeUndefined();
-        expect(mockFilter).not.toBeCalled();
+        expect(mockFilter).not.toHaveBeenCalled();
     });
 
     it('rejects trailing non-numeric characters', () => {
         const value = bind.numeric(mockFilter, UNIT)('42 abc');
         expect(value).toBeUndefined();
-        expect(mockFilter).not.toBeCalled();
+        expect(mockFilter).not.toHaveBeenCalled();
     });
 });
 

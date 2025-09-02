@@ -112,7 +112,7 @@ describe(VisElement, () => {
             const parent = new VisElement(ELEMENT_TAG_NAME);
             element.onParentChanged.hook(mockObserver);
             element.parent = parent;
-            expect(mockObserver).toBeCalledWith(parent, undefined);
+            expect(mockObserver).toHaveBeenCalledWith(parent, undefined);
         });
 
         it('triggers when an element is removed from its parent', () => {
@@ -120,7 +120,7 @@ describe(VisElement, () => {
             element.parent = parent;
             element.onParentChanged.hook(mockObserver);
             element.parent = undefined;
-            expect(mockObserver).toBeCalledWith(undefined, parent);
+            expect(mockObserver).toHaveBeenCalledWith(undefined, parent);
         });
 
         it('triggers when an element is moved from one parent to another', () => {
@@ -129,7 +129,7 @@ describe(VisElement, () => {
             element.parent = source;
             element.onParentChanged.hook(mockObserver);
             element.parent = dest;
-            expect(mockObserver).toBeCalledWith(dest, source);
+            expect(mockObserver).toHaveBeenCalledWith(dest, source);
         });
 
         it('does not trigger when an element is moved to its current parent', () => {
@@ -137,13 +137,13 @@ describe(VisElement, () => {
             element.parent = parent;
             element.onParentChanged.hook(mockObserver);
             element.parent = parent;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('does not trigger when a detached element is removed again', () => {
             element.onParentChanged.hook(mockObserver);
             element.parent = undefined;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers after relevant properties have been updated', () => {
@@ -154,7 +154,7 @@ describe(VisElement, () => {
             const parent = new VisElement(ELEMENT_TAG_NAME);
             element.onParentChanged.hook(mockObserver);
             element.parent = parent;
-            expect(mockObserver).toBeCalled();
+            expect(mockObserver).toHaveBeenCalled();
         });
     });
 
@@ -170,7 +170,7 @@ describe(VisElement, () => {
         it('triggers when a child is added', () => {
             element.onAddChild.hook(mockObserver);
             child.parent = element;
-            expect(mockObserver).toBeCalledWith(child);
+            expect(mockObserver).toHaveBeenCalledWith(child);
         });
 
         it('triggers when a child is moved from a different parent', () => {
@@ -178,14 +178,14 @@ describe(VisElement, () => {
             child.parent = source;
             element.onAddChild.hook(mockObserver);
             child.parent = element;
-            expect(mockObserver).toBeCalledWith(child);
+            expect(mockObserver).toHaveBeenCalledWith(child);
         });
 
         it('does not trigger when a child is moved to its current parent', () => {
             child.parent = element;
             element.onAddChild.hook(mockObserver);
             child.parent = element;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers after parent change observer', () => {
@@ -205,7 +205,7 @@ describe(VisElement, () => {
             });
             element.onAddChild.hook(mockObserver);
             child.parent = element;
-            expect(mockObserver).toBeCalled();
+            expect(mockObserver).toHaveBeenCalled();
         });
     });
 
@@ -221,7 +221,7 @@ describe(VisElement, () => {
         it('triggers when a pin is attached', () => {
             element.onAddPin.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).toBeCalledWith(connector.start);
+            expect(mockObserver).toHaveBeenCalledWith(connector.start);
         });
 
         it('triggers when a pin is moved from another element', () => {
@@ -229,14 +229,14 @@ describe(VisElement, () => {
             connector.start.target = source;
             element.onAddPin.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).toBeCalledWith(connector.start);
+            expect(mockObserver).toHaveBeenCalledWith(connector.start);
         });
 
         it('does not trigger when a pin is moved to its current target', () => {
             connector.start.target = element;
             element.onAddPin.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers after the pin target change observer', () => {
@@ -256,7 +256,7 @@ describe(VisElement, () => {
             });
             element.onAddPin.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).toBeCalled();
+            expect(mockObserver).toHaveBeenCalled();
         });
     });
 
@@ -277,15 +277,15 @@ describe(VisElement, () => {
             left.onAddProjectedPin.hook(mockObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver).toBeCalledWith(connector.start);
+            expect(mockObserver).toHaveBeenCalledWith(connector.start);
         });
 
         it('triggers twice when an element is connected to itself', () => {
             element.onAddProjectedPin.hook(mockObserver);
             connector.start.target = element;
             connector.end.target = element;
-            expect(mockObserver).toBeCalledWith(connector.start);
-            expect(mockObserver).toBeCalledWith(connector.end);
+            expect(mockObserver).toHaveBeenCalledWith(connector.start);
+            expect(mockObserver).toHaveBeenCalledWith(connector.end);
         });
 
         it('does not trigger when pin moves within the subtree', () => {
@@ -299,7 +299,7 @@ describe(VisElement, () => {
             connector.end.target = right;
             left.onAddProjectedPin.hook(mockObserver);
             connector.start.target = child;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers when pin moves to a different subtree', () => {
@@ -313,7 +313,7 @@ describe(VisElement, () => {
             connector.end.target = right;
             dest.onAddProjectedPin.hook(mockObserver);
             connector.start.target = dest;
-            expect(mockObserver).toBeCalledWith(connector.start);
+            expect(mockObserver).toHaveBeenCalledWith(connector.start);
         });
 
         it('does not trigger when other pin moves to a different subtree', () => {
@@ -327,7 +327,7 @@ describe(VisElement, () => {
             connector.end.target = right;
             right.onAddProjectedPin.hook(mockObserver);
             connector.start.target = dest;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers after projected target change observer', () => {
@@ -363,7 +363,7 @@ describe(VisElement, () => {
             left.onAddProjectedPin.hook(mockObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver).toBeCalled();
+            expect(mockObserver).toHaveBeenCalled();
         });
     });
 
@@ -384,7 +384,7 @@ describe(VisElement, () => {
             element.onAddProjectedConnector.hook(mockObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver).toBeCalledWith(connector);
+            expect(mockObserver).toHaveBeenCalledWith(connector);
         });
 
         it('does not trigger when pin moves to a different subtree', () => {
@@ -398,7 +398,7 @@ describe(VisElement, () => {
             connector.end.target = right;
             element.onAddProjectedConnector.hook(mockObserver);
             connector.start.target = dest;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers when a pin moves under a different ancestor', () => {
@@ -414,7 +414,7 @@ describe(VisElement, () => {
             connector.end.target = right;
             parent.onAddProjectedConnector.hook(mockObserver);
             connector.start.target = dest;
-            expect(mockObserver).toBeCalledWith(connector);
+            expect(mockObserver).toHaveBeenCalledWith(connector);
         });
 
         it('triggers after projected parent change observer', () => {
@@ -474,7 +474,7 @@ describe(VisElement, () => {
             element.onAddProjectedConnector.hook(mockObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver).toBeCalled();
+            expect(mockObserver).toHaveBeenCalled();
         });
     });
 });
@@ -769,7 +769,7 @@ describe(VisConnector, () => {
             connector.onProjectedParentChanged.hook(mockObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver).toBeCalledWith(parent, undefined);
+            expect(mockObserver).toHaveBeenCalledWith(parent, undefined);
         });
 
         it('does not trigger when pin moves within the subtree', () => {
@@ -782,7 +782,7 @@ describe(VisConnector, () => {
             connector.end.target = right;
             connector.onProjectedParentChanged.hook(mockObserver);
             connector.start.target = parent;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('does not trigger when pin moves to a different subtree', () => {
@@ -797,7 +797,7 @@ describe(VisConnector, () => {
             connector.end.target = right;
             connector.onProjectedParentChanged.hook(mockObserver);
             connector.start.target = dest;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers when a pin is detached', () => {
@@ -810,7 +810,7 @@ describe(VisConnector, () => {
             connector.end.target = right;
             connector.onProjectedParentChanged.hook(mockObserver);
             connector.start.target = undefined;
-            expect(mockObserver).toBeCalledWith(undefined, parent);
+            expect(mockObserver).toHaveBeenCalledWith(undefined, parent);
         });
 
         it('triggers when the subtree with a pin is detached', () => {
@@ -823,7 +823,7 @@ describe(VisConnector, () => {
             connector.end.target = right;
             connector.onProjectedParentChanged.hook(mockObserver);
             right.parent = undefined;
-            expect(mockObserver).toBeCalledWith(undefined, parent);
+            expect(mockObserver).toHaveBeenCalledWith(undefined, parent);
         });
 
         it('triggers after pin insertion observer', () => {
@@ -875,7 +875,7 @@ describe(VisConnector, () => {
             connector.onProjectedParentChanged.hook(mockObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockObserver).toBeCalled();
+            expect(mockObserver).toHaveBeenCalled();
         });
     });
 });
@@ -899,14 +899,14 @@ describe(VisPin, () => {
         it('triggers when a pin is attached to an element', () => {
             connector.start.onTargetChanged.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).toBeCalledWith(element, undefined);
+            expect(mockObserver).toHaveBeenCalledWith(element, undefined);
         });
 
         it('triggers when a pin is detached from an element', () => {
             connector.start.target = element;
             connector.start.onTargetChanged.hook(mockObserver);
             connector.start.target = undefined;
-            expect(mockObserver).toBeCalledWith(undefined, element);
+            expect(mockObserver).toHaveBeenCalledWith(undefined, element);
         });
 
         it('triggers when a pin is moved from one element to another', () => {
@@ -914,20 +914,20 @@ describe(VisPin, () => {
             connector.start.target = source;
             connector.start.onTargetChanged.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).toBeCalledWith(element, source);
+            expect(mockObserver).toHaveBeenCalledWith(element, source);
         });
 
         it('does not trigger when a pin is moved to its current target', () => {
             connector.start.target = element;
             connector.start.onTargetChanged.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('does not trigger when a detached pin is removed again', () => {
             connector.start.onTargetChanged.hook(mockObserver);
             connector.start.target = undefined;
-            expect(mockObserver).not.toBeCalled();
+            expect(mockObserver).not.toHaveBeenCalled();
         });
 
         it('triggers after relevant properties have been updated', () => {
@@ -937,7 +937,7 @@ describe(VisPin, () => {
             });
             connector.start.onTargetChanged.hook(mockObserver);
             connector.start.target = element;
-            expect(mockObserver).toBeCalled();
+            expect(mockObserver).toHaveBeenCalled();
         });
     });
 
@@ -960,8 +960,8 @@ describe(VisPin, () => {
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockStartObserver).toBeCalledWith(left, undefined);
-            expect(mockEndObserver).toBeCalledWith(right, undefined);
+            expect(mockStartObserver).toHaveBeenCalledWith(left, undefined);
+            expect(mockEndObserver).toHaveBeenCalledWith(right, undefined);
         });
 
         it('does not trigger when pin moves within the subtree', () => {
@@ -977,8 +977,8 @@ describe(VisPin, () => {
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             connector.start.target = child;
-            expect(mockStartObserver).not.toBeCalled();
-            expect(mockEndObserver).not.toBeCalled();
+            expect(mockStartObserver).not.toHaveBeenCalled();
+            expect(mockEndObserver).not.toHaveBeenCalled();
         });
 
         it('does not trigger when unrelated nodes are linked', () => {
@@ -988,8 +988,8 @@ describe(VisPin, () => {
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockStartObserver).not.toBeCalled();
-            expect(mockEndObserver).not.toBeCalled();
+            expect(mockStartObserver).not.toHaveBeenCalled();
+            expect(mockEndObserver).not.toHaveBeenCalled();
         });
 
         it('triggers when pin moves to a different subtree', () => {
@@ -1005,8 +1005,8 @@ describe(VisPin, () => {
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             connector.start.target = dest;
-            expect(mockStartObserver).toBeCalledWith(dest, source);
-            expect(mockEndObserver).not.toBeCalled();
+            expect(mockStartObserver).toHaveBeenCalledWith(dest, source);
+            expect(mockEndObserver).not.toHaveBeenCalled();
         });
 
         it('triggers when the subtree with the pin moves', () => {
@@ -1022,8 +1022,8 @@ describe(VisPin, () => {
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             right.parent = dest;
-            expect(mockStartObserver).not.toBeCalled();
-            expect(mockEndObserver).toBeCalledWith(dest, right);
+            expect(mockStartObserver).not.toHaveBeenCalled();
+            expect(mockEndObserver).toHaveBeenCalledWith(dest, right);
         });
 
         it('triggers when a pin is detached', () => {
@@ -1037,8 +1037,8 @@ describe(VisPin, () => {
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             connector.start.target = undefined;
-            expect(mockStartObserver).toBeCalledWith(undefined, left);
-            expect(mockEndObserver).toBeCalledWith(undefined, right);
+            expect(mockStartObserver).toHaveBeenCalledWith(undefined, left);
+            expect(mockEndObserver).toHaveBeenCalledWith(undefined, right);
         });
 
         it('triggers when the subtree with a pin is detached', () => {
@@ -1052,8 +1052,8 @@ describe(VisPin, () => {
             connector.start.onProjectedTargetChanged.hook(mockStartObserver);
             connector.end.onProjectedTargetChanged.hook(mockEndObserver);
             right.parent = undefined;
-            expect(mockStartObserver).toBeCalledWith(undefined, left);
-            expect(mockEndObserver).toBeCalledWith(undefined, right);
+            expect(mockStartObserver).toHaveBeenCalledWith(undefined, left);
+            expect(mockEndObserver).toHaveBeenCalledWith(undefined, right);
         });
 
         it('triggers after projected parent change observer', () => {
@@ -1098,8 +1098,8 @@ describe(VisPin, () => {
             right.parent = parent;
             connector.start.target = left;
             connector.end.target = right;
-            expect(mockStartObserver).toBeCalled();
-            expect(mockEndObserver).toBeCalled();
+            expect(mockStartObserver).toHaveBeenCalled();
+            expect(mockEndObserver).toHaveBeenCalled();
         });
     });
 });

@@ -12,4 +12,9 @@ export default merge.recursive(tsPreset, puppeteer, {
         // Ignore CSS file imports
         '\\.css$': 'identity-obj-proxy',
     },
+    globals: {
+        'ts-jest': {
+            tsConfig: 'typecheck.tsconfig.json',
+        },
+    },
 });

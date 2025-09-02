@@ -13,7 +13,7 @@ describe(Hook, () => {
     it('calls registered callback when triggered', () => {
         hook.hook(mockObserver);
         hook.trigger();
-        expect(mockObserver).toBeCalledTimes(1);
+        expect(mockObserver).toHaveBeenCalledTimes(1);
     });
 
     it('calls multiple callbacks', () => {
@@ -21,22 +21,22 @@ describe(Hook, () => {
         hook.hook(mockObserver);
         hook.hook(otherMockObserver);
         hook.trigger();
-        expect(mockObserver).toBeCalledTimes(1);
-        expect(otherMockObserver).toBeCalledTimes(1);
+        expect(mockObserver).toHaveBeenCalledTimes(1);
+        expect(otherMockObserver).toHaveBeenCalledTimes(1);
     });
 
     it('does not call callback that has been removed', () => {
         const registration = hook.hook(mockObserver);
         registration.unhook();
         hook.trigger();
-        expect(mockObserver).not.toBeCalled();
+        expect(mockObserver).not.toHaveBeenCalled();
     });
 
     it('adds up registrations of the same callback', () => {
         hook.hook(mockObserver);
         hook.hook(mockObserver);
         hook.trigger();
-        expect(mockObserver).toBeCalledTimes(2);
+        expect(mockObserver).toHaveBeenCalledTimes(2);
     });
 
     it('removes repeated registrations', () => {
@@ -45,7 +45,7 @@ describe(Hook, () => {
         registration1.unhook();
         registration2.unhook();
         hook.trigger();
-        expect(mockObserver).not.toBeCalled();
+        expect(mockObserver).not.toHaveBeenCalled();
     });
 
     it('distinguishes different registrations when unhooking', () => {
@@ -57,7 +57,7 @@ describe(Hook, () => {
         // We try it anyway, it should do nothing
         registration.unhook();
         hook.trigger();
-        expect(mockObserver).toBeCalledTimes(1);
+        expect(mockObserver).toHaveBeenCalledTimes(1);
     });
 
     it('forwards arguments to observers', () => {
@@ -66,6 +66,6 @@ describe(Hook, () => {
         const parametrizedHook = new Hook<[number, string]>();
         parametrizedHook.hook(mockObserver);
         parametrizedHook.trigger(ARGUMENT_1, ARGUMENT_2);
-        expect(mockObserver).toBeCalledWith(ARGUMENT_1, ARGUMENT_2);
+        expect(mockObserver).toHaveBeenCalledWith(ARGUMENT_1, ARGUMENT_2);
     });
 });

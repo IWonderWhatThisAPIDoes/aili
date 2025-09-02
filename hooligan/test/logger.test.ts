@@ -19,20 +19,25 @@ describe(HookableLogger, () => {
 
     it('forwards log messages to the hook', () => {
         logger.log(LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
-        expect(mockObserver).toBeCalledWith([], LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
+        expect(mockObserver).toHaveBeenCalledWith([], LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
     });
 
     it('annotates logged messages with topics', () => {
         const topicLogger = logger.createTopic(TOPIC_NAME);
         topicLogger.log(LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
-        expect(mockObserver).toBeCalledWith([TOPIC_NAME], LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
+        expect(mockObserver).toHaveBeenCalledWith(
+            [TOPIC_NAME],
+            LOG_SEVERITY,
+            LOG_MESSAGE,
+            LOG_DESC,
+        );
     });
 
     it('allows nested topics', () => {
         const topicLogger = logger.createTopic(TOPIC_NAME);
         const subtopicLogger = topicLogger.createTopic(SUBTOPIC_NAME);
         subtopicLogger.log(LOG_SEVERITY, LOG_MESSAGE, LOG_DESC);
-        expect(mockObserver).toBeCalledWith(
+        expect(mockObserver).toHaveBeenCalledWith(
             [TOPIC_NAME, SUBTOPIC_NAME],
             LOG_SEVERITY,
             LOG_MESSAGE,

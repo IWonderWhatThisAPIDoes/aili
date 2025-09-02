@@ -33,22 +33,22 @@ describe(AttributeEntry, () => {
         entry.value = ATTRIBUTE_VALUE;
         entry.value = OTHER_ATTRIBUTE_VALUE;
         entry.value = undefined;
-        expect(mockObserver).toBeCalledWith(ATTRIBUTE_VALUE, undefined);
-        expect(mockObserver).toBeCalledWith(OTHER_ATTRIBUTE_VALUE, ATTRIBUTE_VALUE);
-        expect(mockObserver).toBeCalledWith(undefined, OTHER_ATTRIBUTE_VALUE);
+        expect(mockObserver).toHaveBeenCalledWith(ATTRIBUTE_VALUE, undefined);
+        expect(mockObserver).toHaveBeenCalledWith(OTHER_ATTRIBUTE_VALUE, ATTRIBUTE_VALUE);
+        expect(mockObserver).toHaveBeenCalledWith(undefined, OTHER_ATTRIBUTE_VALUE);
     });
 
     it('does not trigger the observer when re-emptied', () => {
         entry.onChange.hook(mockObserver);
         entry.value = undefined;
-        expect(mockObserver).not.toBeCalled();
+        expect(mockObserver).not.toHaveBeenCalled();
     });
 
     it('does not trigger the observer when same value is re-assigned', () => {
         entry.value = ATTRIBUTE_VALUE;
         entry.onChange.hook(mockObserver);
         entry.value = ATTRIBUTE_VALUE;
-        expect(mockObserver).not.toBeCalled();
+        expect(mockObserver).not.toHaveBeenCalled();
     });
 });
 
@@ -87,26 +87,26 @@ describe(setAttributeBindings, () => {
         map.foo.value = ATTRIBUTE_VALUE;
         map.foo.value = OTHER_ATTRIBUTE_VALUE;
         map.foo.value = undefined;
-        expect(mockFooChangedObserver).toBeCalledWith(ATTRIBUTE_VALUE, undefined);
-        expect(mockFooChangedObserver).toBeCalledWith(OTHER_ATTRIBUTE_VALUE, ATTRIBUTE_VALUE);
-        expect(mockFooChangedObserver).toBeCalledWith(undefined, OTHER_ATTRIBUTE_VALUE);
+        expect(mockFooChangedObserver).toHaveBeenCalledWith(ATTRIBUTE_VALUE, undefined);
+        expect(mockFooChangedObserver).toHaveBeenCalledWith(OTHER_ATTRIBUTE_VALUE, ATTRIBUTE_VALUE);
+        expect(mockFooChangedObserver).toHaveBeenCalledWith(undefined, OTHER_ATTRIBUTE_VALUE);
     });
 
     it('triggers observers when value is already present', () => {
         map.foo.value = ATTRIBUTE_VALUE;
         setAttributeBindings(map, { foo: mockFooChangedObserver });
-        expect(mockFooChangedObserver).toBeCalledWith(ATTRIBUTE_VALUE, undefined);
+        expect(mockFooChangedObserver).toHaveBeenCalledWith(ATTRIBUTE_VALUE, undefined);
     });
 
     it('does not trigger observers when no value is present', () => {
         setAttributeBindings(map, { foo: mockFooChangedObserver });
-        expect(mockFooChangedObserver).not.toBeCalled();
+        expect(mockFooChangedObserver).not.toHaveBeenCalled();
     });
 
     it('does not trigger observers after unhooking', () => {
         const observer = setAttributeBindings(map, { foo: mockFooChangedObserver });
         observer.unhook();
         map.foo.value = ATTRIBUTE_VALUE;
-        expect(mockFooChangedObserver).not.toBeCalled();
+        expect(mockFooChangedObserver).not.toHaveBeenCalled();
     });
 });

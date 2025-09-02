@@ -86,7 +86,7 @@ class MockConnectorView implements ConnectorView {
         this._destroy = jest.fn().mockName(`${mockName}._destroy`);
     }
     connector: ReadonlyVisConnector;
-    useEndpoints: jest.Mock<(_: ElementView, _1: ElementView) => void>;
+    useEndpoints: jest.Mock<(...args: unknown[]) => void>;
     _destroy: jest.Mock;
 }
 
@@ -118,7 +118,7 @@ describe(TreeView, () => {
 
     afterEach(() => {
         // Root slot cannot be vacated, ever
-        expect(rootSlot.destroy).not.toBeCalled();
+        expect(rootSlot.destroy).not.toHaveBeenCalled();
         // All expected calls to view constructors should be made
         expect(elementViews.allExpectedCallsReceived).toBeTruthy();
         expect(connectorViews.allExpectedCallsReceived).toBeTruthy();
@@ -127,7 +127,9 @@ describe(TreeView, () => {
     it('embeds a root element in the provided slot', () => {
         elementViews.expectCalls([root, rootView]);
         treeView.addRootElement(root, rootSlot);
-        expect(rootView.useEmbedding).toBeCalledWith(expect.objectContaining({ slot: rootSlot }));
+        expect(rootView.useEmbedding).toHaveBeenCalledWith(
+            expect.objectContaining({ slot: rootSlot }),
+        );
     });
 
     it('embeds child element in its parent', () => {
@@ -136,7 +138,7 @@ describe(TreeView, () => {
         child.parent = root;
         elementViews.expectCalls([root, rootView], [child, childView]);
         treeView.addRootElement(root, rootSlot);
-        expect(childView.useEmbedding).toBeCalledWith(
+        expect(childView.useEmbedding).toHaveBeenCalledWith(
             expect.objectContaining({ parent: rootView }),
         );
     });
@@ -155,7 +157,7 @@ describe(TreeView, () => {
         treeView.addRootElement(root, rootSlot);
         // Now add the grandchild (after child was given a view)
         grandchild.parent = child;
-        expect(grandchildView.useEmbedding).toBeCalledWith(
+        expect(grandchildView.useEmbedding).toHaveBeenCalledWith(
             expect.objectContaining({ parent: childView }),
         );
     });
@@ -174,7 +176,7 @@ describe(TreeView, () => {
         );
         // Initialize tree view, the grandchild is already there
         treeView.addRootElement(root, rootSlot);
-        expect(grandchildView.useEmbedding).toBeCalledWith(
+        expect(grandchildView.useEmbedding).toHaveBeenCalledWith(
             expect.objectContaining({ parent: childView }),
         );
     });
@@ -193,8 +195,8 @@ describe(TreeView, () => {
         );
         treeView.addRootElement(root, rootSlot);
         child.parent = undefined;
-        expect(childView._destroy).toBeCalled();
-        expect(grandchildView._destroy).toBeCalled();
+        expect(childView._destroy).toHaveBeenCalled();
+        expect(grandchildView._destroy).toHaveBeenCalled();
     });
 
     it('re-attaches a removed element', () => {
@@ -206,8 +208,8 @@ describe(TreeView, () => {
         treeView.addRootElement(root, rootSlot);
         child.parent = undefined;
         child.parent = root;
-        expect(childViewOne._destroy).toBeCalled();
-        expect(childViewTwo.useEmbedding).toBeCalledWith(
+        expect(childViewOne._destroy).toHaveBeenCalled();
+        expect(childViewTwo.useEmbedding).toHaveBeenCalledWith(
             expect.objectContaining({ parent: rootView }),
         );
     });
@@ -247,7 +249,7 @@ describe(TreeView, () => {
         conn.start.target = root;
         conn.end.target = root;
         treeView.addRootElement(root, rootSlot);
-        expect(connView.useEndpoints).toBeCalledWith(rootView, rootView);
+        expect(connView.useEndpoints).toHaveBeenCalledWith(rootView, rootView);
     });
 
     it('embeds a connector if its end is attached later', () => {
@@ -256,7 +258,7 @@ describe(TreeView, () => {
         conn.start.target = root;
         treeView.addRootElement(root, rootSlot);
         conn.end.target = root;
-        expect(connView.useEndpoints).toBeCalledWith(rootView, rootView);
+        expect(connView.useEndpoints).toHaveBeenCalledWith(rootView, rootView);
     });
 
     it('embeds a connector if its start is attached later', () => {
@@ -265,7 +267,7 @@ describe(TreeView, () => {
         conn.end.target = root;
         treeView.addRootElement(root, rootSlot);
         conn.start.target = root;
-        expect(connView.useEndpoints).toBeCalledWith(rootView, rootView);
+        expect(connView.useEndpoints).toHaveBeenCalledWith(rootView, rootView);
     });
 
     it('embeds a connector if it is present in inserted subtree', () => {
@@ -277,7 +279,7 @@ describe(TreeView, () => {
         conn.end.target = child;
         treeView.addRootElement(root, rootSlot);
         child.parent = root;
-        expect(connView.useEndpoints).toBeCalledWith(childView, childView);
+        expect(connView.useEndpoints).toHaveBeenCalledWith(childView, childView);
     });
 
     it('embeds a connector when its target is inserted', () => {
@@ -292,7 +294,7 @@ describe(TreeView, () => {
         treeView.addRootElement(root, rootSlot);
         connectorViews.expectCalls([conn, connView]); // Only expect it now
         right.parent = root;
-        expect(connView.useEndpoints).toBeCalledWith(leftView, rightView);
+        expect(connView.useEndpoints).toHaveBeenCalledWith(leftView, rightView);
     });
 
     it('embeds a connector when its target is attached indirectly', () => {
@@ -311,7 +313,7 @@ describe(TreeView, () => {
         treeView.addRootElement(root, rootSlot);
         connectorViews.expectCalls([conn, connView]); // Only expect it now
         child.parent = root;
-        expect(connView.useEndpoints).toBeCalledWith(rootView, grandchildView);
+        expect(connView.useEndpoints).toHaveBeenCalledWith(rootView, grandchildView);
     });
 
     it('removes a connector when its start is detached', () => {
@@ -321,7 +323,7 @@ describe(TreeView, () => {
         connectorViews.expectCalls([conn, connView]);
         treeView.addRootElement(root, rootSlot);
         conn.start.target = undefined;
-        expect(connView._destroy).toBeCalled();
+        expect(connView._destroy).toHaveBeenCalled();
     });
 
     it('removes a connector when its end is detached', () => {
@@ -331,7 +333,7 @@ describe(TreeView, () => {
         connectorViews.expectCalls([conn, connView]);
         treeView.addRootElement(root, rootSlot);
         conn.end.target = undefined;
-        expect(connView._destroy).toBeCalled();
+        expect(connView._destroy).toHaveBeenCalled();
     });
 
     it('removes a connector when its target is detached indirectly', () => {
@@ -351,7 +353,7 @@ describe(TreeView, () => {
         conn.end.target = grandchild;
         treeView.addRootElement(root, rootSlot);
         child.parent = undefined;
-        expect(connView._destroy).toBeCalled();
+        expect(connView._destroy).toHaveBeenCalled();
     });
 
     it('removes whole tree when root is detached', () => {
@@ -361,8 +363,8 @@ describe(TreeView, () => {
         elementViews.expectCalls([root, rootView], [child, childView]);
         treeView.addRootElement(root, rootSlot);
         treeView.removeRootElement(root);
-        expect(childView._destroy).toBeCalled();
-        expect(rootView._destroy).toBeCalled();
+        expect(childView._destroy).toHaveBeenCalled();
+        expect(rootView._destroy).toHaveBeenCalled();
     });
 
     it('embeds a connector that connects different trees', () => {
@@ -375,6 +377,6 @@ describe(TreeView, () => {
         conn.end.target = otherRoot;
         treeView.addRootElement(root, rootSlot);
         treeView.addRootElement(otherRoot, rootSlot);
-        expect(connView.useEndpoints).toBeCalledWith(rootView, otherRootView);
+        expect(connView.useEndpoints).toHaveBeenCalledWith(rootView, otherRootView);
     });
 });

@@ -82,7 +82,7 @@ function mockObservers<T>(
     targets: T[],
     name: string,
     getHook: (target: T) => Hookable,
-): (() => void)[] {
+): ((...args: unknown[]) => void)[] {
     return targets.map((target, i) => {
         const mockObserver = jest.fn().mockName(`${name}Observer${i}`);
         getHook(target).hook(mockObserver);
@@ -156,17 +156,17 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const parent = frame.elements[i].parent;
                     const previousParent = snapshot.elementParents[i];
                     if (parent !== previousParent) {
-                        expect(mockParentChangedObservers[i]).toBeCalledWith(
+                        expect(mockParentChangedObservers[i]).toHaveBeenCalledWith(
                             parent,
                             previousParent,
                         );
                         if (parent) {
                             expect(
                                 mockAddChildObservers[frame.elements.indexOf(parent)],
-                            ).toBeCalledWith(frame.elements[i]);
+                            ).toHaveBeenCalledWith(frame.elements[i]);
                         }
                     } else {
-                        expect(mockParentChangedObservers[i]).not.toBeCalled();
+                        expect(mockParentChangedObservers[i]).not.toHaveBeenCalled();
                     }
                 }
             });
@@ -176,17 +176,17 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const startTarget = frame.connectors[i].start.target;
                     const previousStartTarget = snapshot.startPinTargets[i];
                     if (startTarget !== previousStartTarget) {
-                        expect(mockStartTargetChangedObservers[i]).toBeCalledWith(
+                        expect(mockStartTargetChangedObservers[i]).toHaveBeenCalledWith(
                             startTarget,
                             previousStartTarget,
                         );
                         if (startTarget) {
                             expect(
                                 mockAddPinObservers[frame.elements.indexOf(startTarget)],
-                            ).toBeCalledWith(frame.connectors[i].start);
+                            ).toHaveBeenCalledWith(frame.connectors[i].start);
                         }
                     } else {
-                        expect(mockStartTargetChangedObservers[i]).not.toBeCalled();
+                        expect(mockStartTargetChangedObservers[i]).not.toHaveBeenCalled();
                     }
                 }
             });
@@ -196,17 +196,17 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const endTarget = frame.connectors[i].end.target;
                     const previousEndTarget = snapshot.endPinTargets[i];
                     if (endTarget !== previousEndTarget) {
-                        expect(mockEndTargetChangedObservers[i]).toBeCalledWith(
+                        expect(mockEndTargetChangedObservers[i]).toHaveBeenCalledWith(
                             endTarget,
                             previousEndTarget,
                         );
                         if (endTarget) {
                             expect(
                                 mockAddPinObservers[frame.elements.indexOf(endTarget)],
-                            ).toBeCalledWith(frame.connectors[i].end);
+                            ).toHaveBeenCalledWith(frame.connectors[i].end);
                         }
                     } else {
-                        expect(mockEndTargetChangedObservers[i]).not.toBeCalled();
+                        expect(mockEndTargetChangedObservers[i]).not.toHaveBeenCalled();
                     }
                 }
             });
@@ -216,7 +216,7 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const projectedParent = frame.connectors[i].projectedParent;
                     const previousProjectedParent = snapshot.connectorProjectedParents[i];
                     if (projectedParent !== previousProjectedParent) {
-                        expect(mockProjectedParentChangedObservers[i]).toBeCalledWith(
+                        expect(mockProjectedParentChangedObservers[i]).toHaveBeenCalledWith(
                             projectedParent,
                             previousProjectedParent,
                         );
@@ -225,10 +225,10 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                                 mockAddProjectedConnectorObservers[
                                     frame.elements.indexOf(projectedParent)
                                 ],
-                            ).toBeCalledWith(frame.connectors[i]);
+                            ).toHaveBeenCalledWith(frame.connectors[i]);
                         }
                     } else {
-                        expect(mockProjectedParentChangedObservers[i]).not.toBeCalled();
+                        expect(mockProjectedParentChangedObservers[i]).not.toHaveBeenCalled();
                     }
                 }
             });
@@ -238,17 +238,17 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const startTarget = frame.connectors[i].start.projectedTarget;
                     const previousStartTarget = snapshot.startPinProjectedTargets[i];
                     if (startTarget !== previousStartTarget) {
-                        expect(mockStartProjectedTargetChangedObservers[i]).toBeCalledWith(
+                        expect(mockStartProjectedTargetChangedObservers[i]).toHaveBeenCalledWith(
                             startTarget,
                             previousStartTarget,
                         );
                         if (startTarget) {
                             expect(
                                 mockAddProjectedPinObservers[frame.elements.indexOf(startTarget)],
-                            ).toBeCalledWith(frame.connectors[i].start);
+                            ).toHaveBeenCalledWith(frame.connectors[i].start);
                         }
                     } else {
-                        expect(mockStartProjectedTargetChangedObservers[i]).not.toBeCalled();
+                        expect(mockStartProjectedTargetChangedObservers[i]).not.toHaveBeenCalled();
                     }
                 }
             });
@@ -258,17 +258,17 @@ for (let i = 0; i < TEST_OPERATION_COUNT; ++i) {
                     const endTarget = frame.connectors[i].end.projectedTarget;
                     const previousEndTarget = snapshot.endPinProjectedTargets[i];
                     if (endTarget !== previousEndTarget) {
-                        expect(mockEndProjectedTargetChangedObservers[i]).toBeCalledWith(
+                        expect(mockEndProjectedTargetChangedObservers[i]).toHaveBeenCalledWith(
                             endTarget,
                             previousEndTarget,
                         );
                         if (endTarget) {
                             expect(
                                 mockAddProjectedPinObservers[frame.elements.indexOf(endTarget)],
-                            ).toBeCalledWith(frame.connectors[i].end);
+                            ).toHaveBeenCalledWith(frame.connectors[i].end);
                         }
                     } else {
-                        expect(mockEndProjectedTargetChangedObservers[i]).not.toBeCalled();
+                        expect(mockEndProjectedTargetChangedObservers[i]).not.toHaveBeenCalled();
                     }
                 }
             });
