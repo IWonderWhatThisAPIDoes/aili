@@ -165,7 +165,10 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 if let Some(GdbStateNodeId::VarObject(old_deref_id)) =
                     variable.remove_successor(&EdgeLabel::Deref)
                 {
-                    self.free_dereference(&var_object.object, &old_deref_id);
+                    let dropped_last_ref = self.free_dereference(&var_object.object, &old_deref_id);
+                    if dropped_last_ref {
+                        self.remove_variables_recursive(&old_deref_id);
+                    }
                 }
                 // Resolve the dereference later
                 self.add_deferred_dereference(var_object.object.clone());
@@ -231,14 +234,26 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         Ok(())
     }
 
+    /// Unlinks a variable node from a pointer node that refers to it,
+    /// updating reference counts.
+    ///
+    /// ## Parameters
+    /// `referer_handle` - handle to the pointer node.
+    /// `deference_handle` - handle to the variable node pointed to by the pointer.
+    ///
+    /// ## Returns
+    /// True if the dereference node is heap-allocated and has no other
+    /// pointers referencing it, meaning it should be destroyed to prevent leaks.
+    /// Marked as `#[must_use]` to ensure this is always handled.
+    #[must_use]
     fn free_dereference(
         &mut self,
         referer_handle: &VariableObject,
         dereference_handle: &VariableObject,
-    ) {
+    ) -> bool {
         let Some(dereference_node) = self.variables.get_mut(dereference_handle) else {
             // TODO: Warn
-            return;
+            return false;
         };
         let Some(referer_index) = dereference_node
             .referers
@@ -248,15 +263,13 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             .map(|(i, _)| i)
         else {
             // TODO: Warn
-            return;
+            return false;
         };
         // Remove the expiring referer from the list of referers
         dereference_node.referers.swap_remove(referer_index);
         // If the node has been leaked (is heap-allocated)
         // and has no remaining referers, destroy it
-        if dereference_node.referers.is_empty() && dereference_node.parent.is_none() {
-            self.remove_variables_recursive(dereference_handle);
-        }
+        dereference_node.referers.is_empty() && dereference_node.parent.is_none()
     }
 
     async fn variable_object_out_of_scope(&mut self, var_object: &VariableObject) -> Result<()> {
@@ -276,7 +289,37 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
     }
 
     fn remove_variables_recursive(&mut self, handle: &VariableObject) -> Option<GdbStateNodeId> {
+        let mut to_remove = vec![handle.clone()];
+        let mut parent = None;
+        while let Some(handle) = to_remove.pop() {
+            if let Some((parent_id, deferred)) = self.remove_variable(&handle) {
+                // If this is the first node (the one passed to the function as argument),
+                // save its parent so we can return it at the end
+                parent.get_or_insert(parent_id);
+                // Mark all children to be removed
+                to_remove.extend(deferred);
+            }
+        }
+        parent.flatten()
+    }
+
+    /// Removes a variable node and updates other structures to maintain invariants.
+    ///
+    /// ## Parameters
+    /// - `handle` - handle to the variable node to remove.
+    ///
+    /// ## Returns
+    /// ID of the parent node, if the variable was not root,
+    /// and handles to all variable nodes that have become dangling
+    /// and should also be removed. Marked as `#[must_use]` so this is not forgotten.
+    #[must_use]
+    fn remove_variable(
+        &mut self,
+        handle: &VariableObject,
+    ) -> Option<(Option<GdbStateNodeId>, Vec<VariableObject>)> {
         let node = self.variables.remove(handle)?;
+        // Keep track of what children need to be removed as well
+        let mut to_remove = Vec::new();
         // If the node has an address, remove it from the address map
         if let Some(address) = node.address {
             self.address_mapping.remove(&address);
@@ -302,7 +345,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                             // TODO: Warn
                         }
                         GdbStateNodeId::VarObject(v) => {
-                            self.remove_variables_recursive(&v);
+                            to_remove.push(v);
                         }
                         GdbStateNodeId::Length(v) => {
                             self.length_nodes.remove(&v);
@@ -312,7 +355,10 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 // Dereference edges have their own freeing mechanism
                 EdgeLabel::Deref => {
                     if let GdbStateNodeId::VarObject(dereference) = next_object {
-                        self.free_dereference(handle, &dereference);
+                        let dropped_last_ref = self.free_dereference(handle, &dereference);
+                        if dropped_last_ref {
+                            to_remove.push(dereference);
+                        }
                     } else {
                         // TODO: Warn, only variable nodes should
                     }
@@ -324,7 +370,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 }
             }
         }
-        node.parent
+        Some((node.parent, to_remove))
     }
 
     async fn update_stack_trace(&mut self) -> Result<()> {
@@ -617,27 +663,70 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         var_object: VariableObjectData,
         parent: Option<GdbStateNodeId>,
     ) -> Result<VariableObject> {
-        if var_object.dynamic {
+        // Will contain handle to the root node (the one initially requested)
+        // by the function's caller
+        let mut root_handle = None;
+        let mut to_construct = vec![DeferredVariableTree {
+            parent_node: parent,
+            node_data: var_object,
+            successor_id: None,
+        }];
+        while let Some(requested_node) = to_construct.pop() {
+            // If this is the first node (the one passed to the function as argument),
+            // save its handle so we can return it at the end
+            root_handle.get_or_insert(requested_node.node_data.object.clone());
+            // Create the actual node
+            let deferred = self.create_variable_tree_segment(requested_node).await?;
+            // Explore the whole tree recursively
+            to_construct.extend(deferred);
+        }
+        Ok(
+            root_handle
+                .expect("The loop has to run at least once, so this will always be assigned"),
+        )
+    }
+
+    async fn create_variable_tree_segment(
+        &mut self,
+        requested_node: DeferredVariableTree,
+    ) -> Result<Vec<DeferredVariableTree>> {
+        if requested_node.node_data.dynamic {
             // TODO: Warn
             // Dynamic variable objects should never be returned by GDB unless explicitly enabled
         }
-        let has_children = var_object.numchild > 0;
-        let is_container = var_object
+        let has_children = requested_node.node_data.numchild > 0;
+        let is_container = requested_node
+            .node_data
             .value
             .as_deref()
             .is_none_or(Self::is_value_of_container);
-        let var_object_handle = var_object.object.clone();
-        self.create_variable_node(var_object, parent);
+        let var_object_handle = requested_node.node_data.object.clone();
+        self.create_variable_node(requested_node.node_data, requested_node.parent_node.clone());
+        let mut deferred = Vec::new();
         if has_children {
             if is_container {
                 // If there are children, now is the time to resolve them
-                self.after_create_container_variable_node(&var_object_handle)
+                deferred = self
+                    .after_create_container_variable_node(&var_object_handle)
                     .await?;
             } else {
                 self.after_create_non_atom_variable_node(&var_object_handle);
             }
         }
-        Ok(var_object_handle)
+        // Insert into parent if requested
+        if let (Some(successor_id), Some(parent_id)) =
+            (requested_node.successor_id, requested_node.parent_node)
+        {
+            let node_id = GdbStateNodeId::VarObject(var_object_handle);
+            let parent_node = self.get_mut(&parent_id).expect("The node was just created");
+            match successor_id {
+                ContainerChildId::Named(name) => parent_node.add_named_successor(name, node_id),
+                ContainerChildId::Index(index) => parent_node
+                    .successors
+                    .push((EdgeLabel::Index(index), node_id)),
+            }
+        }
+        Ok(deferred)
     }
 
     fn after_create_non_atom_variable_node(&mut self, var_object: &VariableObject) {
@@ -657,7 +746,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
     async fn after_create_container_variable_node(
         &mut self,
         var_object: &VariableObject,
-    ) -> Result<()> {
+    ) -> Result<Vec<DeferredVariableTree>> {
         let children = self
             .gdb
             .var_list_children(var_object, PrintValues::SimpleValues)
@@ -670,35 +759,22 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             .expect("The node was just created");
         node.type_class = container_kind.into();
         match container_kind {
-            ContainerKind::Struct => {
-                for child in children.children {
-                    // Construct the full tree recursively
-                    let child_node_handle = Box::pin(self.create_variable_tree(
-                        child.variable_object,
-                        Some(GdbStateNodeId::VarObject(var_object.clone())),
-                    ))
-                    .await?;
-                    let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
-                    // Insert child into parent
-                    self.variables
-                        .get_mut(var_object)
-                        .expect("The node was just created")
-                        .add_named_successor(child.exp, child_node_id);
-                }
-            }
+            ContainerKind::Struct => Ok(children
+                .children
+                .into_iter()
+                .map(|child| DeferredVariableTree {
+                    parent_node: Some(GdbStateNodeId::VarObject(var_object.clone())),
+                    node_data: child.variable_object,
+                    successor_id: Some(ContainerChildId::Named(child.exp)),
+                })
+                .collect()),
             ContainerKind::Array => {
                 // Remove the node's type if it was given one, array nodes do not have types
                 node.type_name = None;
                 // Cache the full length of the array so we can insert is as a node later
                 let mut length = 0;
+                let mut deferred = Vec::new();
                 for child in children.children {
-                    // Construct the full tree recursively
-                    let child_node_handle = Box::pin(self.create_variable_tree(
-                        child.variable_object,
-                        Some(GdbStateNodeId::VarObject(var_object.clone())),
-                    ))
-                    .await?;
-                    let child_node_id = GdbStateNodeId::VarObject(child_node_handle);
                     // Parse the variable's index
                     let Ok(index) = child.exp.parse() else {
                         // `ContainerKind::deduce_from_children` ensures that all
@@ -708,12 +784,11 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                         continue;
                     };
                     length = length.max(index + 1);
-                    // Insert child into parent
-                    self.variables
-                        .get_mut(var_object)
-                        .expect("The node was just created")
-                        .successors
-                        .push((EdgeLabel::Index(index), child_node_id));
+                    deferred.push(DeferredVariableTree {
+                        parent_node: Some(GdbStateNodeId::VarObject(var_object.clone())),
+                        node_data: child.variable_object,
+                        successor_id: Some(ContainerChildId::Index(index)),
+                    });
                 }
                 // Insert the length node
                 let mut length_node = GdbStateNode::new(NodeTypeClass::Atom);
@@ -727,10 +802,10 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                         EdgeLabel::Length,
                         GdbStateNodeId::Length(var_object.clone()),
                     ));
+                Ok(deferred)
             }
             ContainerKind::Pointer => unreachable!(),
         }
-        Ok(())
     }
 
     fn link_dereference_relation(
@@ -900,6 +975,28 @@ impl GdbStateNode {
             .0;
         Some(self.successors.swap_remove(index).0)
     }
+}
+
+/// Information necessary to construct a variable tree.
+struct DeferredVariableTree {
+    /// ID of the parent node under which the tree is placed,
+    /// or [`None`] if the node is a root node.
+    parent_node: Option<GdbStateNodeId>,
+
+    /// Information about the object that corresponds
+    /// to the node whose creation was requested.
+    node_data: VariableObjectData,
+
+    /// Name or index of the child within its parent,
+    /// if it should be inserted into the parent.
+    /// [`None`] if it should not be inserted.
+    successor_id: Option<ContainerChildId>,
+}
+
+/// Name or index of a child of a container node.
+enum ContainerChildId {
+    Named(String),
+    Index(usize),
 }
 
 /// Enumerates categories of types that GDB reports as having child variables

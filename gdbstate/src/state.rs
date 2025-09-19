@@ -61,6 +61,18 @@ impl RootedProgramStateGraph for GdbStateGraph {
     }
 }
 
+impl GdbStateGraph {
+    /// Get a mutable reference to a state node by its ID.
+    pub(crate) fn get_mut(&mut self, id: &GdbStateNodeId) -> Option<&mut GdbStateNode> {
+        match id {
+            GdbStateNodeId::Root => Some(&mut self.root_node),
+            GdbStateNodeId::Frame(i) => self.stack_trace.get_mut(*i),
+            GdbStateNodeId::VarObject(v) => self.variables.get_mut(v).map(|v| &mut v.node),
+            GdbStateNodeId::Length(v) => self.length_nodes.get_mut(v),
+        }
+    }
+}
+
 /// Node of a [`GdbStateGraph`].
 #[derive(Debug)]
 pub struct GdbStateNode {
