@@ -44,19 +44,6 @@ tree tree_init() {
 }
 
 /**
- * Destroys a tree and frees its memory
- * 
- * @param[inout] t The tree
- * 
- * @remark Destructors are called on all contained keys and values
- */
-void tree_delete(tree* t) {
-    if (t->root) {
-        tree_delete_recursive(t, t->root);
-    }
-}
-
-/**
  * Destroys a subtree recursively.
  * Helper function for tree_delete
  * 
@@ -73,64 +60,16 @@ void tree_delete_recursive(tree* t, tree_node* root)
 }
 
 /**
- * Inserts a node into a tree
+ * Destroys a tree and frees its memory
  * 
  * @param[inout] t The tree
- * @param[in]  key The key to add
  * 
- * @remark If key is already present, this is equivalent to tree_find
+ * @remark Destructors are called on all contained keys and values
  */
-void tree_put(tree* t, int key) {
-    tree_node** dest = &t->root, * parent = NULL;
-
-    while (*dest)
-    {
-        parent = *dest;
-
-        if      (key > parent->key) dest = &parent->right;
-        else if (key < parent->key) dest = &parent->left;
-        else return;
+void tree_delete(tree* t) {
+    if (t->root) {
+        tree_delete_recursive(t, t->root);
     }
-
-    // Create the new node
-    tree_node* newNode = NULL;
-    if (!parent) newNode = tree_create_root(t);
-    else         newNode = tree_insert_under(t, parent, dest == &parent->right);
-    if (!newNode) return;
-
-    // Initialize key
-    newNode->key = key;
-}
-
-/**
- * Creates a new node and places it under an existing one
- * 
- * @param[inout]      t The tree that the nodes belong to
- * @param[inout] parent Parent node
- * @param[in]     right Nonzero to place new node to the right, zero otherwise
- * @return              The new node, or NULL if memory allocation fails
- * 
- * @remark Emptiness of the leaf is not checked.
- *         If parent has a child on the specified side, it gets overwritten and leaks
- * @remark The new node may be rotated away (so it will not be at parent->left or parent->right),
- *         so the returned address should be relied on instead
- */
-tree_node* tree_insert_under(tree* t, tree_node* parent, int right) {
-    tree_node* node = (tree_node*)malloc(sizeof(tree_node));
-    if (!node) return NULL;
-
-    // Initialize
-    tree_node init = { NULL, NULL, parent, 0, 0 };
-    *node = init;
-
-    // Set the pointer on parent
-    if (right) parent->right = node;
-    else parent->left = node;
-
-    // Rebalance
-    tree_rebalance(t, parent, right ? 1 : -1);
-
-    return node;
 }
 
 /**
@@ -150,90 +89,6 @@ tree_node* tree_create_root(tree* t) {
     *t->root = init;
 
     return t->root;
-}
-
-/**
- * Updates imbalance of a tree node.
- * Imbalance is updated recursively upwards
- * 
- * @param[inout]    t The tree that the node belongs to
- * @param[inout] node The node
- * @param[in]      bf Local change of balance factor, should be 1 or -1
- * 
- */
-void tree_rebalance(tree* t, tree_node* node, int bf) {
-    assert(node->imbalance == 1 || node->imbalance == 0 || node->imbalance == -1);
-    assert(bf == 1 || bf == -1);
-    node->imbalance += bf;
-
-    // Therefore, valid values are now...
-    assert(node->imbalance == 0 || node->imbalance == bf || node->imbalance == 2 * bf);
-
-    switch (node->imbalance * bf)
-    {
-    case 0:
-        // We added a node, so depth of one branch now matches
-        // depth of the other. Total subtree depth remains unchanged.
-        break;
-
-    case 1:
-        // We added a node to a balanced tree, so depth of one
-        // branch has increased, and so has the depth of the whole tree.
-        // Propagate the change upwards.
-        if (node->parent) tree_rebalance(t, node->parent, TREE_SIDEOF(node));
-        break;
-
-    case 2:
-        // We added a node to an already imbalanced branch.
-        // Now we need to rotate.
-        tree_rotate(TREE_PARENTPTR(t, node));
-        // Rotation reduces total subtree depth by 1, which is
-        // the one we have just added by inserting this node.
-        // Total subtree depth remains unchanged. So does parent imbalance.
-        break;
-    }
-
-    assert(node->imbalance == 1 || node->imbalance == 0 || node->imbalance == -1);
-}
-
-/**
- * Rotates tree around a node if necessary
- * 
- * @param[inout] node The node pointer to rotate around
- * 
- * @details Performs an AVL tree rotation
- * 
- *     * <-- *node (the node pointer)
- *     |
- *     o <-- **node (the node itself)
- *    / \
- *   o   o
- *
- *     * <-- *node (modified to point to different node)
- *     |
- *     o <-- Formerly *(*node)->left
- *      \
- *       o <-- Formerly **node
- *        \
- *         o <-- Formerly *(*node)->right
- * 
- *    (this is only one of possible rotations)
- */
-void tree_rotate(tree_node** node) {
-    const int imbalance = (*node)->imbalance;
-
-    if (imbalance == 2)
-    {
-        if ((*node)->right->imbalance < 0)
-            tree_right_rotate(&(*node)->right);
-        tree_left_rotate(node);
-    }
-    else if (imbalance == -2)
-    {
-        if ((*node)->left->imbalance > 0)
-            tree_left_rotate(&(*node)->left);
-        tree_right_rotate(node);
-    }
 }
 
 /**
@@ -309,6 +164,151 @@ void tree_right_rotate(tree_node** node) {
 
     assert(a->imbalance >= -1 && a->imbalance <= 1);
     assert(b->imbalance >= -1 && b->imbalance <= 1);
+}
+
+/**
+ * Rotates tree around a node if necessary
+ * 
+ * @param[inout] node The node pointer to rotate around
+ * 
+ * @details Performs an AVL tree rotation
+ * 
+ *     * <-- *node (the node pointer)
+ *     |
+ *     o <-- **node (the node itself)
+ *    / \
+ *   o   o
+ *
+ *     * <-- *node (modified to point to different node)
+ *     |
+ *     o <-- Formerly *(*node)->left
+ *      \
+ *       o <-- Formerly **node
+ *        \
+ *         o <-- Formerly *(*node)->right
+ * 
+ *    (this is only one of possible rotations)
+ */
+void tree_rotate(tree_node** node) {
+    const int imbalance = (*node)->imbalance;
+
+    if (imbalance == 2)
+    {
+        if ((*node)->right->imbalance < 0)
+            tree_right_rotate(&(*node)->right);
+        tree_left_rotate(node);
+    }
+    else if (imbalance == -2)
+    {
+        if ((*node)->left->imbalance > 0)
+            tree_left_rotate(&(*node)->left);
+        tree_right_rotate(node);
+    }
+}
+
+/**
+ * Updates imbalance of a tree node.
+ * Imbalance is updated recursively upwards
+ * 
+ * @param[inout]    t The tree that the node belongs to
+ * @param[inout] node The node
+ * @param[in]      bf Local change of balance factor, should be 1 or -1
+ * 
+ */
+void tree_rebalance(tree* t, tree_node* node, int bf) {
+    assert(node->imbalance == 1 || node->imbalance == 0 || node->imbalance == -1);
+    assert(bf == 1 || bf == -1);
+    node->imbalance += bf;
+
+    // Therefore, valid values are now...
+    assert(node->imbalance == 0 || node->imbalance == bf || node->imbalance == 2 * bf);
+
+    switch (node->imbalance * bf)
+    {
+    case 0:
+        // We added a node, so depth of one branch now matches
+        // depth of the other. Total subtree depth remains unchanged.
+        break;
+
+    case 1:
+        // We added a node to a balanced tree, so depth of one
+        // branch has increased, and so has the depth of the whole tree.
+        // Propagate the change upwards.
+        if (node->parent) tree_rebalance(t, node->parent, TREE_SIDEOF(node));
+        break;
+
+    case 2:
+        // We added a node to an already imbalanced branch.
+        // Now we need to rotate.
+        tree_rotate(TREE_PARENTPTR(t, node));
+        // Rotation reduces total subtree depth by 1, which is
+        // the one we have just added by inserting this node.
+        // Total subtree depth remains unchanged. So does parent imbalance.
+        break;
+    }
+
+    assert(node->imbalance == 1 || node->imbalance == 0 || node->imbalance == -1);
+}
+
+/**
+ * Creates a new node and places it under an existing one
+ * 
+ * @param[inout]      t The tree that the nodes belong to
+ * @param[inout] parent Parent node
+ * @param[in]     right Nonzero to place new node to the right, zero otherwise
+ * @return              The new node, or NULL if memory allocation fails
+ * 
+ * @remark Emptiness of the leaf is not checked.
+ *         If parent has a child on the specified side, it gets overwritten and leaks
+ * @remark The new node may be rotated away (so it will not be at parent->left or parent->right),
+ *         so the returned address should be relied on instead
+ */
+tree_node* tree_insert_under(tree* t, tree_node* parent, int right) {
+    tree_node* node = (tree_node*)malloc(sizeof(tree_node));
+    if (!node) return NULL;
+
+    // Initialize
+    tree_node init = { NULL, NULL, parent, 0, 0 };
+    *node = init;
+
+    // Set the pointer on parent
+    if (right) parent->right = node;
+    else parent->left = node;
+
+    // Rebalance
+    tree_rebalance(t, parent, right ? 1 : -1);
+
+    return node;
+}
+
+/**
+ * Inserts a node into a tree
+ * 
+ * @param[inout] t The tree
+ * @param[in]  key The key to add
+ * 
+ * @remark If key is already present, this is equivalent to tree_find
+ */
+void tree_put(tree* t, int key) {
+    tree_node** dest = &t->root, * parent = NULL;
+
+    while (*dest)
+    {
+        parent = *dest;
+
+        if      (key > parent->key) dest = &parent->right;
+        else if (key < parent->key) dest = &parent->left;
+        else return;
+    }
+
+    // Create the new node
+    tree_node* newNode = NULL;
+    if (!parent) newNode = tree_create_root(t);
+    else         newNode = tree_insert_under(t, parent, dest == &parent->right);
+    if (!newNode) return;
+
+    // Initialize key
+    newNode->key = key;
 }
 
 int main(void) {
