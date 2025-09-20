@@ -369,6 +369,9 @@ impl LimitedSelector {
 
 impl std::fmt::Debug for LimitedSelector {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(origin) = &self.origin {
+            write!(f, "({origin:?}) ")?;
+        }
         for (i, segment) in self.path.iter().enumerate() {
             if i > 0 {
                 write!(f, " ")?;
