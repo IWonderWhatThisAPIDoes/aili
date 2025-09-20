@@ -159,7 +159,7 @@ impl<'a, T: NodeId> SelectorResolver<'a, T> {
         matched_rules
     }
 
-    /// Checks whether there are any seoectors that are awaiting an outgoing edge.
+    /// Checks whether there are any selectors that are awaiting an outgoing edge.
     ///
     /// If this returns false, calling [`SelectorResolver::push_edge`]
     /// or [`SelectorResolver::resolve_node`] will yield no new results.

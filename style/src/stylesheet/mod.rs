@@ -109,7 +109,7 @@ impl<K: PropertyKey> StyleClause<K> {
         }
     }
 
-    /// Attempts to converts a style rule to a different [`PropertyKey`].
+    /// Attempts to convert a style rule to a different [`PropertyKey`].
     pub fn try_map_key<L>(self) -> Result<StyleClause<L>, <K as TryInto<L>>::Error>
     where
         L: PropertyKey,
