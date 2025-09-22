@@ -1,14 +1,16 @@
 mod utils;
 
-use aili_gdbstate::hints::PointerLengthHintKey;
-use aili_gdbstate::state::GdbStateGraph;
+use aili_gdbstate::{hints::PointerLengthHintKey, state::GdbStateGraph};
 use aili_model::state::*;
-use aili_style::cascade::CascadeStyle;
-use aili_style::stylesheet::expression::{Expression, LimitedSelector};
-use aili_style::stylesheet::selector::{EdgeMatcher, Selector, SelectorSegment};
-use aili_style::stylesheet::{StyleClause, StyleKey, StyleRule, Stylesheet};
-use utils::future::ExpectReady as _;
-use utils::gdb_from_source;
+use aili_style::{
+    cascade::CascadeStyle,
+    stylesheet::{
+        StyleClause, StyleKey, StyleRule, Stylesheet,
+        expression::*,
+        selector::{EdgeMatcher, Selector, SelectorSegment},
+    },
+};
+use utils::{future::ExpectReady as _, gdb_from_source};
 
 #[test]
 fn minimal_sample_program() {
@@ -755,7 +757,7 @@ fn resize_array_with_length_hint() {
         r"
         #include <stdlib.h>
 
-        int main() {
+        int main(void) {
             int len = 2;
             int* p = malloc(len * sizeof(*p));
             /* breakpoint 1 */;
@@ -789,4 +791,198 @@ fn resize_array_with_length_hint() {
     ]);
     assert_eq!(p_length.value(), Some(NodeValue::Uint(4)));
     assert!(p_3.is_some());
+}
+
+#[test]
+fn variable_shadowing_in_length_hints() {
+    // main {
+    //   --a: @("defaultA");
+    //   --b: @("defaultB");
+    // }
+    // main "sA" {
+    //   --a: @("extra");
+    // }
+    // main "sB" {
+    //   --b: @("extra");
+    // }
+    // main *:s "p" {
+    //   length: --a + --b;
+    // }
+    let hints = CascadeStyle::from(Stylesheet(vec![
+        StyleRule {
+            selector: Selector::from_path([SelectorSegment::Match(EdgeLabel::Main.into())].into()),
+            properties: vec![
+                StyleClause {
+                    key: StyleKey::Variable("--a".to_owned()),
+                    value: Expression::Select(
+                        LimitedSelector::from_path([
+                            EdgeLabel::Named("defaultA".to_owned(), 0).into()
+                        ])
+                        .into(),
+                    ),
+                },
+                StyleClause {
+                    key: StyleKey::Variable("--b".to_owned()),
+                    value: Expression::Select(
+                        LimitedSelector::from_path([
+                            EdgeLabel::Named("defaultB".to_owned(), 0).into()
+                        ])
+                        .into(),
+                    ),
+                },
+            ],
+        },
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::Match(EdgeLabel::Main.into()),
+                    SelectorSegment::Match(EdgeMatcher::Named("sA".to_owned())),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Variable("--a".to_owned()),
+                value: Expression::Select(
+                    LimitedSelector::from_path([EdgeLabel::Named("extra".to_owned(), 0).into()])
+                        .into(),
+                ),
+            }],
+        },
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::Match(EdgeLabel::Main.into()),
+                    SelectorSegment::Match(EdgeMatcher::Named("sB".to_owned())),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Variable("--b".to_owned()),
+                value: Expression::Select(
+                    LimitedSelector::from_path([EdgeLabel::Named("extra".to_owned(), 0).into()])
+                        .into(),
+                ),
+            }],
+        },
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::Match(EdgeLabel::Main.into()),
+                    SelectorSegment::Match(EdgeMatcher::Any),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::UnaryOperator(
+                            UnaryOperator::NodeTypeName,
+                            Expression::Select(LimitedSelector::default().into()).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Eq,
+                        Expression::String("s".to_owned()).into(),
+                    )),
+                    SelectorSegment::Match(EdgeMatcher::Named("p".to_owned())),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Property(PointerLengthHintKey::Length),
+                value: Expression::BinaryOperator(
+                    Expression::Variable("--a".to_owned()).into(),
+                    BinaryOperator::Plus,
+                    Expression::Variable("--b".to_owned()).into(),
+                ),
+            }],
+        },
+    ]));
+    let mut gdb = gdb_from_source(
+        r"
+        #include <stdlib.h>
+
+        typedef struct s {
+            int extra;
+            int* p;
+        } s;
+
+        int main(void) {
+            int defaultA = 1, defaultB = 1;
+            s sA, sB;
+            sA.extra = 2;
+            sB.extra = 3;
+            sA.p = (int*)malloc(sizeof(int) * (sA.extra + defaultB));
+            sB.p = (int*)malloc(sizeof(int) * (defaultA + sB.extra));
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(16).unwrap();
+    let state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    let sa_p_length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("sA".to_owned(), 0),
+            EdgeLabel::Named("p".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    let sb_p_length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("sB".to_owned(), 0),
+            EdgeLabel::Named("p".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    assert_eq!(sa_p_length.value(), Some(NodeValue::Uint(3)));
+    assert_eq!(sb_p_length.value(), Some(NodeValue::Uint(4)));
+}
+
+#[test]
+fn triangle_array_length_hints() {
+    let hints = CascadeStyle::from(Stylesheet(vec![StyleRule {
+        selector: Selector::from_path(
+            [
+                SelectorSegment::Match(EdgeLabel::Main.into()),
+                SelectorSegment::Match(EdgeMatcher::Named("arr".to_owned())),
+                SelectorSegment::Match(EdgeMatcher::AnyIndex),
+            ]
+            .into(),
+        ),
+        properties: vec![StyleClause {
+            key: StyleKey::Property(PointerLengthHintKey::Length),
+            value: Expression::BinaryOperator(
+                Expression::MagicVariable(MagicVariableKey::EdgeIndex).into(),
+                BinaryOperator::Plus,
+                Expression::Int(1).into(),
+            ),
+        }],
+    }]));
+    let mut gdb = gdb_from_source(
+        r"
+        #include <stdlib.h>
+
+        int main(void) {
+            const int size = 3;
+            int* arr[size];
+            for (int i = 0; i < size; ++i)
+                arr[i] = malloc((i + 1) * sizeof(**arr));
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(9).unwrap();
+    let state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    for i in 0..3 {
+        let length = state_graph
+            .get_at_root(&[
+                EdgeLabel::Main,
+                EdgeLabel::Named("arr".to_owned(), 0),
+                EdgeLabel::Index(i),
+                EdgeLabel::Deref,
+                EdgeLabel::Length,
+            ])
+            .unwrap();
+        assert_eq!(length.value(), Some(NodeValue::Uint(i as u64 + 1)));
+    }
 }

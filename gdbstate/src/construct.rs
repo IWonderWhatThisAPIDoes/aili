@@ -527,11 +527,19 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         let mut resolved_hints = std::mem::take(&mut self.resolved_length_hints);
         let mut resolver = SelectorResolver::new(self.pointer_hint_sheet.selector_machine());
         let mut variable_pool = VariablePool::new();
+        // If running from root, there is no preceding edge
+        // Otherwise assume the entry point is after a dereference edge
+        let preceding_edge = if *origin == GdbStateNodeId::Root {
+            None
+        } else {
+            Some(EdgeLabel::Deref)
+        };
         self.resolve_length_hints_with_resolver_from(
             origin,
             &mut resolver,
             &mut variable_pool,
             &mut resolved_hints,
+            preceding_edge.as_ref(),
         );
         self.resolved_length_hints = resolved_hints;
     }
@@ -542,9 +550,11 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         resolver: &mut SelectorResolver<GdbStateNodeId>,
         variable_pool: &mut VariablePool<&'a str, GdbStateNodeId>,
         resolved_hints: &mut HashMap<VariableObject, PropertyValue<GdbStateNodeId>>,
+        previous_edge: Option<&EdgeLabel>,
     ) {
-        let context =
-            EvaluationContext::from_graph(self.graph, origin.clone()).with_variables(variable_pool);
+        let context = EvaluationContext::from_graph(self.graph, origin.clone())
+            .with_variables(variable_pool)
+            .with_optional_preceding_edge(previous_edge);
         let matched_rules = resolver.resolve_node(origin.clone(), &context);
         for (rule_index, caret) in matched_rules {
             let rule = self.pointer_hint_sheet.rule_at(rule_index);
@@ -554,7 +564,8 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             }
             for property in &rule.properties {
                 let context = EvaluationContext::from_graph(self.graph, origin.clone())
-                    .with_variables(variable_pool);
+                    .with_variables(variable_pool)
+                    .with_optional_preceding_edge(previous_edge);
                 match &property.key {
                     StyleKey::Variable(name) => {
                         let variable_value = evaluate(&property.value, &context);
@@ -572,6 +583,10 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 }
             }
         }
+        // Return early if we know no selectors can match past this point
+        if !resolver.has_edges_to_resolve() {
+            return;
+        }
         for (edge_label, successor) in self
             .graph
             .get(origin)
@@ -583,14 +598,17 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 // each heap-allocated object will be the root of its own resolution
                 continue;
             }
+            variable_pool.push();
             resolver.push_edge(edge_label);
             self.resolve_length_hints_with_resolver_from(
                 successor,
                 resolver,
                 variable_pool,
                 resolved_hints,
+                Some(edge_label),
             );
             resolver.pop_edge();
+            variable_pool.pop();
         }
     }
 
