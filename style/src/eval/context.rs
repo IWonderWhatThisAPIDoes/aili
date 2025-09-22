@@ -1,7 +1,7 @@
 //! Contexts for expression evaluation.
 
 use super::variable_pool::VariablePool;
-use aili_model::state::{NodeTypeId, ProgramStateGraph, ProgramStateNode};
+use aili_model::state::{EdgeLabel, NodeTypeId, ProgramStateGraph, ProgramStateNode};
 
 /// Provides stateful context for expression evaluation.
 pub struct EvaluationContext<'a, T>
@@ -89,6 +89,35 @@ where
     pub fn with_edge_discriminator(mut self, discriminator: usize) -> Self {
         self.edge_discriminator = Some(discriminator);
         self
+    }
+
+    /// Adds edge parameters for evaluating magic variables
+    /// based on the edge label of the preceding edge.
+    pub fn with_preceding_edge(mut self, edge_label: &'a EdgeLabel) -> Self {
+        self.edge_index = None;
+        self.edge_name = None;
+        self.edge_discriminator = None;
+        match edge_label {
+            EdgeLabel::Index(index) => {
+                self.edge_index = Some(*index);
+            }
+            EdgeLabel::Named(name, discriminator) => {
+                self.edge_name = Some(name);
+                self.edge_discriminator = Some(*discriminator);
+            }
+            _ => {}
+        }
+        self
+    }
+
+    /// Adds edge parameters for evaluating magic variables
+    /// based on the edge label of the preceding edge.
+    pub fn with_optional_preceding_edge(self, edge_label: Option<&'a EdgeLabel>) -> Self {
+        if let Some(edge_label) = edge_label {
+            self.with_preceding_edge(edge_label)
+        } else {
+            self
+        }
     }
 }
 
