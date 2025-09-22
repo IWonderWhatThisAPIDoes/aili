@@ -120,8 +120,9 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         node: T::NodeId,
         previous_edge: Option<&EdgeLabel>,
     ) -> Vec<(usize, SelectionCaret)> {
-        let context =
-            Self::evaluation_context(self.graph, &self.variable_pool, node.clone(), previous_edge);
+        let context = EvaluationContext::from_graph(self.graph, node.clone())
+            .with_variables(&self.variable_pool)
+            .with_optional_preceding_edge(previous_edge);
         self.resolver.resolve_node(node, &context)
     }
 
@@ -163,12 +164,9 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         }
         let properties = &self.stylesheet.rule_at(rule_index).properties;
         for property in properties {
-            let context = Self::evaluation_context(
-                self.graph,
-                &self.variable_pool,
-                select_origin.clone(),
-                previous_edge,
-            );
+            let context = EvaluationContext::from_graph(self.graph, select_origin.clone())
+                .with_variables(&self.variable_pool)
+                .with_optional_preceding_edge(previous_edge);
             let value = evaluate(&property.value, &context);
             match &property.key {
                 StyleKey::Property(key) => {
@@ -182,25 +180,5 @@ impl<'a, 'g, T: RootedProgramStateGraph> ApplyStylesheet<'a, 'g, T> {
         if target.is_extra() {
             self.variable_pool.pop();
         }
-    }
-
-    fn evaluation_context<'b>(
-        graph: &'b T,
-        variable_pool: &'b VariablePool<&'b str, T::NodeId>,
-        origin: T::NodeId,
-        previous_edge: Option<&'b EdgeLabel>,
-    ) -> EvaluationContext<'b, T> {
-        let mut context =
-            EvaluationContext::from_graph(graph, origin).with_variables(variable_pool);
-        match previous_edge {
-            Some(EdgeLabel::Index(index)) => context = context.with_edge_index(*index),
-            Some(EdgeLabel::Named(name, discriminator)) => {
-                context = context
-                    .with_edge_name(name.as_str())
-                    .with_edge_discriminator(*discriminator)
-            }
-            _ => {}
-        }
-        context
     }
 }

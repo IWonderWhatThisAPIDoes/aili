@@ -33,15 +33,18 @@ impl<T: NodeId> RulePropertyValue<T> {
     /// ## Return Value
     /// True if the new value was written, false otherwise.
     fn assign_new_value(&mut self, candidate_value: Self) -> bool {
-        // Passive assignments take lower priority always,
-        // otherwise the precedence is decided based on evaluation order
-        let precedence = |value: &Self| (!value.passive, value.static_precedence);
-        if precedence(&candidate_value) >= precedence(self) {
+        if candidate_value.precedence() >= self.precedence() {
             *self = candidate_value;
             true
         } else {
             false
         }
+    }
+
+    fn precedence(&self) -> impl Ord {
+        // Passive assignments take lower priority always,
+        // otherwise the precedence is decided based on evaluation order
+        (!self.passive, self.static_precedence)
     }
 }
 
