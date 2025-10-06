@@ -1,0 +1,68 @@
+/**
+ * Stylesheet for the border array construction example.
+ */
+
+:: {
+  display: graph;
+}
+
+main {
+  --w: @("w");
+  --s: @("str");
+  --i: @("i");
+  --j: @("j");
+  --k: @("k");
+}
+
+main "str" {
+  display: row;
+}
+
+main "str" [] {
+  display: cell;
+  order: --INDEX;
+  value: @;
+  fill: "#d0cdcd";
+}
+
+// Do not show the terminating null character
+main "str" [@((--s) len) - 1] {
+  display: none;
+}
+
+main "str" [].if(--INDEX <= --i) {
+  --is-overlap: --INDEX < --j || --INDEX >= --i - --j + 1;
+  fill: --is-overlap ? "yellow" : "#78f";
+}
+
+main "str" [--i + 1] {
+  fill: "#8d0";
+}
+
+main "str" [--j] {
+  --is-match: @ == @((--s) [--i + 1]);
+  fill: --is-match ? "#8d0" : "#f55";
+}
+
+main .alt("i", "j") {
+  display: label;
+  parent: @((--s) [@]);
+  value: --NAME;
+  vertical-align: outside;
+  vertical-justify: start;
+  hat: south;
+  horizontal-align: middle;
+  horizontal-justify: end;
+}
+
+main "j" {
+  horizontal-justify: start;
+}
+
+main "b" [].if(!(--INDEX > --i)) {
+  display: label;
+  value: @;
+  parent: @((--s) [--INDEX]);
+  vertical-align: outside;
+  vertical-justify: end;
+}

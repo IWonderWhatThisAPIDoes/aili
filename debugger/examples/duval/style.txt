@@ -1,0 +1,51 @@
+/**
+ * Stylesheet for the Duval algorithm example.
+ */
+
+:: {
+  display: graph;
+}
+
+main {
+  --w: @("w");
+  --s: @("str");
+  --i: @("i");
+  --j: @("j");
+  --k: @("k");
+}
+
+main "str" {
+  display: row;
+}
+
+main "str" [] {
+  display: cell;
+  order: --INDEX;
+  value: @;
+  fill: "#d0cdcd";
+}
+
+main "str" [].if(--INDEX < --j) {
+  --is-overlap: --INDEX < --k || --j - --INDEX <= --k - --i;
+  fill: --is-overlap ? "#f55" : "yellow";
+}
+
+main "str" [].if(--INDEX < --i) {
+  fill: @((--w) [--INDEX]) % 2 ? "#b5d2ee" : "#78f";
+}
+
+main .alt("i", "j", "k") {
+  display: label;
+  parent: @((--s) [@]);
+  value: --NAME;
+  horizontal-justify: start;
+  horizontal-align: middle;
+  vertical-align: outside;
+  vertical-justify: end;
+  hat: north;
+}
+
+main "i" {
+  vertical-justify: start;
+  hat: south;
+}
