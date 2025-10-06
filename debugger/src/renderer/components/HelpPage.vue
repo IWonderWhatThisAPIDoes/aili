@@ -220,8 +220,11 @@
             <h3 id="panel-debuggee">Debuggee</h3>
             <p>
                 This panel allows the user to specify the path to the executable binary that they
-                wish to debug. They may optionally add a stylesheet that provides hints about sizes
-                of memory buffers to the state analyzer. For more information, see the
+                wish to debug and the arguments that it receives.
+            </p>
+            <p>
+                The user may optionally add a stylesheet that provides hints about sizes of memory
+                buffers to the state analyzer. For more information, see the
                 <a
                     href="https://github.com/IWonderWhatThisAPIDoes/aili/blob/main/doc/stylesheets.md"
                     >documentation on stylesheets</a

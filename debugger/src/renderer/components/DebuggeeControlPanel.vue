@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+    import { useTemplateRef } from 'vue';
     import { LengthHintSheet } from 'aili-jsapi';
     import { DebugSessionManager } from '../controllers/session-manager';
     import { DebugSessionStatus } from '../controllers/session';
@@ -6,15 +7,29 @@
     import StyleEditor from './StyleEditor.vue';
 
     const { session } = defineProps<{ session: DebugSessionManager }>();
+    const commandLineInput = useTemplateRef('command-line');
+
+    function commandLineChanged() {
+        const commandLine = commandLineInput.value?.value ?? '';
+        let firstSpace = commandLine.indexOf(' ');
+        if (firstSpace == -1) {
+            session.pathToDebuggee = commandLine;
+        } else {
+            session.pathToDebuggee = commandLine.substring(0, firstSpace);
+            session.argumentsToDebuggee = commandLine.substring(firstSpace + 1);
+        }
+    }
 </script>
 
 <template>
     <div class="debuggee-controls">
         <label class="debuggee-path">
-            Path to debuggee:
+            Debuggee command line:
             <input
-                v-model="session.pathToDebuggee"
+                @change="commandLineChanged"
                 :disabled="session.status !== DebugSessionStatus.INACTIVE"
+                placeholder="a.out --help"
+                ref="command-line"
             />
         </label>
         <StyleEditor

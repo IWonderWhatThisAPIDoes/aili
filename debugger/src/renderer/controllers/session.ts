@@ -107,11 +107,14 @@ export class DebuggerSession {
             if (this.debuggerContainer.status === DebuggerStatus.INACTIVE) {
                 await this.debuggerContainer.start();
             }
-            // TODO: Sanitize path to debuggee
-            await this.sendMiCommandAndAssertSuccess(
-                `-file-exec-and-symbols "${this.pathToDebuggee}"`,
+            // TODO: Sanitize path to debuggee and arguments
+            await Promise.all(
+                [
+                    `-file-exec-and-symbols "${this.pathToDebuggee}"`,
+                    `-exec-arguments ${this.argumentsToDebuggee}`,
+                    '-exec-run --start',
+                ].map(l => this.sendMiCommandAndAssertSuccess(l)),
             );
-            await this.sendMiCommandAndAssertSuccess('-exec-run --start');
         });
     }
     /**
@@ -160,6 +163,10 @@ export class DebuggerSession {
      * Path to the executable to be debugged.
      */
     pathToDebuggee: string = '';
+    /**
+     * Command line arguments sent to the debuggee.
+     */
+    argumentsToDebuggee: string = '';
     /**
      * Logger to which log messages from the session should be sent.
      */

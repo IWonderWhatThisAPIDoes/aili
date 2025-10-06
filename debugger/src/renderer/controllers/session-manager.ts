@@ -122,6 +122,18 @@ export class DebugSessionManager {
         this.session.pathToDebuggee = path;
     }
     /**
+     * Retrieves the arguments sent to the debuggee.
+     */
+    get argumentsToDebuggee(): string {
+        return this.session.argumentsToDebuggee;
+    }
+    /**
+     * Updates the arguments sent to the debuggee.
+     */
+    set argumentsToDebuggee(args: string) {
+        this.session.argumentsToDebuggee = args;
+    }
+    /**
      * Retrieves the current state of the session.
      */
     get status(): DebugSessionStatus {
