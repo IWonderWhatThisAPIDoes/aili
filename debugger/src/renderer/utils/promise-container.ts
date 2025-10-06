@@ -36,7 +36,7 @@ export class PromiseContainer<T> {
         this.promises = {};
     }
     /**
-     * Retrieves or constructs a promist that will be resolved
+     * Retrieves or constructs a promise that will be resolved
      * when a certain event is reported.
      *
      * @param promiseName Name of the event that the promise waits for.
