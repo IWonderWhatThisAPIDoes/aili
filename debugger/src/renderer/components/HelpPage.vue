@@ -81,10 +81,11 @@
             <h2>Carrying a Debug session</h2>
             <p>
                 The primary controls of a debug session are in the lower right corner of your
-                window. After you have given a path to the program you want to debug, you will be
-                able to start a debug session. You can manually step through the debuggee at three
-                different paces. These will be familiar to you if you have ever used a reasonably
-                modern GUI debugger:
+                window. After you have given a path to the program you want to debug (using the
+                <a href="#panel-debuggee">Debuggee</a> control panel), you will be able to start a
+                debug session. You can manually step through the debuggee at three different paces.
+                These will be familiar to you if you have ever used a reasonably modern GUI
+                debugger:
             </p>
             <ul>
                 <li>Step - advance execution by one line of code.</li>
@@ -218,7 +219,8 @@
 
             <h3 id="panel-debuggee">Debuggee</h3>
             <p>
-                This panel allows the user to specify a stylesheet that provides hints about sizes
+                This panel allows the user to specify the path to the executable binary that they
+                wish to debug. They may optionally add a stylesheet that provides hints about sizes
                 of memory buffers to the state analyzer. For more information, see the
                 <a
                     href="https://github.com/IWonderWhatThisAPIDoes/aili/blob/main/doc/stylesheets.md"

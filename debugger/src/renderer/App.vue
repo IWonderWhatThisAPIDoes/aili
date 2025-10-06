@@ -14,9 +14,9 @@
 <script setup lang="ts">
     import { computed, ref, useTemplateRef } from 'vue';
     import { HookableLogger } from 'aili-hooligan';
-    import { GdbStateGraph, Stylesheet, LengthHintSheet } from 'aili-jsapi';
+    import { GdbStateGraph, Stylesheet } from 'aili-jsapi';
     import { Debugger } from './controllers/debugger';
-    import { DEFAULT_STYLESHEET, DEFAULT_HINT_SHEET } from './utils/default-stylesheet';
+    import { DEFAULT_STYLESHEET } from './utils/default-stylesheet';
     import { DebugSessionStatus } from './controllers/session';
     import { DebugSessionManager } from './controllers/session-manager';
     import { SourceViewer } from './controllers/source-viewer';
@@ -30,6 +30,7 @@
     import VisViewport from './components/VisViewport.vue';
     import SourceView from './components/SourceView.vue';
     import HelpPage from './components/HelpPage.vue';
+    import DebuggeeControlPanel from './components/DebuggeeControlPanel.vue';
 
     const showDebugger = ref(false);
     const showDebuggee = ref(false);
@@ -101,10 +102,6 @@
         mainStylesheet = stylesheet;
         applyMainStylesheet();
     }
-
-    function hintSheetChanged(_: string, hintSheet: LengthHintSheet): void {
-        debugSession.hintSheet = hintSheet;
-    }
 </script>
 
 <template>
@@ -115,11 +112,7 @@
                 <DebuggerControlPanel :debug="debuggerContainer" />
             </Panel>
             <Panel class="panel" title="Debuggee" v-show="showDebuggee">
-                <StyleEditor
-                    :content="DEFAULT_HINT_SHEET"
-                    :compile="LengthHintSheet.parse"
-                    @style-changed="hintSheetChanged"
-                />
+                <DebuggeeControlPanel :session="debugSession" />
             </Panel>
             <Panel class="panel" title="Source" v-show="showSource">
                 <SourceView :debug="debuggerContainer" :sourceViewer="sourceViewer" />

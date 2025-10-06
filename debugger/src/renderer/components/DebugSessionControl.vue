@@ -29,7 +29,6 @@
 
     const { session } = defineProps<{ session: DebugSessionManager }>();
 
-    const pathToDebuggee = ref(session.pathToDebuggee);
     const status = ref(session.status);
     const sourceLocation = ref(session.sourceLocation);
     session.onStatusChanged.hook(s => {
@@ -51,7 +50,6 @@
     function startStop(): void {
         switch (status.value) {
             case DebugSessionStatus.INACTIVE:
-                session.pathToDebuggee = pathToDebuggee.value;
                 session.start();
                 break;
             case DebugSessionStatus.READY:
@@ -69,17 +67,10 @@
 
 <template>
     <div class="session-control">
-        <label>
-            Path to debuggee:
-            <input v-model="pathToDebuggee" :disabled="status !== DebugSessionStatus.INACTIVE" />
-        </label>
         <span v-if="sourceLocation !== undefined">
             {{ sourceLocationText(sourceLocation) }}
         </span>
-        <button
-            :disabled="status === DebugSessionStatus.BUSY || pathToDebuggee === ''"
-            @click="startStop"
-        >
+        <button :disabled="status === DebugSessionStatus.BUSY" @click="startStop">
             {{ startStopButtonText }}
         </button>
         <button
