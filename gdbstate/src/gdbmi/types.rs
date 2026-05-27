@@ -110,7 +110,9 @@ pub struct VariableObjectData {
     pub value: Option<String>,
 
     /// Name of the type of the associated variable.
-    pub type_name: String,
+    /// If type name is missing in a child object, it is a pseudo-child
+    /// that contains the actual logical children as its own children.
+    pub type_name: Option<String>,
 
     /// How many children the object is known to have.
     ///

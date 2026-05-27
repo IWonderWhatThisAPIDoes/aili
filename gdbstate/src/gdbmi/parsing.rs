@@ -187,7 +187,7 @@ impl ResultTuple {
             object: VariableObject(self.take("name")?.string()?),
             numchild: self.take("numchild")?.decimal()?,
             value: self.take_optional("value").map(Value::string).transpose()?,
-            type_name: self.take("type")?.string()?,
+            type_name: self.take_optional("type").map(Value::string).transpose()?,
             has_more: self
                 .take_optional("has_more")
                 .map(Value::zero_or_one)

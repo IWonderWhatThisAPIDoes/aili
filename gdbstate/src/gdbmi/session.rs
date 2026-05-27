@@ -199,7 +199,7 @@ impl<T: GdbMiStream> GdbMiSession for T {
     }
 
     async fn var_delete(&mut self, object: &VariableObject) -> Result<()> {
-        self.send_command_fmt(format_args!("-var-delete {}", object.0))
+        self.send_command_fmt(format_args!("-var-delete \"{}\"", object.0))
             .await?
             .must_be_done_or_running()?;
         Ok(())
@@ -207,7 +207,7 @@ impl<T: GdbMiStream> GdbMiSession for T {
 
     async fn var_evaluate_expression(&mut self, object: &VariableObject) -> Result<String> {
         Ok(self
-            .send_command_fmt(format_args!("-var-evaluate-expression {}", object.0))
+            .send_command_fmt(format_args!("-var-evaluate-expression \"{}\"", object.0))
             .await?
             .must_be_done_or_running()?
             .take("value")?
@@ -221,7 +221,7 @@ impl<T: GdbMiStream> GdbMiSession for T {
     ) -> Result<ChildList> {
         Ok(self
             .send_command_fmt(format_args!(
-                "-var-list-children {print_values} {}",
+                "-var-list-children {print_values} \"{}\"",
                 object.0
             ))
             .await?

@@ -986,3 +986,235 @@ fn triangle_array_length_hints() {
         assert_eq!(length.value(), Some(NodeValue::Uint(i as u64 + 1)));
     }
 }
+
+#[test]
+fn char_array() {
+    let mut gdb = gdb_from_source(r#"int main(void) { const char s[] = "abc"; }"#);
+    let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    let array = state_graph
+        .get_at_root(&[EdgeLabel::Main, EdgeLabel::Named("s".to_owned(), 0)])
+        .unwrap();
+    let length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("s".to_owned(), 0),
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    assert!(array.node_type_class() == NodeTypeClass::Array);
+    assert!(length.value() == Some(NodeValue::Uint(4)));
+}
+
+#[test]
+fn pointer_to_array() {
+    let mut gdb = gdb_from_source(
+        r"
+        #include <stdlib.h>
+
+        int main(void) {
+            int (* arr)[2] = (int(*)[2])malloc(sizeof(int) * 2);
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(6).unwrap();
+    let state_graph = GdbStateGraph::new(&mut gdb).expect_ready().unwrap();
+    let array = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("arr".to_owned(), 0),
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
+    let length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("arr".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    assert!(array.node_type_class() == NodeTypeClass::Array);
+    assert!(length.value() == Some(NodeValue::Uint(2)));
+}
+
+#[test]
+fn length_hint_on_heap() {
+    // :array {
+    //   --len: @("len");
+    // }
+    // :array "ptr" {
+    //   length: --len;
+    // }
+    let hints = CascadeStyle::from(Stylesheet(vec![
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::anything_any_number_of_times(),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::UnaryOperator(
+                            UnaryOperator::NodeTypeName,
+                            Expression::Select(LimitedSelector::default().into()).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Eq,
+                        Expression::String("array".to_owned()).into(),
+                    )),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Variable("--len".to_owned()),
+                value: Expression::Select(
+                    LimitedSelector::from_path([EdgeLabel::Named("len".to_owned(), 0).into()])
+                        .into(),
+                ),
+            }],
+        },
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::anything_any_number_of_times(),
+                    SelectorSegment::Condition(Expression::BinaryOperator(
+                        Expression::UnaryOperator(
+                            UnaryOperator::NodeTypeName,
+                            Expression::Select(LimitedSelector::default().into()).into(),
+                        )
+                        .into(),
+                        BinaryOperator::Eq,
+                        Expression::String("array".to_owned()).into(),
+                    )),
+                    SelectorSegment::Match(EdgeMatcher::Named("ptr".to_owned())),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Property(PointerLengthHintKey::Length),
+                value: Expression::Variable("--len".to_owned()),
+            }],
+        },
+    ]));
+    let mut gdb = gdb_from_source(
+        r"
+        #include <stdlib.h>
+
+        typedef struct array {
+            int* ptr;
+            size_t len;
+        } array;
+
+        int main(void) {
+            array* a = (array*)malloc(sizeof(*a));
+            a->len = 3;
+            a->ptr = (int*)malloc(sizeof(*a->ptr) * a->len);
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(13).unwrap();
+    let state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    let array = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("a".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("ptr".to_owned(), 0),
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
+    let length = state_graph
+        .get_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("a".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Named("ptr".to_owned(), 0),
+            EdgeLabel::Deref,
+            EdgeLabel::Length,
+        ])
+        .unwrap();
+    assert!(array.node_type_class() == NodeTypeClass::Array);
+    assert!(length.value() == Some(NodeValue::Uint(3)));
+}
+
+#[test]
+fn length_hint_across_heap_boundary() {
+    // main {
+    //   --size: @("size");
+    // }
+    // main "a" .alt(, ref []) {
+    //   length: --size;
+    // }
+    let hints = CascadeStyle::from(Stylesheet(vec![
+        StyleRule {
+            selector: Selector::from_path([SelectorSegment::Match(EdgeLabel::Main.into())].into()),
+            properties: vec![StyleClause {
+                key: StyleKey::Variable("--size".to_owned()),
+                value: Expression::Select(
+                    LimitedSelector::from_path([EdgeLabel::Named("size".to_owned(), 0).into()])
+                        .into(),
+                ),
+            }],
+        },
+        StyleRule {
+            selector: Selector::from_path(
+                [
+                    SelectorSegment::Match(EdgeLabel::Main.into()),
+                    SelectorSegment::Match(EdgeMatcher::Named("a".to_owned())),
+                    SelectorSegment::Branch(vec![
+                        [].into(),
+                        [
+                            SelectorSegment::Match(EdgeLabel::Deref.into()),
+                            SelectorSegment::Match(EdgeMatcher::AnyIndex),
+                        ]
+                        .into(),
+                    ]),
+                ]
+                .into(),
+            ),
+            properties: vec![StyleClause {
+                key: StyleKey::Property(PointerLengthHintKey::Length),
+                value: Expression::Variable("--size".to_owned()),
+            }],
+        },
+    ]));
+    let mut gdb = gdb_from_source(
+        r"
+        #include <stdlib.h>
+
+        int main(void) {
+            size_t size = 3;
+            int** a = (int**)malloc(sizeof(*a) * size);
+            for (size_t i = 0; i < size; ++i)
+                a[i] = (int*)malloc(sizeof(**a) * size);
+            /* breakpoint */;
+        }",
+    );
+    gdb.run_to_line(9).unwrap();
+    let state_graph = GdbStateGraph::new_with_hints(&mut gdb, &hints)
+        .expect_ready()
+        .unwrap();
+    let array_id = state_graph
+        .get_id_at_root(&[
+            EdgeLabel::Main,
+            EdgeLabel::Named("a".to_owned(), 0),
+            EdgeLabel::Deref,
+        ])
+        .unwrap();
+    let array = state_graph.get(&array_id).unwrap();
+    let length = state_graph.get_at(&array_id, &[EdgeLabel::Length]).unwrap();
+    assert!(array.node_type_class() == NodeTypeClass::Array);
+    assert!(length.value() == Some(NodeValue::Uint(3)));
+    for i in 0..3 {
+        let inner_array = state_graph
+            .get_at(&array_id, &[EdgeLabel::Index(i), EdgeLabel::Deref])
+            .unwrap();
+        let inner_length = state_graph
+            .get_at(
+                &array_id,
+                &[EdgeLabel::Index(i), EdgeLabel::Deref, EdgeLabel::Length],
+            )
+            .unwrap();
+        assert!(inner_array.node_type_class() == NodeTypeClass::Array);
+        assert!(inner_length.value() == Some(NodeValue::Uint(3)));
+    }
+}

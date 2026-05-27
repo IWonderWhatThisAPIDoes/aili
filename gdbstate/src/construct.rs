@@ -121,6 +121,16 @@ struct GdbStateGraphWriter<'a, T: GdbMiSession> {
     /// References to [`NodeTypeClass::Ref`] nodes whose
     /// [`EdgeLabel::Deref`] should be evaluated later.
     deferred_pointers: VecDeque<VariableObject>,
+
+    /// Cloned stylesheet resolution variable pools
+    /// at each [`NodeTypeClass::Ref`] node.
+    stylesheet_snapshots: HashMap<
+        VariableObject,
+        (
+            VariablePool<&'a str, GdbStateNodeId>,
+            SelectorResolver<'a, GdbStateNodeId>,
+        ),
+    >,
 }
 
 impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
@@ -134,6 +144,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             graph,
             gdb,
             deferred_pointers: VecDeque::new(),
+            stylesheet_snapshots: HashMap::new(),
         }
     }
 
@@ -230,6 +241,18 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 .get_or_create_dereference_variable_node(address, &type_name, length_hint)
                 .await?;
             self.link_dereference_relation(&ref_object, &deref_var_object);
+            // Resolve the hint sheet from that node
+            // so we can correctly identify pointers on the heap
+            if let Some((variable_pool, mut resolver)) =
+                self.stylesheet_snapshots.get(&ref_object).cloned()
+            {
+                resolver.push_edge(&EdgeLabel::Deref);
+                self.resolve_length_hints_from_snapshot(
+                    &GdbStateNodeId::VarObject(deref_var_object),
+                    variable_pool,
+                    resolver,
+                );
+            }
         }
         Ok(())
     }
@@ -524,9 +547,19 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
     }
 
     fn resolve_length_hints_from(&mut self, origin: &GdbStateNodeId) {
+        let variable_pool = VariablePool::default();
+        let resolver = SelectorResolver::new(self.pointer_hint_sheet.selector_machine());
+        self.resolve_length_hints_from_snapshot(origin, variable_pool, resolver);
+    }
+
+    fn resolve_length_hints_from_snapshot(
+        &mut self,
+        origin: &GdbStateNodeId,
+        mut variable_pool: VariablePool<&'a str, GdbStateNodeId>,
+        mut resolver: SelectorResolver<'a, GdbStateNodeId>,
+    ) {
         let mut resolved_hints = std::mem::take(&mut self.resolved_length_hints);
-        let mut resolver = SelectorResolver::new(self.pointer_hint_sheet.selector_machine());
-        let mut variable_pool = VariablePool::new();
+        let mut snapshots = std::mem::take(&mut self.stylesheet_snapshots);
         // If running from root, there is no preceding edge
         // Otherwise assume the entry point is after a dereference edge
         let preceding_edge = if *origin == GdbStateNodeId::Root {
@@ -539,17 +572,26 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
             &mut resolver,
             &mut variable_pool,
             &mut resolved_hints,
+            &mut snapshots,
             preceding_edge.as_ref(),
         );
         self.resolved_length_hints = resolved_hints;
+        self.stylesheet_snapshots = snapshots;
     }
 
     fn resolve_length_hints_with_resolver_from(
         &self,
         origin: &GdbStateNodeId,
-        resolver: &mut SelectorResolver<GdbStateNodeId>,
+        resolver: &mut SelectorResolver<'a, GdbStateNodeId>,
         variable_pool: &mut VariablePool<&'a str, GdbStateNodeId>,
         resolved_hints: &mut HashMap<VariableObject, PropertyValue<GdbStateNodeId>>,
+        snapshots: &mut HashMap<
+            VariableObject,
+            (
+                VariablePool<&'a str, GdbStateNodeId>,
+                SelectorResolver<'a, GdbStateNodeId>,
+            ),
+        >,
         previous_edge: Option<&EdgeLabel>,
     ) {
         let context = EvaluationContext::from_graph(self.graph, origin.clone())
@@ -587,6 +629,18 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         if !resolver.has_edges_to_resolve() {
             return;
         }
+        // Save a snapshot so we can return to it later
+        if self
+            .graph
+            .get(origin)
+            .is_some_and(|n| n.type_class == NodeTypeClass::Ref)
+            && let GdbStateNodeId::VarObject(var_object) = origin
+        {
+            snapshots.insert(
+                var_object.clone(),
+                (variable_pool.snapshot(), resolver.snapshot()),
+            );
+        }
         for (edge_label, successor) in self
             .graph
             .get(origin)
@@ -598,6 +652,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 // each heap-allocated object will be the root of its own resolution
                 continue;
             }
+
             variable_pool.push();
             resolver.push_edge(edge_label);
             self.resolve_length_hints_with_resolver_from(
@@ -605,6 +660,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 resolver,
                 variable_pool,
                 resolved_hints,
+                snapshots,
                 Some(edge_label),
             );
             resolver.pop_edge();
@@ -761,15 +817,39 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         }
     }
 
+    async fn list_children_with_resolved_pseudo_children(
+        &mut self,
+        var_object: &VariableObject,
+    ) -> Result<Vec<ChildVariableObject>> {
+        let primary_children = self
+            .gdb
+            .var_list_children(var_object, PrintValues::SimpleValues)
+            .await?;
+        let mut children = Vec::new();
+        for child in primary_children.children {
+            if child.variable_object.type_name.is_some() {
+                // Proper children are returned directly
+                children.push(child);
+            } else {
+                // Pseudo-children are resolved first
+                let nested_children = self
+                    .gdb
+                    .var_list_children(&child.variable_object.object, PrintValues::SimpleValues)
+                    .await?;
+                children.extend(nested_children.children);
+            }
+        }
+        Ok(children)
+    }
+
     async fn after_create_container_variable_node(
         &mut self,
         var_object: &VariableObject,
     ) -> Result<Vec<DeferredVariableTree>> {
         let children = self
-            .gdb
-            .var_list_children(var_object, PrintValues::SimpleValues)
+            .list_children_with_resolved_pseudo_children(var_object)
             .await?;
-        let container_kind = ContainerKind::deduce_from_children(&children.children)
+        let container_kind = ContainerKind::deduce_from_children(&children)
             .expect("We have just verified that the node has children; type must be deducible");
         let node = self
             .variables
@@ -778,7 +858,6 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         node.type_class = container_kind.into();
         match container_kind {
             ContainerKind::Struct => Ok(children
-                .children
                 .into_iter()
                 .map(|child| DeferredVariableTree {
                     parent_node: Some(GdbStateNodeId::VarObject(var_object.clone())),
@@ -792,7 +871,7 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
                 // Cache the full length of the array so we can insert is as a node later
                 let mut length = 0;
                 let mut deferred = Vec::new();
-                for child in children.children {
+                for child in children {
                     // Parse the variable's index
                     let Ok(index) = child.exp.parse() else {
                         // `ContainerKind::deduce_from_children` ensures that all
@@ -879,7 +958,10 @@ impl<'a, T: GdbMiSession> GdbStateGraphWriter<'a, T> {
         parent: Option<GdbStateNodeId>,
     ) {
         let node = self.new_variable_node(var_object.object, NodeTypeClass::Atom, parent);
-        node.type_name = Some(Self::preprocess_type_name(var_object.type_name));
+        node.type_name =
+            Some(Self::preprocess_type_name(var_object.type_name.expect(
+                "Pseudo-child variable object encountered in unexpected context",
+            )));
         node.value = var_object.value.as_deref().and_then(Self::parse_node_value);
     }
 
