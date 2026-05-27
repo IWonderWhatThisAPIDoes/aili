@@ -5,6 +5,7 @@ use aili_model::state::NodeId;
 use std::collections::HashMap;
 
 /// Container that stores variables for the interpreter in a layered stack structure.
+#[derive(Clone)]
 pub struct VariablePool<K, T>(Vec<HashMap<K, PropertyValue<T>>>)
 where
     K: std::hash::Hash + Eq,
@@ -67,6 +68,21 @@ where
             .last_mut()
             .expect("The bottom frame of variable pool should never be popped")
             .insert(variable_name, value);
+    }
+
+    /// Creates a copy of the pool that is frozen at the current
+    /// frame and cannot be popped past it.
+    ///
+    /// Frames of this pool are flattened to save memory in the clone.
+    pub fn snapshot(&self) -> Self
+    where
+        K: Clone,
+    {
+        let mut frame = HashMap::new();
+        for (key, value) in self.0.iter().rev().flat_map(|f| f.iter()) {
+            frame.entry(key.clone()).or_insert_with(|| value.clone());
+        }
+        Self(vec![frame])
     }
 }
 

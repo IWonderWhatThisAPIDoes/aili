@@ -6,6 +6,7 @@ use aili_model::state::{EdgeLabel, NodeId, ProgramStateGraph};
 use std::collections::{BTreeSet, HashSet};
 
 /// Helper object for the resolution of stylesheets.
+#[derive(Clone)]
 pub struct SelectorResolver<'a, T: NodeId> {
     /// The compiled selectors that are being resolved.
     selectors: &'a CascadeSelector,
@@ -166,6 +167,16 @@ impl<'a, T: NodeId> SelectorResolver<'a, T> {
     pub fn has_edges_to_resolve(&self) -> bool {
         !self.stack.last().unwrap().active_states.is_empty()
     }
+
+    /// Creates a copy of the resolver that is frozen at current frame
+    /// and cannot be popped past it.
+    pub fn snapshot(&self) -> Self {
+        Self {
+            selectors: self.selectors,
+            matched_sequence_points: self.matched_sequence_points.clone(),
+            stack: vec![self.stack.last().unwrap().clone()],
+        }
+    }
 }
 
 impl CascadeSelector {
@@ -217,6 +228,7 @@ impl SelectorState {
 }
 
 /// Context frame of [`SelectorResolver`].
+#[derive(Clone)]
 struct ResolveFrame {
     /// All states in all selectors where their state machines
     /// currently are.
