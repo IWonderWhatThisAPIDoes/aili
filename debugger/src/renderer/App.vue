@@ -26,7 +26,7 @@
     import LogConsole from './components/LogConsole.vue';
     import StyleEditor from './components/StyleEditor.vue';
     import DebugSessionControl from './components/DebugSessionControl.vue';
-    import VisViewport from './components/VisViewport.vue';
+    import VisViewportWithRenderer from './components/VisViewportWithRenderer.vue';
     import SourceView from './components/SourceView.vue';
     import HelpPage from './components/HelpPage.vue';
     import DebuggeeControlPanel from './components/DebuggeeControlPanel.vue';
@@ -114,10 +114,10 @@
             </ScrollBox>
         </Panel>
         <Panel title="Viewport">
-            <VisViewport ref="main-viewport" />
+            <VisViewportWithRenderer ref="main-viewport" />
         </Panel>
         <Panel title="Raw View">
-            <VisViewport ref="raw-viewport" />
+            <VisViewportWithRenderer ref="raw-viewport" />
         </Panel>
         <Panel title="Log">
             <ScrollBox>
