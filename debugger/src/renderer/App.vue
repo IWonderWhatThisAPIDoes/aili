@@ -12,7 +12,7 @@
 </script>
 
 <script setup lang="ts">
-    import { computed, ref, useTemplateRef } from 'vue';
+    import { ref, useTemplateRef } from 'vue';
     import { HookableLogger } from 'aili-hooligan';
     import { GdbStateGraph, Stylesheet } from 'aili-jsapi';
     import { Debugger } from './controllers/debugger';
@@ -20,7 +20,6 @@
     import { DebugSessionStatus } from './controllers/session';
     import { DebugSessionManager } from './controllers/session-manager';
     import { SourceViewer } from './controllers/source-viewer';
-    import Panel from './components/Panel.vue';
     import DebuggerControlPanel from './components/DebuggerControlPanel.vue';
     import ScrollBox from './components/ScrollBox.vue';
     import Console from './components/Console.vue';
@@ -31,30 +30,8 @@
     import SourceView from './components/SourceView.vue';
     import HelpPage from './components/HelpPage.vue';
     import DebuggeeControlPanel from './components/DebuggeeControlPanel.vue';
-
-    const showDebugger = ref(false);
-    const showDebuggee = ref(false);
-    const showLog = ref(false);
-    const showStylesheet = ref(false);
-    const showStyle = ref(false);
-    const showVis = ref(false);
-    const showViewport = ref(false);
-    const showRaw = ref(false);
-    const showSource = ref(false);
-    const showHelp = ref(true);
-    const allPanelsHidden = computed(
-        () =>
-            !showDebugger.value &&
-            !showLog.value &&
-            !showStylesheet.value &&
-            !showStyle.value &&
-            !showVis.value &&
-            !showViewport.value &&
-            !showRaw.value &&
-            !showSource.value &&
-            !showDebuggee.value &&
-            !showHelp.value,
-    );
+    import AppView from './components/AppView.vue';
+    import Panel from './components/Panel.vue';
 
     const mainViewport = useTemplateRef('main-viewport');
     const rawViewport = useTemplateRef('raw-viewport');
@@ -105,104 +82,58 @@
 </script>
 
 <template>
-    <div class="app">
-        <div class="main">
-            <div class="placeholder" v-show="allPanelsHidden"></div>
-            <Panel class="panel" title="Debugger" v-show="showDebugger">
-                <DebuggerControlPanel :debug="debuggerContainer" />
-            </Panel>
-            <Panel class="panel" title="Debuggee" v-show="showDebuggee">
-                <DebuggeeControlPanel :session="debugSession" />
-            </Panel>
-            <Panel class="panel" title="Source" v-show="showSource">
-                <SourceView :debug="debuggerContainer" :sourceViewer="sourceViewer" />
-            </Panel>
-            <Panel class="panel" title="Stylesheet" v-show="showStylesheet">
-                <StyleEditor
-                    :content="DEFAULT_STYLESHEET"
-                    :compile="Stylesheet.parse"
-                    @style-changed="stylesheetChanged"
-                />
-            </Panel>
-            <Panel class="panel" title="Resolved Style" v-show="showStyle">
-                <ScrollBox>
-                    <Console>
-                        {{ resolvedStyle }}
-                    </Console>
-                </ScrollBox>
-            </Panel>
-            <Panel class="panel" title="Vis Tree" v-show="showVis">
-                <ScrollBox>
-                    <Console>
-                        {{ resolvedVisTree }}
-                    </Console>
-                </ScrollBox>
-            </Panel>
-            <Panel class="panel" title="Viewport" v-show="showViewport">
-                <VisViewport ref="main-viewport" />
-            </Panel>
-            <Panel class="panel" title="Raw View" v-show="showRaw">
-                <VisViewport ref="raw-viewport" />
-            </Panel>
-            <Panel class="panel" title="Log" v-show="showLog">
-                <ScrollBox>
-                    <LogConsole ref="log-console" showTopic />
-                </ScrollBox>
-            </Panel>
-            <Panel class="panel" title="Help" v-show="showHelp">
-                <HelpPage />
-            </Panel>
-        </div>
-        <div class="footer">
-            <div class="display-settings">
-                <span class="display-settings-label">Show:</span>
-                <label>
-                    <input type="checkbox" v-model="showDebugger" />
-                    Debugger
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showDebuggee" />
-                    Debuggee
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showSource" />
-                    Source
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showStylesheet" />
-                    Stylesheet
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showStyle" />
-                    Resolved Style
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showVis" />
-                    Vis Tree
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showViewport" />
-                    Viewport
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showRaw" />
-                    Raw View
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showLog" />
-                    Log
-                </label>
-                <label>
-                    <input type="checkbox" v-model="showHelp" />
-                    Help
-                </label>
-            </div>
+    <AppView>
+        <Panel title="Debugger">
+            <DebuggerControlPanel :debug="debuggerContainer" />
+        </Panel>
+        <Panel title="Debuggee">
+            <DebuggeeControlPanel :session="debugSession" />
+        </Panel>
+        <Panel title="Source">
+            <SourceView :debug="debuggerContainer" :sourceViewer="sourceViewer" />
+        </Panel>
+        <Panel title="Stylesheet">
+            <StyleEditor
+                :content="DEFAULT_STYLESHEET"
+                :compile="Stylesheet.parse"
+                @style-changed="stylesheetChanged"
+            />
+        </Panel>
+        <Panel title="Resolved Style">
+            <ScrollBox>
+                <Console>
+                    {{ resolvedStyle }}
+                </Console>
+            </ScrollBox>
+        </Panel>
+        <Panel title="VisTree">
+            <ScrollBox>
+                <Console>
+                    {{ resolvedVisTree }}
+                </Console>
+            </ScrollBox>
+        </Panel>
+        <Panel title="Viewport">
+            <VisViewport ref="main-viewport" />
+        </Panel>
+        <Panel title="Raw View">
+            <VisViewport ref="raw-viewport" />
+        </Panel>
+        <Panel title="Log">
+            <ScrollBox>
+                <LogConsole ref="log-console" showTopic />
+            </ScrollBox>
+        </Panel>
+        <Panel title="Help" initshow>
+            <HelpPage />
+        </Panel>
+        <template #extra-footer>
             <DebugSessionControl class="session-control" :session="debugSession" />
-        </div>
-    </div>
+        </template>
+    </AppView>
 </template>
 
-<style scoped>
+<style>
     .app {
         width: 100%;
         height: 100%;
@@ -212,58 +143,6 @@
         /* Lay out main content above the display settings */
         display: flex;
         flex-direction: column;
-    }
-
-    .app > .main {
-        /* Fill the application container */
-        flex-grow: 1;
-        /* Lay out panels side-by-side */
-        display: flex;
-        gap: 0.5em;
-    }
-
-    .app > .main > .placeholder {
-        /* When the container is empty, show something
-        so it does not look blank */
-        background-image: url('../../assets/empty-screen.svg');
-        background-repeat: no-repeat;
-        background-size: contain;
-        background-position: bottom;
-    }
-
-    .app > .main > .panel,
-    .app > .main > .placeholder {
-        /* Fill the screen horizontally */
-        flex-grow: 1;
-    }
-
-    .app > .footer {
-        margin-top: 0.5em;
-        display: flex;
-        flex-wrap: wrap-reverse;
-        gap: 1em;
-    }
-
-    .display-settings {
-        display: flex;
-        align-items: baseline;
-        flex-wrap: wrap;
-        gap: 1em;
-    }
-
-    .display-settings-label {
-        font-size: larger;
-        font-weight: bolder;
-    }
-
-    .display-settings > label {
-        display: flex;
-        align-items: baseline;
-        gap: 0.25em;
-    }
-
-    .display-settings input[type='checkbox'] {
-        margin: 0;
     }
 
     .session-control {
