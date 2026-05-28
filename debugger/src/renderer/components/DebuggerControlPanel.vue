@@ -59,6 +59,9 @@
         }
     }
 
+    const pathToDebugger = ref('');
+    Debugger.onPathToDebuggerAvailable(path => (pathToDebugger.value = path));
+
     const logConsole = useTemplateRef('log-console');
     const debugLogger = new HookableLogger();
     debug.logger = debugLogger;
@@ -79,7 +82,10 @@
         <div class="debugger-control-row debugger-path">
             <label>
                 Path to debugger:
-                <input v-model="Debugger.pathToDebugger" />
+                <input
+                    :value="pathToDebugger"
+                    @input="Debugger.pathToDebugger = ($event.target as any).value"
+                />
             </label>
         </div>
         <div class="debugger-control-row debugger-status">
