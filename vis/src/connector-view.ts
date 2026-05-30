@@ -146,6 +146,9 @@ class ConnectorViewModel {
                 strokeWidth: 1,
                 stroke: DEFAULT_STROKE_COLOR,
             },
+            endpointStyle: {
+                fill: DEFAULT_STROKE_COLOR,
+            },
             // Use attributes et al to figure out connector appearence.
             // This cannot be changed later without recreating the whole connector,
             // so we do not update it with attribute observers.
@@ -158,8 +161,7 @@ class ConnectorViewModel {
             stroke(value) {
                 value ??= DEFAULT_STROKE_COLOR;
                 connection.paintStyle.stroke = value;
-                connection.endpoints[0].paintStyle.fill = value;
-                connection.endpoints[1].paintStyle.fill = value;
+                connection.endpointStyle.fill = value;
                 jsplumb.repaint(connection.endpoints[0].element);
                 jsplumb.repaint(connection.endpoints[1].element);
             },
