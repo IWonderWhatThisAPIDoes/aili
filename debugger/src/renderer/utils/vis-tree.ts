@@ -22,9 +22,13 @@ export class VisTree implements VisTreeModel {
     createConnector(): VisConnector {
         return new VisConnector();
     }
-    set root(root: VisElement) {
+    set root(root: VisElement | undefined) {
+        if (root === this._root) {
+            return;
+        }
+        const oldRoot = this._root;
         this._root = root;
-        this._onRootChanged.trigger(root);
+        this._onRootChanged.trigger(root, oldRoot);
     }
     /**
      * Retrieves the root element of the tree if one is set.
@@ -34,10 +38,15 @@ export class VisTree implements VisTreeModel {
     }
     /**
      * Hook that triggers after {@link root} is updated.
+     *
+     * @param newRoot New root element.
+     * @param oldRoot Original root element, if any.
+     *
+     * @event
      */
-    get onRootChanged(): Hookable<[VisElement]> {
+    get onRootChanged(): Hookable<[VisElement | undefined, VisElement | undefined]> {
         return this._onRootChanged;
     }
     private _root: VisElement | undefined;
-    private _onRootChanged: Hook<[VisElement]>;
+    private _onRootChanged: Hook<[VisElement | undefined, VisElement | undefined]>;
 }

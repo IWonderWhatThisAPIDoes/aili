@@ -289,8 +289,8 @@
 
             <h3 id="panel-tree">Vis tree</h3>
             <p>
-                This is another diagnostic panel that shows an XML-like structural serialization of
-                the visual scene that should show up in the
+                This is another diagnostic panel that shows the tree that represents the visual
+                scene that should show up in the
                 <a href="#panel-viewport">viewport</a>.
             </p>
             <p>

@@ -5,7 +5,7 @@
 <script setup lang="ts">
     import { onMounted, useTemplateRef } from 'vue';
     import { GdbStateGraph, GdbVisTreeRenderer, Stylesheet } from 'aili-jsapi';
-    import { prettyPrintVisTree } from '../utils/pretty-vis';
+    import { VisTree } from '../utils/vis-tree';
     import VisViewport from './VisViewport.vue';
 
     const inner = useTemplateRef('inner');
@@ -20,6 +20,12 @@
     });
 
     defineExpose({
+        /**
+         * Gets the underlying vis tree.
+         */
+        get visTree(): VisTree | undefined {
+            return inner.value?.visTree;
+        },
         /**
          * Renders a state graph, resolved with a specified stylesheet,
          * into the viewport.
@@ -43,19 +49,6 @@
          */
         prettyPrintResolvedStyle(): string {
             return renderer?.prettyPrint() ?? '[not available]';
-        },
-        /**
-         * Serializes the structure of the Vis tree
-         * in a human-readable format.
-         *
-         * @returns Human.readablerepresentation of the Vis tree.
-         */
-        prettyPrintVisTree(): string {
-            if (inner.value?.visTree?.root) {
-                return prettyPrintVisTree(inner.value.visTree.root);
-            } else {
-                return '[no root]';
-            }
         },
     });
 </script>

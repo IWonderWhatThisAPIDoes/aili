@@ -12,11 +12,12 @@
 </script>
 
 <script setup lang="ts">
-    import { ref, useTemplateRef } from 'vue';
+    import { onMounted, ref, useTemplateRef } from 'vue';
     import { HookableLogger } from 'aili-hooligan';
     import { GdbStateGraph, Stylesheet } from 'aili-jsapi';
     import { Debugger } from './controllers/debugger';
     import { DEFAULT_STYLESHEET } from './utils/default-stylesheet';
+    import { MetaVisTreeRenderer } from './utils/meta-vis-tree';
     import { DebugSessionStatus } from './controllers/session';
     import { DebugSessionManager } from './controllers/session-manager';
     import { SourceViewer } from './controllers/source-viewer';
@@ -32,13 +33,14 @@
     import DebuggeeControlPanel from './components/DebuggeeControlPanel.vue';
     import AppView from './components/AppView.vue';
     import Panel from './components/Panel.vue';
+    import VisViewport from './components/VisViewport.vue';
 
     const mainViewport = useTemplateRef('main-viewport');
     const rawViewport = useTemplateRef('raw-viewport');
+    const treeViewport = useTemplateRef('tree-viewport');
     const logConsole = useTemplateRef('log-console');
 
     const resolvedStyle = ref('');
-    const resolvedVisTree = ref('');
     const rawStylesheet = Stylesheet.parse(DEFAULT_STYLESHEET);
     let mainStylesheet: Stylesheet;
     let stateGraph: GdbStateGraph | undefined;
@@ -71,7 +73,6 @@
         if (stateGraph && mainStylesheet && mainViewport.value) {
             mainViewport.value.render(stateGraph, mainStylesheet);
             resolvedStyle.value = mainViewport.value.prettyPrintResolvedStyle();
-            resolvedVisTree.value = mainViewport.value.prettyPrintVisTree();
         }
     }
 
@@ -79,6 +80,14 @@
         mainStylesheet = stylesheet;
         applyMainStylesheet();
     }
+
+    onMounted(() => {
+        if (!mainViewport.value?.visTree || !treeViewport.value) {
+            console.warn('Element is not mounted in mount hook');
+            return;
+        }
+        new MetaVisTreeRenderer(mainViewport.value.visTree, treeViewport.value.visTree);
+    });
 </script>
 
 <template>
@@ -107,11 +116,7 @@
             </ScrollBox>
         </Panel>
         <Panel title="VisTree">
-            <ScrollBox>
-                <Console>
-                    {{ resolvedVisTree }}
-                </Console>
-            </ScrollBox>
+            <VisViewport ref="tree-viewport" />
         </Panel>
         <Panel title="Viewport">
             <VisViewportWithRenderer ref="main-viewport" />
