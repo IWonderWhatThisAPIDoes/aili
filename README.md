@@ -16,6 +16,22 @@ See the [stylesheet authors' manual](./doc/stylesheets.md) for more information.
 
 ![The Aili pipeline. A state graph is generated that follows the structure of the debuggee's source. A stylesheet then converts it into an XML-like format that describes what the visuals should look like.](./assets/pipeline.png)
 
+## Running the Debugger
+
+Compile the WASM modules
+```sh
+cargo install wasm-pack
+wasm-pack build jsapi -t bundler --features gdbstate
+```
+Then start the dev server
+```sh
+npm run -w debugger start
+```
+...Or package it as an application
+```sh
+npm run -w debugger build
+```
+
 ## Modules in This Repository
 
 ![Overview of modules in the repository](./assets/overview.png)
