@@ -164,7 +164,7 @@ export function parseGdbMiRecordHeader(record: string): GdbMiRecordHeader | unde
  * Maps record types to the characters that the respective
  * records start with.
  */
-const RECORD_TYPE_FROM_PREFIX = {
+const RECORD_TYPE_FROM_PREFIX: Record<string, GdbMiRecordType> = {
     '^': GdbMiRecordType.RESULT,
     '*': GdbMiRecordType.EXEC,
     '+': GdbMiRecordType.STATUS,
