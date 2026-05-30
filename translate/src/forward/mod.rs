@@ -71,6 +71,18 @@ impl<'w, T: NodeId, V: VisTree> VisTreeWriter<'w, T, V> {
         self.vis_tree
     }
 
+    /// Gets the current root element, if any.
+    pub fn get_root(&self) -> Option<&Selectable<T>> {
+        self.current_root.as_ref()
+    }
+
+    /// Iterates through the current visualized entities and their properties.
+    pub fn get_property_maps(&self) -> impl Iterator<Item = (&Selectable<T>, &PropertyMap<T>)> {
+        self.current_mappping
+            .iter()
+            .map(|(k, rendering)| (k, &rendering.properties))
+    }
+
     /// Changes the root element.
     pub fn update_root(&mut self, new_root: Option<Selectable<T>>) {
         // Do nothing if the root is up-to-date

@@ -1,5 +1,7 @@
 //! Stylesheet resolution and updating of the visualization tree.
 
+mod property_map;
+
 use crate::{
     log::{Logger, Severity},
     state::StateGraph,
@@ -9,6 +11,7 @@ use crate::{
 use aili_model::state::{ProgramStateGraph, RootedProgramStateGraph};
 use aili_style::selectable::Selectable;
 use aili_translate::forward::{VisTreeWriter, VisTreeWriterWarning};
+use property_map::PropertyMapSnapshot;
 use wasm_bindgen::prelude::*;
 
 /// Declares a renderer type for a given target.
@@ -46,6 +49,18 @@ macro_rules! declare_renderer {
             #[wasm_bindgen(js_name = "prettyPrint")]
             pub fn pretty_print(&self) -> String {
                 format!("{:#?}", self.0)
+            }
+
+            /// Retrieves the full property mapping for all tracked nodes.
+            #[wasm_bindgen(js_name = "getPropertyMaps")]
+            pub fn get_property_maps(&self) -> Vec<PropertyMapSnapshot> {
+                let mut mappings = self
+                    .0
+                    .get_property_maps()
+                    .map(|(s, p)| PropertyMapSnapshot::from_property_map(s, p))
+                    .collect::<Vec<_>>();
+                mappings.sort_by(|a, b| a.node_id.cmp(&b.node_id));
+                mappings
             }
 
             /// Resolves a [`Stylesheet`] over a state graph and renders the result.
