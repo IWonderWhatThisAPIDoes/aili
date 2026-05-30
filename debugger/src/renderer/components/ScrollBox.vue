@@ -57,6 +57,7 @@
     .scroll-box {
         display: flex;
         overflow: auto;
+        scroll-behavior: smooth;
     }
 
     .scroll-box > * {

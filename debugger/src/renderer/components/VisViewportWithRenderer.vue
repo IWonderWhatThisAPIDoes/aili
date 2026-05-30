@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
     import { onMounted, useTemplateRef } from 'vue';
-    import { GdbStateGraph, GdbVisTreeRenderer, Stylesheet } from 'aili-jsapi';
+    import { GdbStateGraph, GdbVisTreeRenderer, PropertyMap, Stylesheet } from 'aili-jsapi';
     import { VisTree } from '../utils/vis-tree';
     import VisViewport from './VisViewport.vue';
 
@@ -43,12 +43,12 @@
         },
         /**
          * Serializes the resolved style passed to the viewport
-         * in a human-readable format.
+         * to a mapping table.
          *
-         * @returns Human-readable representation of the resolved style.
+         * @returns Table of properties on individual entities.
          */
-        prettyPrintResolvedStyle(): string {
-            return renderer?.prettyPrint() ?? '[not available]';
+        resolvedStyleTable(): PropertyMap[] {
+            return renderer?.getPropertyMaps() ?? [];
         },
     });
 </script>

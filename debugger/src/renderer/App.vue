@@ -14,7 +14,7 @@
 <script setup lang="ts">
     import { onMounted, ref, useTemplateRef } from 'vue';
     import { HookableLogger } from 'aili-hooligan';
-    import { GdbStateGraph, Stylesheet } from 'aili-jsapi';
+    import { GdbStateGraph, Stylesheet, PropertyMap } from 'aili-jsapi';
     import { Debugger } from './controllers/debugger';
     import { DEFAULT_STYLESHEET } from './utils/default-stylesheet';
     import { MetaVisTreeRenderer } from './utils/meta-vis-tree';
@@ -23,7 +23,6 @@
     import { SourceViewer } from './controllers/source-viewer';
     import DebuggerControlPanel from './components/DebuggerControlPanel.vue';
     import ScrollBox from './components/ScrollBox.vue';
-    import Console from './components/Console.vue';
     import LogConsole from './components/LogConsole.vue';
     import StyleEditor from './components/StyleEditor.vue';
     import DebugSessionControl from './components/DebugSessionControl.vue';
@@ -34,13 +33,14 @@
     import AppView from './components/AppView.vue';
     import Panel from './components/Panel.vue';
     import VisViewport from './components/VisViewport.vue';
+    import PropertyTable from './components/PropertyTable.vue';
 
     const mainViewport = useTemplateRef('main-viewport');
     const rawViewport = useTemplateRef('raw-viewport');
     const treeViewport = useTemplateRef('tree-viewport');
     const logConsole = useTemplateRef('log-console');
 
-    const resolvedStyle = ref('');
+    const resolvedStyle = ref([] as PropertyMap[]);
     const rawStylesheet = Stylesheet.parse(DEFAULT_STYLESHEET);
     let mainStylesheet: Stylesheet;
     let stateGraph: GdbStateGraph | undefined;
@@ -72,7 +72,7 @@
     function applyMainStylesheet(): void {
         if (stateGraph && mainStylesheet && mainViewport.value) {
             mainViewport.value.render(stateGraph, mainStylesheet);
-            resolvedStyle.value = mainViewport.value.prettyPrintResolvedStyle();
+            resolvedStyle.value = mainViewport.value.resolvedStyleTable();
         }
     }
 
@@ -110,9 +110,9 @@
         </Panel>
         <Panel title="Resolved Style">
             <ScrollBox>
-                <Console>
-                    {{ resolvedStyle }}
-                </Console>
+                <div>
+                    <PropertyTable class="resolved-style-table" :mapping="resolvedStyle" />
+                </div>
             </ScrollBox>
         </Panel>
         <Panel title="VisTree">
@@ -152,5 +152,9 @@
 
     .session-control {
         margin-left: auto;
+    }
+
+    .resolved-style-table {
+        min-width: 100%;
     }
 </style>
