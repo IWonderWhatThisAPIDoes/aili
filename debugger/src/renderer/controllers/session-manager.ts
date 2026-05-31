@@ -226,7 +226,7 @@ export class DebugSessionManager {
      * Stylesheet that provides hints to help deduce the length of allocated arrays.
      */
     hintSheet: LengthHintSheet = LengthHintSheet.empty();
-    private hintsForThisSession: LengthHintSheet;
+    private hintsForThisSession: LengthHintSheet = this.hintSheet;
     private _status: DebugSessionStatus;
     private statusBusyOverride: boolean = false;
     private readonly _onStateGraphUpdate: Hook<[GdbStateGraph]>;

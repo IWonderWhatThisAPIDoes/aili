@@ -35,11 +35,11 @@
     <div :class="['log-line', severityClass(severity), ...topicClasses(topic)]">
         <span
             v-if="showTopic"
-            v-for="topic in topic"
-            :class="['log-line-topic', `topic-${topic}`]"
-            :style="{ color: colorFromString(topic) }"
+            v-for="topicPart in topic"
+            :class="['log-line-topic', `topic-${topicPart}`]"
+            :style="{ color: colorFromString(topicPart) }"
         >
-            {{ topic }} </span
+            {{ topicPart }} </span
         >{{ message }}
     </div>
 </template>
