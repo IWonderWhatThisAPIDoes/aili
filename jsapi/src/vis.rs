@@ -24,7 +24,7 @@ const TYPESCRIPT_INTERFACES: &str = r"
          */
         createElement(tagName: string): VisElement;
         /**
-         * Constructs a new {@link VisConnector that can be used with the tree.}
+         * Constructs a new {@link VisConnector} that can be used with the tree.
          */
         createConnector(): VisConnector;
     }

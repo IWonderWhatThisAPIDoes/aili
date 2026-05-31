@@ -3,5 +3,15 @@
     "readme": "none",
     "out": "./doc",
     "skipErrorChecking": true,
-    "treatWarningsAsErrors": true
+    "treatWarningsAsErrors": true,
+    "externalSymbolLinkMappings": {
+        "aili-vis": {
+            "VisElement": "#"
+        },
+        "aili-jsapi": {
+            "VisTree": "#",
+            "VisElement": "#",
+            "VisConnector": "#"
+        }
+    }
 }

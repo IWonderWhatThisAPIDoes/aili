@@ -39,8 +39,7 @@ export class VisTree implements VisTreeModel {
     /**
      * Hook that triggers after {@link root} is updated.
      *
-     * @param newRoot New root element.
-     * @param oldRoot Original root element, if any.
+     * Receives the new and original root element, if they exist.
      *
      * @event
      */
